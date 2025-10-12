@@ -43,7 +43,7 @@ fun AppDrawer(
 
         // Título del drawer
         Text(
-            text = "Zapatería 👟",
+            text = "StepStyle 👟",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )

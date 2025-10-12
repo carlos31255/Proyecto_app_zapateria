@@ -25,7 +25,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "¡Bienvenido a la Zapatería! 👟",
+                text = "¡Bienvenido a la Zapatería!",
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center
             )

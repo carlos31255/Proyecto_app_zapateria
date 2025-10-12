@@ -119,7 +119,7 @@ private fun LoginScreen(
 
             Spacer(Modifier.height(8.dp))                    // Espacio
 
-            // ---------- PASSWORD (oculta por defecto) ----------
+            // PASSWORD (ocultado/visible)
             OutlinedTextField(
                 value = pass,                                // Valor actual
                 onValueChange = onPassChange,                // Notifica VM

@@ -17,7 +17,7 @@ fun AppTopBar(
     onRegister: () -> Unit
 ) {
     TopAppBar(
-        title = { Text("Zapatería") },
+        title = { Text("Zapateria StepStyle") },
         navigationIcon = {
             IconButton(onClick = onOpenDrawer) {
                 Icon(Icons.Filled.Menu, contentDescription = "Abrir menú")
