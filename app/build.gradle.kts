@@ -2,15 +2,16 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp") version "2.0.21-1.0.25"
 }
 
 android {
-    namespace = "com.example.proyecto_zapateria"
+    namespace = "com.example.proyectoZapateria"
     compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.proyecto_zapateria"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -65,5 +66,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     // Material icons (necesarios para Visibility / VisibilityOff)
     implementation("androidx.compose.material:material-icons-extended")
+    // Room (SQLite) - runtime y extensiones KTX
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
 
+    // Compilador de Room vía KSP
+    ksp("androidx.room:room-compiler:2.6.1")
 }
