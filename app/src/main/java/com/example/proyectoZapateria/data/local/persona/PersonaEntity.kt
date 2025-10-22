@@ -9,7 +9,7 @@ import java.time.Instant
 @Entity(
     tableName = "persona",
     indices = [
-        Index(value = ["rut_dni"], unique = true),
+        Index(value = ["rut"], unique = true),
         Index(value = ["username"], unique = true)
     ]
 )
@@ -21,8 +21,8 @@ data class PersonaEntity(
 
     val nombre: String,
     val apellido: String,
-    @ColumnInfo(name = "rut_dni")
-    val rutDni: String,
+    val rut: String, // Número del RUT sin dígito verificador
+    val dv: String, // Dígito verificador del RUT
     val telefono: String?,
     val email: String?,
     @ColumnInfo(name = "id_comuna")
@@ -31,6 +31,7 @@ data class PersonaEntity(
     @ColumnInfo(name = "numero_puerta")
     val numeroPuerta: String?,
     val username: String,
+    @ColumnInfo(name = "pass_hash")
     val passHash: String,
     @ColumnInfo(name = "fecha_registro")
     val fechaRegistro: Instant = Instant.now(), // Fecha y hora de registro

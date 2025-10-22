@@ -31,9 +31,9 @@ import java.time.Instant
 data class BoletaVentaEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id_boleta")
+    val idBoleta: Int = 0,
 
     val fecha: Instant = Instant.now(),
-
 
     @ColumnInfo(name = "id_vendedor")
     val idVendedor: Int,
@@ -41,7 +41,8 @@ data class BoletaVentaEntity(
     @ColumnInfo(name = "id_cliente")
     val idCliente: Int,
 
+
     @ColumnInfo(name = "monto_total")
-    val montoTotal: Double
+    val montoTotal: Int
 )
 

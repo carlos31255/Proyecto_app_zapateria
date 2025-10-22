@@ -69,7 +69,8 @@ dependencies {
     // Room (SQLite) - runtime y extensiones KTX
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-
     // Compilador de Room vía KSP
     ksp("androidx.room:room-compiler:2.6.1")
+    // Hash para contraseñas
+    implementation("org.mindrot:jbcrypt:0.4")
 }
