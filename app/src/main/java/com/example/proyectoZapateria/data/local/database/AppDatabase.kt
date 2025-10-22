@@ -71,6 +71,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transportistaDao(): com.example.proyectoZapateria.data.local.transportista.TransportistaDao
 
     // === Productos e inventario ===
+    abstract fun marcaDao(): com.example.proyectoZapateria.data.local.marca.MarcaDao
+    abstract fun modeloZapatoDao(): com.example.proyectoZapateria.data.local.modelo.ModeloZapatoDao
     abstract fun inventarioDao(): com.example.proyectoZapateria.data.local.inventario.InventarioDao
     abstract fun movimientoInventarioDao(): com.example.proyectoZapateria.data.local.movimientoinventario.MovimientoInventarioDao
 
