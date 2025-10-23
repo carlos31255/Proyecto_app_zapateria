@@ -5,7 +5,6 @@ data class TransportistaConPersona(
     val nombre: String,
     val apellido: String,
     val rut: String,
-    val dv: String,
     val telefono: String?,
     val email: String?,
     val username: String,
@@ -13,8 +12,6 @@ data class TransportistaConPersona(
     val licencia: String?,
     val vehiculo: String?
 ) {
-    // Función auxiliar para obtener RUT completo formateado
-    fun getRutCompleto(): String = "$rut-$dv"
 
     // Función auxiliar para obtener nombre completo
     fun getNombreCompleto(): String = "$nombre $apellido"

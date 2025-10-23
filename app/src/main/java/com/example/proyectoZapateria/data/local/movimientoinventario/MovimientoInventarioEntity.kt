@@ -7,7 +7,6 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.proyectoZapateria.data.local.inventario.InventarioEntity
 import com.example.proyectoZapateria.data.local.tipomovimiento.TipoMovimientoEntity
-import java.time.Instant
 
 @Entity(
     tableName = "movimientoinventario",
@@ -41,8 +40,8 @@ data class MovimientoInventarioEntity(
 
     val cantidad: Int,
 
-    val fechaMovimiento: Instant = Instant.now(),
-    val fechaMovimiento: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "fecha_movimiento")
+    val fechaMovimiento: Long = System.currentTimeMillis(), // Timestamp en milisegundos
 
     val observacion: String?
 )

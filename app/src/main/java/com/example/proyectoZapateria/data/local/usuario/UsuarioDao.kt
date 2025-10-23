@@ -46,9 +46,9 @@ interface UsuarioDao {
 
     // Obtener usuario específico con datos de persona y rol
     @Query("""
-        SELECT u.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
-               u.id_rol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
@@ -58,9 +58,9 @@ interface UsuarioDao {
 
     // Obtener todos los usuarios con datos de persona y rol
     @Query("""
-        SELECT u.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
-               u.id_rol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
@@ -70,9 +70,9 @@ interface UsuarioDao {
 
     // Obtener usuarios por rol con datos de persona y rol
     @Query("""
-        SELECT u.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
-               u.id_rol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
@@ -83,9 +83,9 @@ interface UsuarioDao {
 
     // Buscar usuario por username con datos completos (útil para login)
     @Query("""
-        SELECT u.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
-               u.id_rol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
@@ -95,9 +95,9 @@ interface UsuarioDao {
 
     // Buscar usuario por RUT con datos completos
     @Query("""
-        SELECT u.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
-               u.id_rol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
@@ -107,9 +107,9 @@ interface UsuarioDao {
 
     // Buscar usuarios por nombre, apellido o username
     @Query("""
-        SELECT u.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
-               u.id_rol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
@@ -121,9 +121,9 @@ interface UsuarioDao {
 
     // Obtener usuarios por estado (activo/inactivo) con datos completos
     @Query("""
-        SELECT u.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
-               u.id_rol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol

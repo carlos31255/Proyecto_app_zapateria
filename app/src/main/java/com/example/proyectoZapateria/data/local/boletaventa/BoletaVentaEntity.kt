@@ -7,7 +7,6 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.proyectoZapateria.data.local.cliente.ClienteEntity
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
-import java.time.Instant
 
 @Entity(
     tableName = "boletaventa",
@@ -33,7 +32,7 @@ data class BoletaVentaEntity(
     @ColumnInfo(name = "id_boleta")
     val idBoleta: Int = 0,
 
-    val fecha: Instant = Instant.now(),
+    val fecha: Long = System.currentTimeMillis(), // Timestamp en milisegundos
 
     @ColumnInfo(name = "id_vendedor")
     val idVendedor: Int,

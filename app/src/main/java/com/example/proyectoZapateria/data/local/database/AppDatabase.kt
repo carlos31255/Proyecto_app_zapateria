@@ -118,8 +118,30 @@ abstract class AppDatabase : RoomDatabase() {
 
         // Función para precargar datos iniciales en la base de datos
         private suspend fun preloadData(database: AppDatabase) {
-            // TODO: Implementar precarga de datos iniciales
-            // Ejemplo: roles, regiones, comunas, tipos de movimiento, etc.
+            val rolDao = database.rolDao()
+
+            // Roles predefinidos para una zapatería pequeña
+            val rolesIniciales = listOf(
+                RolEntity(
+                    idRol = 0,
+                    nombreRol = "Administrador",
+                    descripcion = "Encargado principal: acceso total al sistema, gestión de usuarios, inventario y configuración"
+                ),
+                RolEntity(
+                    idRol = 0,
+                    nombreRol = "Vendedor",
+                    descripcion = "Personal de ventas: gestión de ventas, clientes y boletas de venta"
+                ),
+                RolEntity(
+                    idRol = 0,
+                    nombreRol = "Transportista",
+                    descripcion = "Personal de entregas: gestión de despachos y seguimiento de pedidos"
+                )
+            )
+
+            rolesIniciales.forEach { rol ->
+                rolDao.insert(rol)
+            }
         }
     }
 }

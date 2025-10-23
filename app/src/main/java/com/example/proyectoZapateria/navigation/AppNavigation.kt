@@ -8,13 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.example.proyectoZapateria.ui.components.AppDrawer
 import com.example.proyectoZapateria.ui.components.AppTopBar
 import com.example.proyectoZapateria.ui.components.defaultDrawerItems
 import com.example.proyectoZapateria.ui.screen.HomeScreen
 import com.example.proyectoZapateria.ui.screen.LoginScreenVm
 import com.example.proyectoZapateria.ui.screen.RegisterScreenVm
+import com.example.proyectoZapateria.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
 // Rutas de navegación usando sealed class
@@ -25,77 +25,70 @@ sealed class Route(val path: String) {
 }
 
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
-    AppNavGraph(navController)
-}
+fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-@Composable // Gráfico de navegación + Drawer + Scaffold
-fun AppNavGraph(navController: NavHostController) { // Recibe el controlador
+    // Helpers de navegación
+    val goHome: () -> Unit = { navController.navigate(Route.Home.path) }
+    val goLogin: () -> Unit = { navController.navigate(Route.Login.path) }
+    val goRegister: () -> Unit = { navController.navigate(Route.Register.path) }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Estado del drawer
-    val scope = rememberCoroutineScope() // Necesario para abrir/cerrar drawer
-
-    // Helpers de navegación (reutilizamos en topbar/drawer/botones)
-    val goHome: () -> Unit = { navController.navigate(Route.Home.path) }    // Ir a Home
-    val goLogin: () -> Unit = { navController.navigate(Route.Login.path) }   // Ir a Login
-    val goRegister: () -> Unit = { navController.navigate(Route.Register.path) } // Ir a Registro
-
-    ModalNavigationDrawer( // Capa superior con drawer lateral
-        drawerState = drawerState, // Estado del drawer
-        drawerContent = { // Contenido del drawer (menú)
-            AppDrawer( // Nuestro componente Drawer
-                currentRoute = null, // Puedes pasar navController.currentBackStackEntry?.destination?.route
-                items = defaultDrawerItems( // Lista estándar
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                currentRoute = null,
+                items = defaultDrawerItems(
                     onHome = {
-                        scope.launch { drawerState.close() } // Cierra drawer
-                        goHome() // Navega a Home
+                        scope.launch { drawerState.close() }
+                        goHome()
                     },
                     onLogin = {
-                        scope.launch { drawerState.close() } // Cierra drawer
-                        goLogin() // Navega a Login
+                        scope.launch { drawerState.close() }
+                        goLogin()
                     },
                     onRegister = {
-                        scope.launch { drawerState.close() } // Cierra drawer
-                        goRegister() // Navega a Registro
+                        scope.launch { drawerState.close() }
+                        goRegister()
                     }
                 )
             )
         }
     ) {
-        Scaffold( // Estructura base de pantalla
-            topBar = { // Barra superior con íconos/menú
+        Scaffold(
+            topBar = {
                 AppTopBar(
-                    onOpenDrawer = { scope.launch { drawerState.open() } }, // Abre drawer
-                    onHome = goHome,     // Botón Home
-                    onLogin = goLogin,   // Botón Login
-                    onRegister = goRegister // Botón Registro
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onHome = goHome,
+                    onLogin = goLogin,
+                    onRegister = goRegister
                 )
             }
-        ) { innerPadding -> // Padding que evita solapar contenido
-            NavHost( // Contenedor de destinos navegables
-                navController = navController, // Controlador
-                startDestination = Route.Home.path, // Inicio: Home
-                modifier = Modifier.padding(innerPadding) // Respeta topBar
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = Route.Home.path,
+                modifier = Modifier.padding(innerPadding)
             ) {
-                composable(Route.Home.path) { // Destino Home
+                composable(Route.Home.path) {
                     HomeScreen(
-                        onGoLogin = goLogin,     // Botón para ir a Login
-                        onGoRegister = goRegister // Botón para ir a Registro
+                        onGoLogin = goLogin,
+                        onGoRegister = goRegister
                     )
                 }
-                composable(Route.Login.path) { // Destino Login
-                    // Usamos la versión con ViewModel (LoginScreenVm) para formularios/validación en tiempo real
+                composable(Route.Login.path) {
                     LoginScreenVm(
-                        onLoginOkGoHome = goHome,            // Si el VM marca success=true, navegamos a Home
-                        onGoRegister = goRegister            // Enlace para ir a la pantalla de Registro
+                        authViewModel = authViewModel,
+                        onLoginOkGoHome = goHome,
+                        onGoRegister = goRegister
                     )
                 }
-                composable(Route.Register.path) { // Destino Registro
-                    // Usamos la versión con ViewModel (RegisterScreenVm) para formularios/validación en tiempo real
+                composable(Route.Register.path) {
                     RegisterScreenVm(
-                        onRegisterOkGoLogin = goLogin,       // Si el VM marca success=true, volvemos a Login
-                        onGoLogin = goLogin                  // Botón alternativo para ir a Login
+                        authViewModel = authViewModel,
+                        onRegisterOkGoLogin = goLogin,
+                        onGoLogin = goLogin
                     )
                 }
             }

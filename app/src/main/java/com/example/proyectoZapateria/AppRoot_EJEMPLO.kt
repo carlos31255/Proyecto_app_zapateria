@@ -37,6 +37,6 @@ fun AppRoot() {
     // ====== NAVEGACIÓN ======
     val navController = rememberNavController()
 
-    AppNavGraph(navController = navController)
+    AppNavGraph(navController = navController, authViewModel = authViewModel)
 }
 

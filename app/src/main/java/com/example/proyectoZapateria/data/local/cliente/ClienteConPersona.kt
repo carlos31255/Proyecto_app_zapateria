@@ -5,7 +5,6 @@ data class ClienteConPersona(
     val nombre: String,
     val apellido: String,
     val rut: String,
-    val dv: String, // Dígito verificador del RUT
     val telefono: String?,
     val email: String?,
     val categoria: String?,
@@ -14,7 +13,7 @@ data class ClienteConPersona(
     val numeroPuerta: String?,
     val idComuna: Int?
 ) {
-    // Función auxiliar para obtener RUT completo formateado
-    fun getRutCompleto(): String = "$rut-$dv"
+    // Función auxiliar para obtener nombre completo
+    fun getNombreCompleto(): String = "$nombre $apellido"
 }
 

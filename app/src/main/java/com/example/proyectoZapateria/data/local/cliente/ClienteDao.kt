@@ -46,7 +46,7 @@ interface ClienteDao {
 
     // Buscar cliente por RUT con datos de persona
     @Query("""
-        SELECT c.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT c.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, c.categoria, p.username, 
                p.calle, p.numero_puerta as numeroPuerta, p.id_comuna as idComuna
         FROM cliente c
@@ -57,7 +57,7 @@ interface ClienteDao {
 
     // Buscar clientes por nombre o apellido
     @Query("""
-        SELECT c.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT c.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, c.categoria, p.username, 
                p.calle, p.numero_puerta as numeroPuerta, p.id_comuna as idComuna
         FROM cliente c
@@ -68,7 +68,7 @@ interface ClienteDao {
 
     // Obtener todos los clientes con datos de persona
     @Query("""
-        SELECT c.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT c.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, c.categoria, p.username, 
                p.calle, p.numero_puerta as numeroPuerta, p.id_comuna as idComuna
         FROM cliente c
@@ -78,7 +78,7 @@ interface ClienteDao {
 
     // Obtener cliente específico con datos de persona
     @Query("""
-        SELECT c.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT c.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, c.categoria, p.username, 
                p.calle, p.numero_puerta as numeroPuerta, p.id_comuna as idComuna
         FROM cliente c

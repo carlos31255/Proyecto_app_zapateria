@@ -42,7 +42,7 @@ interface TransportistaDao {
 
     // Obtener transportista específico con datos de persona
     @Query("""
-        SELECT t.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT t.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
                t.licencia, t.vehiculo
         FROM transportista t
@@ -53,7 +53,7 @@ interface TransportistaDao {
 
     // Obtener todos los transportistas con datos de persona
     @Query("""
-        SELECT t.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT t.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
                t.licencia, t.vehiculo
         FROM transportista t
@@ -64,7 +64,7 @@ interface TransportistaDao {
 
     // Buscar transportistas por nombre, apellido o username
     @Query("""
-        SELECT t.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT t.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
                t.licencia, t.vehiculo
         FROM transportista t
@@ -77,7 +77,7 @@ interface TransportistaDao {
 
     // Obtener transportistas por estado (activo/inactivo)
     @Query("""
-        SELECT t.id_persona, p.nombre, p.apellido, p.rut, p.dv,
+        SELECT t.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
                t.licencia, t.vehiculo
         FROM transportista t

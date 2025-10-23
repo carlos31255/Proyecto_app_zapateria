@@ -4,7 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.time.Instant
 
 @Entity(
     tableName = "persona",
@@ -21,8 +20,7 @@ data class PersonaEntity(
 
     val nombre: String,
     val apellido: String,
-    val rut: String, // Número del RUT sin dígito verificador
-    val dv: String, // Dígito verificador del RUT
+    val rut: String, // RUT completo con dígito verificador (ej: "12345678-9")
     val telefono: String?,
     val email: String?,
     @ColumnInfo(name = "id_comuna")
@@ -31,9 +29,9 @@ data class PersonaEntity(
     @ColumnInfo(name = "numero_puerta")
     val numeroPuerta: String?,
     val username: String,
-    @ColumnInfo(name = "pass_hash")
+    @ColumnInfo(name = "password_hash")
     val passHash: String,
     @ColumnInfo(name = "fecha_registro")
-    val fechaRegistro: Instant = Instant.now(), // Fecha y hora de registro
+    val fechaRegistro: Long = System.currentTimeMillis(),
     val estado: String = "activo"
 )

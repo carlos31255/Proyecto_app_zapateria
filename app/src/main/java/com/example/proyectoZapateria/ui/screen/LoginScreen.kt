@@ -3,6 +3,7 @@ package com.example.proyectoZapateria.ui.screen
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -11,10 +12,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.proyectoZapateria.R
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
@@ -22,15 +27,16 @@ import com.example.proyectoZapateria.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreenVm(
+    authViewModel: AuthViewModel,
     onLoginOkGoHome: () -> Unit,
     onGoRegister: () -> Unit
 ) {
-    val vm: AuthViewModel = viewModel()
-    val state by vm.login.collectAsStateWithLifecycle()
+    val state by authViewModel.login.collectAsStateWithLifecycle()
 
-    if (state.success){
-        vm.clearLoginResult()
+    LaunchedEffect(state.success) {
+        if (state.success) {
             onLoginOkGoHome()
+        }
     }
 
     LoginScreen(
@@ -41,134 +47,199 @@ fun LoginScreenVm(
         canSubmit = state.canSubmit,
         isSubmitting = state.isLoading,
         errorMsg = state.errorMsg,
-        onEmailChange = vm::onLoginEmailChange,
-        onPassChange = vm::onLoginPassChange,
-        onSubmit = vm::submitLogin,
+        onEmailChange = authViewModel::onLoginEmailChange,
+        onPassChange = authViewModel::onLoginPassChange,
+        onSubmit = authViewModel::submitLogin,
         onGoRegister = onGoRegister
     )
 }
 
 @Composable
 private fun LoginScreen(
-    email: String,                                           // Campo email
-    pass: String,                                            // Campo contraseña
-    emailError: String?,                                     // Error de email
-    passError: String?,                                      // Error de password (opcional)
-    canSubmit: Boolean,                                      // Habilitar botón
-    isSubmitting: Boolean,                                   // Flag loading
-    errorMsg: String?,                                       // Error global (credenciales)
-    onEmailChange: (String) -> Unit,                         // Handler cambio email
-    onPassChange: (String) -> Unit,                          // Handler cambio password
-    onSubmit: () -> Unit,                                    // Acción enviar
-    onGoRegister: () -> Unit                                 // Acción ir a registro
+    email: String,
+    pass: String,
+    emailError: String?,
+    passError: String?,
+    canSubmit: Boolean,
+    isSubmitting: Boolean,
+    errorMsg: String?,
+    onEmailChange: (String) -> Unit,
+    onPassChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onGoRegister: () -> Unit
 ) {
-    val bg = MaterialTheme.colorScheme.secondaryContainer // Fondo distinto para contraste
-    var showPass by remember { mutableStateOf(false) }        // Estado local para mostrar/ocultar contraseña
+    // Colores inspirados en zapatos de cuero y tonos oscuros elegantes
+    val darkLeather = Color(0xFF2C2416) // Cuero oscuro
+    val brownLeather = Color(0xFF4A3C2A) // Marrón cuero
+    val lightBrown = Color(0xFF8B7355) // Marrón claro
+    val cream = Color(0xFFD4C5B0) // Crema/beige
+
+    var showPass by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
-            .fillMaxSize() // Ocupa todo
-            .background(bg) // Fondo
-            .padding(16.dp), // Margen
-        contentAlignment = Alignment.Center // Centro
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(darkLeather, brownLeather)
+                )
+            )
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            //5 Anexamos el modificador
-            modifier = Modifier.fillMaxWidth(),              // Ancho completo
-            horizontalAlignment = Alignment.CenterHorizontally // Centrado horizontal
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(8.dp, RoundedCornerShape(16.dp)),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF3D3228).copy(alpha = 0.95f)
+            )
         ) {
-            // Logo StepStyle
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo StepStyle",
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(80.dp)
-                    .padding(bottom = 16.dp)
-            )
-
-            Text(
-                text = "Login",
-                style = MaterialTheme.typography.headlineSmall // Título
-            )
-            Spacer(Modifier.height(12.dp)) // Separación
-
-            Text(
-                text = "Pantalla de Login (demo). Usa la barra superior, el menú lateral o los botones.",
-                textAlign = TextAlign.Center // Alineación centrada
-            )
-            Spacer(Modifier.height(20.dp)) // Separación
-
-            //5 Borramos los elementos anteriores y comenzamos a agregar los elementos dle formulario
-            // ---------- EMAIL ----------
-            OutlinedTextField(
-                value = email,                               // Valor actual
-                onValueChange = onEmailChange,               // Notifica VM (valida email)
-                label = { Text("Email") },                   // Etiqueta
-                singleLine = true,                           // Una línea
-                isError = emailError != null,                // Marca error si corresponde
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email        // Teclado de email
-                ),
-                modifier = Modifier.fillMaxWidth()           // Ancho completo
-            )
-            if (emailError != null) {                        // Muestra mensaje si hay error
-                Text(emailError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-            }
-
-            Spacer(Modifier.height(8.dp))                    // Espacio
-
-            // PASSWORD (ocultado/visible)
-            OutlinedTextField(
-                value = pass,                                // Valor actual
-                onValueChange = onPassChange,                // Notifica VM
-                label = { Text("Contraseña") },              // Etiqueta
-                singleLine = true,                           // Una línea
-                visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(), // Toggle mostrar/ocultar
-                trailingIcon = {                             // Ícono para alternar visibilidad
-                    IconButton(onClick = { showPass = !showPass }) {
-                        Icon(
-                            imageVector = if (showPass) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = if (showPass) "Ocultar contraseña" else "Mostrar contraseña"
-                        )
-                    }
-                },
-                isError = passError != null,                 // (Opcional) marcar error
-                modifier = Modifier.fillMaxWidth()           // Ancho completo
-            )
-            if (passError != null) {                         // (Opcional) mostrar error
-                Text(passError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-            }
-
-            Spacer(Modifier.height(16.dp))                   // Espacio
-
-            //BOTÓN ENTRAR
-            Button(
-                onClick = onSubmit,                          // Envía login
-                enabled = canSubmit && !isSubmitting,        // Solo si válido y no cargando
-                modifier = Modifier.fillMaxWidth()           // Ancho completo
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (isSubmitting) {                          // UI de carga
-                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Validando...")
-                } else {
-                    Text("Entrar")
+                // Logo StepStyle
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Logo StepStyle",
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(70.dp)
+                        .padding(bottom = 8.dp)
+                )
+
+                Text(
+                    text = "Bienvenido",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = cream
+                )
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = "Inicia sesión en tu cuenta",
+                    textAlign = TextAlign.Center,
+                    color = lightBrown,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(24.dp))
+
+                // Campo EMAIL
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = onEmailChange,
+                    label = { Text("Email", color = lightBrown) },
+                    singleLine = true,
+                    isError = emailError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = cream,
+                        unfocusedTextColor = cream,
+                        focusedBorderColor = lightBrown,
+                        unfocusedBorderColor = lightBrown.copy(alpha = 0.5f),
+                        cursorColor = lightBrown
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (emailError != null) {
+                    Text(
+                        emailError,
+                        color = Color(0xFFFF6B6B),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Campo CONTRASEÑA
+                OutlinedTextField(
+                    value = pass,
+                    onValueChange = onPassChange,
+                    label = { Text("Contraseña", color = lightBrown) },
+                    singleLine = true,
+                    visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showPass = !showPass }) {
+                            Icon(
+                                imageVector = if (showPass) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showPass) "Ocultar contraseña" else "Mostrar contraseña",
+                                tint = lightBrown
+                            )
+                        }
+                    },
+                    isError = passError != null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = cream,
+                        unfocusedTextColor = cream,
+                        focusedBorderColor = lightBrown,
+                        unfocusedBorderColor = lightBrown.copy(alpha = 0.5f),
+                        cursorColor = lightBrown
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (passError != null) {
+                    Text(
+                        passError,
+                        color = Color(0xFFFF6B6B),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // Botón ENTRAR
+                Button(
+                    onClick = onSubmit,
+                    enabled = canSubmit && !isSubmitting,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFC4A57B),
+                        contentColor = Color(0xFF1A1410),
+                        disabledContainerColor = Color(0xFF6B5D4F),
+                        disabledContentColor = Color(0xFF3D3228)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp),
+                            color = Color(0xFF1A1410)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Validando...", style = MaterialTheme.typography.bodyLarge)
+                    } else {
+                        Text("Entrar", style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+
+                if (errorMsg != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(errorMsg, color = Color(0xFFFF6B6B))
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Botón IR A REGISTRO
+                OutlinedButton(
+                    onClick = onGoRegister,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = cream
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Crear cuenta", style = MaterialTheme.typography.bodyLarge)
                 }
             }
-
-            if (errorMsg != null) {                          // Error global (credenciales)
-                Spacer(Modifier.height(8.dp))
-                Text(errorMsg, color = MaterialTheme.colorScheme.error)
-            }
-
-            Spacer(Modifier.height(12.dp))                   // Espacio
-
-            //BOTÓN IR A REGISTRO
-            OutlinedButton(onClick = onGoRegister, modifier = Modifier.fillMaxWidth()) {
-                Text("Crear cuenta")
-            }
-            //fin modificacion de formulario
         }
     }
 }
+

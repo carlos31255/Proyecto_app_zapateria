@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +34,12 @@ fun AppTopBar(
             IconButton(onClick = onRegister) {
                 Icon(Icons.Filled.PersonAdd, contentDescription = "Registro")
             }
-        }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color(0xFF2C2416),
+            titleContentColor = Color(0xFFD4C5B0),
+            navigationIconContentColor = Color(0xFFD4C5B0),
+            actionIconContentColor = Color(0xFFD4C5B0)
+        )
     )
 }

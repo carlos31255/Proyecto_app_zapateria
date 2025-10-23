@@ -7,7 +7,6 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaEntity
 import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
-import java.time.Instant
 
 @Entity(
     tableName = "entrega",
@@ -19,8 +18,8 @@ import java.time.Instant
         ),
         ForeignKey(
             entity = TransportistaEntity::class,
-            parentColumns = ["id_persona"], // Al ser TransportistaEntity usa id_persona como PK
-            childColumns = ["id_transportista"] // Referencia a id_transportista en EntregaEntity
+            parentColumns = ["id_persona"],
+            childColumns = ["id_transportista"]
         )
     ],
     indices = [
@@ -37,16 +36,16 @@ data class EntregaEntity(
     val idBoleta: Int,
 
     @ColumnInfo(name = "id_transportista")
-    val idTransportista: Int?, // Puede ser nulo si no se ha asignado un transportista
+    val idTransportista: Int?,
 
     @ColumnInfo(name = "estado_entrega")
     val estadoEntrega: String = "pendiente",
 
     @ColumnInfo(name = "fecha_asignacion")
-    val fechaAsignacion: Instant = Instant.now(),
+    val fechaAsignacion: Long = System.currentTimeMillis(), // Timestamp en milisegundos
 
     @ColumnInfo(name = "fecha_entrega")
-    val fechaEntrega: Instant?, // Puede ser nulo si la entrega no se ha completado
+    val fechaEntrega: Long?, // Timestamp en milisegundos, null si no se ha completado
 
     val observacion: String?
 )

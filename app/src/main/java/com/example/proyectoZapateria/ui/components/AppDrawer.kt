@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
@@ -37,27 +39,44 @@ fun AppDrawer(
     items: List<DrawerItem>,
     modifier: Modifier = Modifier
 ) {
-    // Usamos ModalDrawerSheet para el contenido del drawer
-    ModalDrawerSheet(modifier = modifier) {
+    // Colores del tema oscuro
+    val darkLeather = Color(0xFF2C2416)
+    val cream = Color(0xFFD4C5B0)
+    val lightBrown = Color(0xFF8B7355)
+
+    ModalDrawerSheet(
+        modifier = modifier,
+        drawerContainerColor = Color(0xFF3D3228)
+    ) {
         Spacer(Modifier.height(16.dp))
 
-        // Título del drawer
         Text(
             text = "StepStyle 👟",
             style = MaterialTheme.typography.titleLarge,
+            color = cream,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = lightBrown.copy(alpha = 0.3f)
+        )
 
-        // Items del menú
         items.forEach { item ->
             NavigationDrawerItem(
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) },
                 selected = currentRoute == item.label.lowercase(),
                 onClick = item.onClick,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                colors = NavigationDrawerItemDefaults.colors(
+                    unselectedContainerColor = Color.Transparent,
+                    selectedContainerColor = lightBrown.copy(alpha = 0.3f),
+                    unselectedTextColor = cream,
+                    selectedTextColor = cream,
+                    unselectedIconColor = lightBrown,
+                    selectedIconColor = cream
+                )
             )
         }
     }

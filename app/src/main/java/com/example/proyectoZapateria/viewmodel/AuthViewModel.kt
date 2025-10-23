@@ -17,9 +17,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import java.time.Instant
 
-data class  LoginUiState(
+data class LoginUiState(
     val email: String = "",
     val pass: String = "",
     val emailError: String? = null,
@@ -36,7 +35,7 @@ data class RegisterUiState(
     val phone: String = "",
     val pass: String = "",
     val confirm: String = "",
-    // errores por campo
+
     val nameError: String? = null,
     val emailError: String? = null,
     val phoneError: String? = null,
@@ -49,20 +48,19 @@ data class RegisterUiState(
     val errorMsg: String? = null,
 )
 
-// ViewModel que usa Room en lugar de lista en memoria
+// ViewModel que usa Room
 class AuthViewModel(
     private val personaRepository: PersonaRepository,
     private val usuarioRepository: UsuarioRepository
 ) : ViewModel() {
-    // Estado UI Login
+
     private val _login = MutableStateFlow(LoginUiState())
     val login: StateFlow<LoginUiState> = _login
 
-    // Estado UI Registro
     private val _register = MutableStateFlow(RegisterUiState())
     val register: StateFlow<RegisterUiState> = _register
 
-    // Handlers de cambios en formularios login
+    // ========== HANDLERS LOGIN ==========
 
     fun onLoginEmailChange(value: String) {
         _login.update { it.copy(email = value, emailError = validateEmail(value)) }
@@ -74,36 +72,23 @@ class AuthViewModel(
         recomputeLoginCanSubmit()
     }
 
-    // habilitar botón si no hay errores y campos obligatorios llenos
-    private fun recomputeLoginCanSubmit(){
-    val s = _login.value
-    val can = s.emailError == null &&
-                 s.email.isNotBlank() &&
-                 s.pass.isNotBlank()
-    _login.update { it.copy(canSubmit = can) }
-    }
-    // Simula envío y verificación de credenciales
-    fun submitLogin(){
+    private fun recomputeLoginCanSubmit() {
         val s = _login.value
-        if (!s.canSubmit || s.isLoading) return // no hacer nada si no puede
+        val can = s.emailError == null && s.email.isNotBlank() && s.pass.isNotBlank()
+        _login.update { it.copy(canSubmit = can) }
+    }
+
+    fun submitLogin() {
+        val s = _login.value
+        if (!s.canSubmit || s.isLoading) return
+
         viewModelScope.launch {
             _login.update { it.copy(isLoading = true, errorMsg = null, success = false) }
-            delay(500) // simula tiempo de verificacion
-
-            val user = demoUsers.firstOrNull{ it.email.equals(s.email, ignoreCase = true)}
-
-    // Envío y verificación de credenciales contra base de datos
-
-            _login.update {
-        if (!s.canSubmit || s.isLoading) return
-                    isLoading = false,
-                    success = ok,
-            delay(500) // Simula tiempo de verificación
+            delay(500)
 
             try {
-                // Buscar usuario por email (que es el username en nuestro caso)
                 val usuario = usuarioRepository.getUsuarioByUsername(s.email)
-                )
+
                 if (usuario == null) {
                     _login.update {
                         it.copy(
@@ -114,8 +99,7 @@ class AuthViewModel(
                     }
                     return@launch
                 }
-        }
-                // Verificar que el usuario esté activo
+
                 if (usuario.estado != "activo") {
                     _login.update {
                         it.copy(
@@ -127,7 +111,6 @@ class AuthViewModel(
                     return@launch
                 }
 
-                // Obtener la persona para verificar la contraseña
                 val persona = personaRepository.getPersonaById(usuario.idPersona)
                 if (persona == null) {
                     _login.update {
@@ -140,7 +123,6 @@ class AuthViewModel(
                     return@launch
                 }
 
-                // Verificar contraseña con BCrypt
                 val passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
 
                 _login.update {
@@ -158,25 +140,69 @@ class AuthViewModel(
                         errorMsg = "Error al iniciar sesión: ${e.message}"
                     )
                 }
-    // Envío y verificación de registro en base de datos
-        _register.update {
-            it.copy(name = filtered, nameError = validateNameLettersOnly(filtered))
-        if (!s.canSubmit || s.isLoading) return
+            }
+        }
+    }
+
+    // ========== HANDLERS REGISTRO ==========
+
+    fun onRegisterNameChange(value: String) {
+        val filtered = value.filter { it.isLetter() || it.isWhitespace() }
+        _register.update { it.copy(name = filtered, nameError = validateNameLettersOnly(filtered)) }
         recomputeRegisterCanSubmit()
     }
-            delay(500) // Simula tiempo de procesamiento
+
     fun onRegisterEmailChange(value: String) {
+        _register.update { it.copy(email = value, emailError = validateEmail(value)) }
+        recomputeRegisterCanSubmit()
+    }
+
+    fun onRegisterPhoneChange(value: String) {
+        val digitsOnly = value.filter { it.isDigit() }
+        _register.update { it.copy(phone = digitsOnly, phoneError = validatePhoneDigitsOnly(digitsOnly)) }
+        recomputeRegisterCanSubmit()
+    }
+
+    fun onRegisterPassChange(value: String) {
+        _register.update {
+            it.copy(
+                pass = value,
+                passError = validateStrongPassword(value),
+                confirmPassError = if (it.confirm.isNotBlank()) validateConfirm(value, it.confirm) else null
+            )
+        }
+        recomputeRegisterCanSubmit()
+    }
+
+    fun onConfirmChange(value: String) {
+        _register.update { it.copy(confirm = value, confirmPassError = validateConfirm(it.pass, value)) }
+        recomputeRegisterCanSubmit()
+    }
+
+    private fun recomputeRegisterCanSubmit() {
+        val s = _register.value
+        val noErrors = listOf(s.nameError, s.emailError, s.phoneError, s.passError, s.confirmPassError).all { it == null }
+        val filled = s.name.isNotBlank() && s.email.isNotBlank() && s.phone.isNotBlank() && s.pass.isNotBlank() && s.confirm.isNotBlank()
+        _register.update { it.copy(canSubmit = noErrors && filled) }
+    }
+
+    fun submitRegister() {
+        val s = _register.value
+        if (!s.canSubmit || s.isLoading) return
+
+        viewModelScope.launch {
+            _register.update { it.copy(isLoading = true, errorMsg = null, success = false) }
+            delay(500)
+
             try {
-                // Verificar si el email ya existe
                 val existeEmail = personaRepository.existeEmail(s.email.trim())
                 if (existeEmail) {
                     _register.update {
                         it.copy(isLoading = false, success = false, errorMsg = "El email ya está registrado")
                     }
                     return@launch
-        val digitsOnly = value.filter { it.isDigit() } // solo dígitos
+                }
 
-                // Separar nombre y apellido (asumiendo formato "Nombre Apellido")
                 val nombreCompleto = s.name.trim().split(" ", limit = 2)
                 val nombre = nombreCompleto.getOrNull(0) ?: ""
                 val apellido = nombreCompleto.getOrNull(1) ?: ""
@@ -188,27 +214,23 @@ class AuthViewModel(
                     return@launch
                 }
 
-                // Hash de la contraseña
                 val passHashed = PasswordHasher.hashPassword(s.pass)
 
-                // Crear PersonaEntity
                 val nuevaPersona = PersonaEntity(
                     nombre = nombre,
                     apellido = apellido,
-                    rut = "00000000", // TODO: Solicitar RUT real en el formulario
-                    dv = "0",
+                    rut = "00000000-0",
                     telefono = s.phone.trim(),
                     email = s.email.trim(),
-                    idComuna = null, // TODO: Solicitar comuna en el formulario
+                    idComuna = null,
                     calle = null,
                     numeroPuerta = null,
-                    username = s.email.trim(), // Usamos el email como username
+                    username = s.email.trim(),
                     passHash = passHashed,
-                    fechaRegistro = Instant.now(),
+                    fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 )
 
-                // Insertar persona en la base de datos
                 val resultPersona = personaRepository.insertPersona(nuevaPersona)
 
                 if (resultPersona.isFailure) {
@@ -224,13 +246,11 @@ class AuthViewModel(
 
                 val idPersona = resultPersona.getOrNull()?.toInt() ?: 0
 
-                // Crear UsuarioEntity con rol por defecto (asumiendo rol cliente = 3)
                 val nuevoUsuario = UsuarioEntity(
                     idPersona = idPersona,
-                    idRol = 3 // TODO: Definir constante para rol cliente
+                    idRol = 2
                 )
 
-                // Insertar usuario
                 val resultUsuario = usuarioRepository.insertUsuario(nuevoUsuario)
 
                 if (resultUsuario.isFailure) {
@@ -243,7 +263,7 @@ class AuthViewModel(
                     }
                     return@launch
                 }
-        }
+
                 _register.update {
                     it.copy(isLoading = false, success = true, errorMsg = null)
                 }
@@ -255,48 +275,12 @@ class AuthViewModel(
                         errorMsg = "Error al registrar: ${e.message}"
                     )
                 }
-    }
-
-    fun onConfirmChange(value: String) {
-        _register.update { it.copy(confirm = value, confirmPassError = validateConfirm(it.pass,value)) }
-        recomputeRegisterCanSubmit()
-    }
-    // habilitar botón si no hay errores y campos obligatorios llenos
-    private fun recomputeRegisterCanSubmit(){
-        val s = _register.value
-        val noErrors = listOf(s.nameError,s.emailError,s.phoneError,s.passError,s.confirmPassError).all { it == null } // sin errores
-        val filled = s.name.isNotBlank() && s.email.isNotBlank() && s.phone.isNotBlank() && s.pass.isNotBlank() && s.confirm.isNotBlank() // todos llenos
-        _register.update { it.copy(canSubmit = noErrors && filled) } // actualizar el flag
-    }
-    // Simula envío y verificación de datos
-    fun submitRegister(){
-        val s = _register.value
-        if (!s.canSubmit || s.isLoading) return // no hacer nada si no puede
-        viewModelScope.launch {
-            _register.update { it.copy(isLoading = true, errorMsg = null, success = false) }
-            delay(500) // simula tiempo de verificacion
-
-            val exists = demoUsers.any{ it.email.equals(s.email, ignoreCase = true)}
-
-            if (exists){
-                _register.update {
-                    it.copy(isLoading = false, success = false, errorMsg = "El email ya está registrado")
-                }
-                return@launch
-            }
-
-            demoUsers.add(
-                DemoUser(s.name.trim(),
-                    s.email.trim(),
-                    s.phone.trim(),
-                    s.pass
-                )
-            )
-            _register.update { it.copy(isLoading = false, success = true, errorMsg = null)
             }
         }
     }
-    fun clearRegisterResult(){
+
+    fun clearRegisterResult() {
         _register.update { it.copy(success = false, errorMsg = null) }
     }
 }
+
