@@ -3,15 +3,9 @@ package com.example.proyectoZapateria.data.repository
 import android.content.Context
 import com.example.proyectoZapateria.data.local.database.AppDatabase
 
-/**
- * Clase que centraliza todos los repositories de la aplicación.
- * Se instancia una sola vez en AppRoot y se pasa a los ViewModels.
- *
- * Ventajas:
- * - No repetir código de instanciación en AppRoot
- * - Fácil acceso a cualquier repository
- * - Mantiene la separación de responsabilidades
- */
+
+//Clase que centraliza todos los repositories de la aplicación.
+
 class AppRepositories(context: Context) {
 
     // Instancia única de la base de datos

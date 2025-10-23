@@ -24,13 +24,17 @@ data class DrawerItem(
 fun defaultDrawerItems(
     onHome: () -> Unit,
     onLogin: () -> Unit,
-    onRegister: () -> Unit
+    onRegister: () -> Unit,
+    isAuthenticated: Boolean = false
 ): List<DrawerItem> {
-    return listOf(
-        DrawerItem("Inicio", Icons.Filled.Home, onHome),
-        DrawerItem("Login", Icons.AutoMirrored.Filled.Login, onLogin),
-        DrawerItem("Registro", Icons.Filled.PersonAdd, onRegister)
-    )
+    return buildList {
+        add(DrawerItem("Inicio", Icons.Filled.Home, onHome))
+        // Solo agregar Login y Registro si NO está autenticado
+        if (!isAuthenticated) {
+            add(DrawerItem("Login", Icons.AutoMirrored.Filled.Login, onLogin))
+            add(DrawerItem("Registro", Icons.Filled.PersonAdd, onRegister))
+        }
+    }
 }
 
 @Composable

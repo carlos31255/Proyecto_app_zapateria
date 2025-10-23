@@ -20,7 +20,6 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.proyectoZapateria.R
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 
@@ -28,14 +27,23 @@ import com.example.proyectoZapateria.viewmodel.AuthViewModel
 @Composable
 fun LoginScreenVm(
     authViewModel: AuthViewModel,
-    onLoginOkGoHome: () -> Unit,
+    onLoginSuccess: (String) -> Unit, // Recibir el rol del usuario autenticado
     onGoRegister: () -> Unit
 ) {
     val state by authViewModel.login.collectAsStateWithLifecycle()
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
 
-    LaunchedEffect(state.success) {
-        if (state.success) {
-            onLoginOkGoHome()
+    // Cuando haya un usuario autenticado, redirigir según su rol
+    LaunchedEffect(currentUser) {
+        currentUser?.let { usuarioConRol ->
+            // Mapear el ID del rol a su nombre
+            val nombreRol = when(usuarioConRol.idRol) {
+                1 -> "Administrador"
+                2 -> "Vendedor"
+                3 -> "Transportista"
+                else -> "Usuario"
+            }
+            onLoginSuccess(nombreRol)
         }
     }
 

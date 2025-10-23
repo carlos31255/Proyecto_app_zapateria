@@ -21,6 +21,7 @@ import com.example.proyectoZapateria.data.local.talla.TallaEntity
 import com.example.proyectoZapateria.data.local.tipomovimiento.TipoMovimientoEntity
 import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
+import com.example.proyectoZapateria.utils.PasswordHasher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -119,6 +120,8 @@ abstract class AppDatabase : RoomDatabase() {
         // Función para precargar datos iniciales en la base de datos
         private suspend fun preloadData(database: AppDatabase) {
             val rolDao = database.rolDao()
+            val personaDao = database.personaDao()
+            val usuarioDao = database.usuarioDao()
 
             // Roles predefinidos para una zapatería pequeña
             val rolesIniciales = listOf(
@@ -141,6 +144,81 @@ abstract class AppDatabase : RoomDatabase() {
 
             rolesIniciales.forEach { rol ->
                 rolDao.insert(rol)
+            }
+
+            // Personas iniciales para cada rol
+            val personasIniciales = listOf(
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Admin",
+                    apellido = "Sistema",
+                    rut = "11111111-1",
+                    telefono = "+56911111111",
+                    email = "admin@zapateria.cl",
+                    idComuna = null,
+                    calle = null,
+                    numeroPuerta = null,
+                    username = "admin@zapateria.cl",
+                    passHash = PasswordHasher.hashPassword("admin123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Carlos",
+                    apellido = "Vendedor",
+                    rut = "22222222-2",
+                    telefono = "+56922222222",
+                    email = "vendedor@zapateria.cl",
+                    idComuna = null,
+                    calle = null,
+                    numeroPuerta = null,
+                    username = "vendedor@zapateria.cl",
+                    passHash = PasswordHasher.hashPassword("vendedor123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Juan",
+                    apellido = "Transportista",
+                    rut = "33333333-3",
+                    telefono = "+56933333333",
+                    email = "transportista@zapateria.cl",
+                    idComuna = null,
+                    calle = null,
+                    numeroPuerta = null,
+                    username = "transportista@zapateria.cl",
+                    passHash = PasswordHasher.hashPassword("transportista123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                )
+            )
+
+            val idsPersonas = mutableListOf<Long>()
+            personasIniciales.forEach { persona ->
+                val id = personaDao.insert(persona)
+                idsPersonas.add(id)
+            }
+
+            // Usuarios asociados a cada rol
+            val usuariosIniciales = listOf(
+                UsuarioEntity(
+                    idPersona = idsPersonas[0].toInt(),
+                    idRol = 1 // Administrador
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[1].toInt(),
+                    idRol = 2 // Vendedor
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[2].toInt(),
+                    idRol = 3 // Transportista
+                )
+            )
+
+            usuariosIniciales.forEach { usuario ->
+                usuarioDao.insert(usuario)
             }
         }
     }

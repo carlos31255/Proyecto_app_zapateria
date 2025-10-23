@@ -15,7 +15,8 @@ fun AppTopBar(
     onOpenDrawer: () -> Unit,
     onHome: () -> Unit,
     onLogin: () -> Unit,
-    onRegister: () -> Unit
+    onRegister: () -> Unit,
+    isAuthenticated: Boolean = false
 ) {
     TopAppBar(
         title = { Text("Zapateria StepStyle") },
@@ -28,11 +29,14 @@ fun AppTopBar(
             IconButton(onClick = onHome) {
                 Icon(Icons.Filled.Home, contentDescription = "Inicio")
             }
-            IconButton(onClick = onLogin) {
-                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = "Login")
-            }
-            IconButton(onClick = onRegister) {
-                Icon(Icons.Filled.PersonAdd, contentDescription = "Registro")
+            // Solo mostrar Login y Registro si NO está autenticado
+            if (!isAuthenticated) {
+                IconButton(onClick = onLogin) {
+                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = "Login")
+                }
+                IconButton(onClick = onRegister) {
+                    Icon(Icons.Filled.PersonAdd, contentDescription = "Registro")
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(

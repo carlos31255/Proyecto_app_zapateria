@@ -3,6 +3,7 @@ package com.example.proyectoZapateria.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.local.persona.PersonaEntity
+import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
 import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
@@ -60,6 +61,10 @@ class AuthViewModel(
     private val _register = MutableStateFlow(RegisterUiState())
     val register: StateFlow<RegisterUiState> = _register
 
+    // Estado para el usuario logueado
+    private val _currentUser = MutableStateFlow<UsuarioConPersonaYRol?>(null)
+    val currentUser: StateFlow<UsuarioConPersonaYRol?> = _currentUser
+
     // ========== HANDLERS LOGIN ==========
 
     fun onLoginEmailChange(value: String) {
@@ -87,9 +92,10 @@ class AuthViewModel(
             delay(500)
 
             try {
-                val usuario = usuarioRepository.getUsuarioByUsername(s.email)
+                // Buscar el usuario por username
+                val usuarioCompleto = usuarioRepository.getUsuarioByUsername(s.email)
 
-                if (usuario == null) {
+                if (usuarioCompleto == null) {
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -100,7 +106,8 @@ class AuthViewModel(
                     return@launch
                 }
 
-                if (usuario.estado != "activo") {
+                // Verificar si el usuario está activo
+                if (usuarioCompleto.estado != "activo") {
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -111,7 +118,8 @@ class AuthViewModel(
                     return@launch
                 }
 
-                val persona = personaRepository.getPersonaById(usuario.idPersona)
+                // Obtener la persona para verificar la contraseña
+                val persona = personaRepository.getPersonaById(usuarioCompleto.idPersona)
                 if (persona == null) {
                     _login.update {
                         it.copy(
@@ -123,7 +131,13 @@ class AuthViewModel(
                     return@launch
                 }
 
+                // Verificar la contraseña
                 val passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
+
+                if (passwordValida) {
+                    // Guardar el usuario autenticado
+                    _currentUser.value = usuarioCompleto
+                }
 
                 _login.update {
                     it.copy(
@@ -281,6 +295,13 @@ class AuthViewModel(
 
     fun clearRegisterResult() {
         _register.update { it.copy(success = false, errorMsg = null) }
+    }
+
+    // ========== LOGOUT ==========
+
+    fun logout() {
+        _currentUser.value = null
+        _login.value = LoginUiState()
     }
 }
 
