@@ -43,43 +43,51 @@ fun AppDrawer(
     items: List<DrawerItem>,
     modifier: Modifier = Modifier
 ) {
-    // Colores del tema oscuro
-    val darkLeather = Color(0xFF2C2416)
-    val cream = Color(0xFFD4C5B0)
-    val lightBrown = Color(0xFF8B7355)
+    // Nuevo esquema de colores morado/violeta claro - Material Design 3
+    val colorScheme = MaterialTheme.colorScheme
 
     ModalDrawerSheet(
         modifier = modifier,
-        drawerContainerColor = Color(0xFF3D3228)
+        drawerContainerColor = colorScheme.surface
     ) {
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            text = "StepStyle 👟",
-            style = MaterialTheme.typography.titleLarge,
-            color = cream,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        // Header del Drawer con gradiente morado suave
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colorScheme.primaryContainer)
+                .padding(24.dp)
+        ) {
+            Text(
+                text = "StepStyle 👟",
+                style = MaterialTheme.typography.titleLarge,
+                color = colorScheme.onPrimaryContainer
+            )
+        }
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = 8.dp),
-            color = lightBrown.copy(alpha = 0.3f)
+            color = colorScheme.outlineVariant
         )
 
         items.forEach { item ->
             NavigationDrawerItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
+                icon = {
+                    Icon(
+                        item.icon,
+                        contentDescription = item.label
+                    )
+                },
                 label = { Text(item.label) },
                 selected = currentRoute == item.label.lowercase(),
                 onClick = item.onClick,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 colors = NavigationDrawerItemDefaults.colors(
                     unselectedContainerColor = Color.Transparent,
-                    selectedContainerColor = lightBrown.copy(alpha = 0.3f),
-                    unselectedTextColor = cream,
-                    selectedTextColor = cream,
-                    unselectedIconColor = lightBrown,
-                    selectedIconColor = cream
+                    selectedContainerColor = colorScheme.secondaryContainer,
+                    unselectedTextColor = colorScheme.onSurface,
+                    selectedTextColor = colorScheme.onSecondaryContainer,
+                    unselectedIconColor = colorScheme.onSurfaceVariant,
+                    selectedIconColor = colorScheme.secondary
                 )
             )
         }

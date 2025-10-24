@@ -74,4 +74,10 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     // Hash para contraseñas
     implementation("org.mindrot:jbcrypt:0.4")
+
+    // Coil - Carga de imágenes en Compose
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Accompanist - Permisos en Compose
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 }

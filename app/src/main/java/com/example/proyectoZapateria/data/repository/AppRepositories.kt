@@ -29,6 +29,7 @@ class AppRepositories(context: Context) {
     // ===== Repositories de productos e inventario =====
     val marcaRepository = MarcaRepository(database.marcaDao())
     val modeloZapatoRepository = ModeloZapatoRepository(database.modeloZapatoDao())
+    val productoRepository = ProductoRepository(database.modeloZapatoDao(), database.marcaDao())
     // TODO: Agregar cuando estén creados
     // val inventarioRepository = InventarioRepository(database.inventarioDao())
     // val movimientoInventarioRepository = MovimientoInventarioRepository(database.movimientoInventarioDao())

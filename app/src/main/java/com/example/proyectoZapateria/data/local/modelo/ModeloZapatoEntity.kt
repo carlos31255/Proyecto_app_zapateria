@@ -37,6 +37,9 @@ data class ModeloZapatoEntity(
     @ColumnInfo(name = "precio_unitario")
     val precioUnitario: Double,
 
+    @ColumnInfo(name = "imagen_url")
+    val imagenUrl: String? = null,  // Ruta de la imagen del producto
+
     val estado: String = "activo"
 )
 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Directorio de caché para archivos temporales -->
+    <cache-path name="cache" path="." />
+
+    <!-- Directorio de archivos interno de la app -->
+    <files-path name="files" path="." />
+
+    <!-- Directorio de imágenes de productos -->
+    <files-path name="product_images" path="images/" />
+
+    <!-- Directorio externo -->
+    <external-files-path name="external_files" path="." />
+</paths>
+

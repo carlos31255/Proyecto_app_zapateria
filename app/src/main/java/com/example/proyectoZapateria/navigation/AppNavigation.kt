@@ -21,14 +21,24 @@ import com.example.proyectoZapateria.ui.screen.HomeScreen
 import com.example.proyectoZapateria.ui.screen.LoginScreenVm
 import com.example.proyectoZapateria.ui.screen.RegisterScreenVm
 import com.example.proyectoZapateria.ui.screen.admin.AdminHomeScreen
+import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
+import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
+import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
 import com.example.proyectoZapateria.ui.screen.vendedor.VendedorHomeScreen
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
+import com.example.proyectoZapateria.viewmodel.ProductoViewModel
+import com.example.proyectoZapateria.viewmodel.InventarioViewModel
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) {
+fun AppNavGraph(
+    navController: NavHostController,
+    authViewModel: AuthViewModel,
+    productoViewModel: ProductoViewModel,
+    inventarioViewModel: InventarioViewModel
+) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
@@ -42,6 +52,7 @@ fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) 
                 1 -> Route.AdminHome.path
                 2 -> Route.VendedorHome.path
                 3 -> Route.TransportistaHome.path
+                4 -> Route.ClienteHome.path
                 else -> Route.Home.path
             }
 
@@ -111,6 +122,7 @@ fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) 
             "Administrador" -> Route.AdminHome.path
             "Vendedor" -> Route.VendedorHome.path
             "Transportista" -> Route.TransportistaHome.path
+            "Cliente" -> Route.ClienteHome.path
             else -> Route.Home.path
         }
         navController.navigate(destination) {
@@ -195,13 +207,37 @@ fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) 
                     )
                 }
 
+                composable(Route.AdminAgregarProducto.path) {
+                    AdminAgregarProductoScreen(
+                        navController = navController,
+                        productoViewModel = productoViewModel
+                    )
+                }
+
+                composable(Route.AdminInventario.path) {
+                    AdminInventarioScreen(
+                        navController = navController,
+                        authViewModel = authViewModel,
+                        inventarioViewModel = inventarioViewModel
+                    )
+                }
+
                 // Rutas del transportista
                 composable(Route.TransportistaHome.path) {
                     TransportistaHomeScreen(
                         navController = navController,
                         authViewModel = authViewModel
+
                     )
                 }
+                // Rutas del cliente
+                composable(Route.ClienteHome.path) {
+                    ClienteHomeScreen(
+                        navController = navController,
+                        authViewModel = authViewModel
+                    )
+                }
+
                 // pantallas pendientes de implementar
                 composable(Route.VendedorVentas.path) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

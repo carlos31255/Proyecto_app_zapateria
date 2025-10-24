@@ -1,0 +1,550 @@
+package com.example.proyectoZapateria.ui.screen.admin
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
+import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
+import com.example.proyectoZapateria.navigation.Route
+import com.example.proyectoZapateria.utils.ImageHelper
+import com.example.proyectoZapateria.viewmodel.AuthViewModel
+import com.example.proyectoZapateria.viewmodel.InventarioViewModel
+import java.io.File
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminInventarioScreen(
+    navController: NavHostController,
+    authViewModel: AuthViewModel,
+    inventarioViewModel: InventarioViewModel
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+
+    val productos by inventarioViewModel.productos.collectAsStateWithLifecycle()
+    val marcas by inventarioViewModel.marcas.collectAsStateWithLifecycle()
+
+    var productoSeleccionado by remember { mutableStateOf<ModeloZapatoEntity?>(null) }
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+    var mostrarDialogoEditar by remember { mutableStateOf(false) }
+    var confirmarEliminar by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colorScheme.primaryContainer)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Inventario",
+                                color = colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${productos.size} productos",
+                                color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = { navController.navigate(Route.AdminAgregarProducto.path) }
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Agregar producto",
+                            tint = colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        if (productos.isEmpty()) {
+            // Estado vacío
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Default.Inventory,
+                        contentDescription = null,
+                        modifier = Modifier.size(120.dp),
+                        tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No hay productos en el inventario",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { navController.navigate(Route.AdminAgregarProducto.path) }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Agregar Producto")
+                    }
+                }
+            }
+        } else {
+            // Lista de productos
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(4.dp)) }
+
+                items(productos, key = { it.idModelo }) { producto ->
+                    ProductoCard(
+                        producto = producto,
+                        nombreMarca = marcas.find { it.idMarca == producto.idMarca }?.nombreMarca ?: "Sin marca",
+                        onEdit = {
+                            productoSeleccionado = producto
+                            mostrarDialogoEditar = true
+                        },
+                        onDelete = {
+                            productoSeleccionado = producto
+                            confirmarEliminar = false
+                            mostrarDialogoEliminar = true
+                        },
+                        context = context,
+                        colorScheme = colorScheme
+                    )
+                }
+
+                item { Spacer(modifier = Modifier.height(4.dp)) }
+            }
+        }
+    }
+
+    // Diálogo de eliminar con confirmación doble
+    if (mostrarDialogoEliminar && productoSeleccionado != null) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoEliminar = false },
+            icon = {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = colorScheme.error,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    if (!confirmarEliminar) "¿Eliminar producto?" else "¿Estás seguro?",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        if (!confirmarEliminar) {
+                            "Se eliminará el producto '${productoSeleccionado!!.nombreModelo}'"
+                        } else {
+                            "Esta acción no se puede deshacer. Se eliminarán todos los datos del producto incluyendo su imagen."
+                        }
+                    )
+                    if (confirmarEliminar) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Presiona 'Eliminar definitivamente' para confirmar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colorScheme.error
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (!confirmarEliminar) {
+                            confirmarEliminar = true
+                        } else {
+                            inventarioViewModel.eliminarProducto(context, productoSeleccionado!!)
+                            mostrarDialogoEliminar = false
+                            productoSeleccionado = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorScheme.error
+                    )
+                ) {
+                    Text(if (!confirmarEliminar) "Eliminar" else "Eliminar definitivamente")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    mostrarDialogoEliminar = false
+                    confirmarEliminar = false
+                }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Diálogo de editar
+    if (mostrarDialogoEditar && productoSeleccionado != null) {
+        EditarProductoDialog(
+            producto = productoSeleccionado!!,
+            marcas = marcas,
+            onDismiss = {
+                mostrarDialogoEditar = false
+                productoSeleccionado = null
+            },
+            onConfirm = { nombre, precio, descripcion, idMarca ->
+                inventarioViewModel.actualizarProducto(
+                    productoSeleccionado!!,
+                    nombre,
+                    precio,
+                    descripcion,
+                    idMarca
+                )
+                mostrarDialogoEditar = false
+                productoSeleccionado = null
+            },
+            colorScheme = colorScheme
+        )
+    }
+}
+
+@Composable
+fun ProductoCard(
+    producto: ModeloZapatoEntity,
+    nombreMarca: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    context: android.content.Context,
+    colorScheme: ColorScheme
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Imagen del producto
+            Box(
+                modifier = Modifier
+                    .width(140.dp)
+                    .fillMaxHeight()
+                    .background(colorScheme.surfaceVariant)
+            ) {
+                if (producto.imagenUrl != null) {
+                    val imageFile = ImageHelper.getFileFromPath(context, producto.imagenUrl)
+                    if (imageFile.exists()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(imageFile),
+                            contentDescription = "Imagen de ${producto.nombreModelo}",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .align(Alignment.Center),
+                            tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        )
+                    }
+                } else {
+                    Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .align(Alignment.Center),
+                        tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
+                }
+            }
+
+            // Información del producto
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = producto.nombreModelo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = nombreMarca,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "$${String.format("%.2f", producto.precioUnitario)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (producto.descripcion != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = producto.descripcion!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Botones de acción
+            Column(
+                modifier = Modifier.padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Editar",
+                        tint = colorScheme.primary
+                    )
+                }
+
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditarProductoDialog(
+    producto: ModeloZapatoEntity,
+    marcas: List<com.example.proyectoZapateria.data.local.marca.MarcaEntity>,
+    onDismiss: () -> Unit,
+    onConfirm: (nombre: String, precio: Double, descripcion: String?, idMarca: Int) -> Unit,
+    colorScheme: ColorScheme
+) {
+    var nombre by remember { mutableStateOf(producto.nombreModelo) }
+    var precio by remember { mutableStateOf(producto.precioUnitario.toString()) }
+    var descripcion by remember { mutableStateOf(producto.descripcion ?: "") }
+    var idMarcaSeleccionada by remember { mutableStateOf(producto.idMarca) }
+    var expandedMarcas by remember { mutableStateOf(false) }
+
+    var nombreError by remember { mutableStateOf<String?>(null) }
+    var precioError by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = "Editar Producto",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Campo nombre
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = {
+                        nombre = it
+                        nombreError = if (it.isBlank()) "El nombre es requerido" else null
+                    },
+                    label = { Text("Nombre del modelo") },
+                    isError = nombreError != null,
+                    supportingText = nombreError?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Dropdown marca
+                ExposedDropdownMenuBox(
+                    expanded = expandedMarcas,
+                    onExpandedChange = { expandedMarcas = it }
+                ) {
+                    OutlinedTextField(
+                        value = marcas.find { it.idMarca == idMarcaSeleccionada }?.nombreMarca ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Marca") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMarcas) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expandedMarcas,
+                        onDismissRequest = { expandedMarcas = false }
+                    ) {
+                        marcas.forEach { marca ->
+                            DropdownMenuItem(
+                                text = { Text(marca.nombreMarca) },
+                                onClick = {
+                                    idMarcaSeleccionada = marca.idMarca
+                                    expandedMarcas = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Campo precio
+                OutlinedTextField(
+                    value = precio,
+                    onValueChange = {
+                        precio = it.filter { char -> char.isDigit() || char == '.' }
+                        precioError = when {
+                            it.isBlank() -> "El precio es requerido"
+                            it.toDoubleOrNull() == null -> "Precio inválido"
+                            it.toDouble() <= 0 -> "El precio debe ser mayor a 0"
+                            else -> null
+                        }
+                    },
+                    label = { Text("Precio") },
+                    leadingIcon = { Text("$") },
+                    isError = precioError != null,
+                    supportingText = precioError?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Campo descripción
+                OutlinedTextField(
+                    value = descripcion,
+                    onValueChange = { descripcion = it },
+                    label = { Text("Descripción (opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 3
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Botones
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (nombre.isNotBlank() &&
+                                precio.toDoubleOrNull() != null &&
+                                precio.toDouble() > 0) {
+                                onConfirm(
+                                    nombre.trim(),
+                                    precio.toDouble(),
+                                    descripcion.trim().ifBlank { null },
+                                    idMarcaSeleccionada
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = nombre.isNotBlank() &&
+                                 precio.toDoubleOrNull() != null &&
+                                 precio.toDouble() > 0
+                    ) {
+                        Text("Guardar")
+                    }
+                }
+            }
+        }
+    }
+}
+

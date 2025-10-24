@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -17,18 +16,19 @@ fun HomeScreen(
     onGoLogin: () -> Unit,
     onGoRegister: () -> Unit
 ) {
-    // Colores del tema oscuro de cuero
-    val darkLeather = Color(0xFF2C2416)
-    val brownLeather = Color(0xFF4A3C2A)
-    val lightBrown = Color(0xFF8B7355)
-    val cream = Color(0xFFD4C5B0)
+    // Nuevo esquema de colores morado/violeta claro - Material Design 3
+    val colorScheme = MaterialTheme.colorScheme
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(darkLeather, brownLeather)
+                    colors = listOf(
+                        colorScheme.primary.copy(alpha = 0.15f),
+                        colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        colorScheme.background
+                    )
                 )
             )
             .padding(16.dp),
@@ -44,7 +44,7 @@ fun HomeScreen(
             Text(
                 text = "¡Bienvenido a StepStyle!",
                 style = MaterialTheme.typography.headlineLarge,
-                color = cream,
+                color = colorScheme.primary,
                 textAlign = TextAlign.Center
             )
 
@@ -53,7 +53,7 @@ fun HomeScreen(
             Text(
                 text = "Tu tienda de calzado de confianza",
                 style = MaterialTheme.typography.bodyLarge,
-                color = lightBrown,
+                color = colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -62,13 +62,13 @@ fun HomeScreen(
             Button(
                 onClick = onGoLogin,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = lightBrown,
-                    contentColor = darkLeather
+                    containerColor = colorScheme.primary,
+                    contentColor = colorScheme.onPrimary
                 ),
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Text("Iniciar Sesión", style = MaterialTheme.typography.bodyLarge)
             }
@@ -78,12 +78,12 @@ fun HomeScreen(
             OutlinedButton(
                 onClick = onGoRegister,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = cream
+                    contentColor = colorScheme.primary
                 ),
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Text("Crear Cuenta", style = MaterialTheme.typography.bodyLarge)
             }

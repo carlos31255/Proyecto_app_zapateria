@@ -14,6 +14,10 @@ import com.example.proyectoZapateria.navigation.AppNavGraph
 import com.example.proyectoZapateria.ui.theme.Proyecto_zapateriaTheme
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 import com.example.proyectoZapateria.viewmodel.AuthViewModelFactory
+import com.example.proyectoZapateria.viewmodel.ProductoViewModel
+import com.example.proyectoZapateria.viewmodel.ProductoViewModelFactory
+import com.example.proyectoZapateria.viewmodel.InventarioViewModel
+import com.example.proyectoZapateria.viewmodel.InventarioViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,10 +47,26 @@ fun AppRoot() {
             usuarioRepository = repositories.usuarioRepository
         )
     )
-    // ^ Creamos el ViewModel con factory para inyectar los repositories.
+
+    val productoViewModel: ProductoViewModel = viewModel(
+        factory = ProductoViewModelFactory(
+            productoRepository = repositories.productoRepository
+        )
+    )
+
+    val inventarioViewModel: InventarioViewModel = viewModel(
+        factory = InventarioViewModelFactory(
+            productoRepository = repositories.productoRepository
+        )
+    )
 
     // ====== NAVEGACIÓN ======
     val navController = rememberNavController()
 
-    AppNavGraph(navController = navController, authViewModel = authViewModel)
+    AppNavGraph(
+        navController = navController,
+        authViewModel = authViewModel,
+        productoViewModel = productoViewModel,
+        inventarioViewModel = inventarioViewModel
+    )
 }

@@ -262,7 +262,7 @@ class AuthViewModel(
 
                 val nuevoUsuario = UsuarioEntity(
                     idPersona = idPersona,
-                    idRol = 2
+                    idRol = 4  // Cliente - Los usuarios que se registran son clientes por defecto
                 )
 
                 val resultUsuario = usuarioRepository.insertUsuario(nuevoUsuario)

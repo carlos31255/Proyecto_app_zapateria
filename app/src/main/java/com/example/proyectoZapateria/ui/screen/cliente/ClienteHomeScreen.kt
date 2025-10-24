@@ -1,4 +1,4 @@
-package com.example.proyectoZapateria.ui.screen.admin
+package com.example.proyectoZapateria.ui.screen.cliente
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,7 +21,7 @@ import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 
 @Composable
-fun AdminHomeScreen(
+fun ClienteHomeScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel
 ) {
@@ -61,7 +61,7 @@ fun AdminHomeScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Panel de Administrador",
+                            text = "Panel de Cliente",
                             color = colorScheme.onPrimaryContainer,
                             style = MaterialTheme.typography.titleMedium
                         )
@@ -98,20 +98,20 @@ fun AdminHomeScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Panel de Control",
+                text = "¿Qué deseas hacer?",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Grid de opciones del administrador
+            // Grid de opciones del cliente
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(adminMenuItems) { menuItem ->
-                    AdminMenuCard(
+                items(clienteMenuItems) { menuItem ->
+                    ClienteMenuCard(
                         icon = menuItem.icon,
                         title = menuItem.title,
                         description = menuItem.description,
@@ -126,7 +126,7 @@ fun AdminHomeScreen(
 }
 
 @Composable
-fun AdminMenuCard(
+fun ClienteMenuCard(
     icon: ImageVector,
     title: String,
     description: String,
@@ -154,8 +154,8 @@ fun AdminMenuCard(
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                modifier = Modifier.size(48.dp),
-                tint = contentColor
+                tint = contentColor,
+                modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -168,62 +168,45 @@ fun AdminMenuCard(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = contentColor.copy(alpha = 0.8f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                color = contentColor.copy(alpha = 0.8f)
             )
         }
     }
 }
 
-data class AdminMenuItem(
+// Data class para items del menú
+data class ClienteMenuItem(
     val icon: ImageVector,
     val title: String,
     val description: String,
     val route: String
 )
 
-val adminMenuItems = listOf(
-    AdminMenuItem(
-        icon = Icons.Default.AddPhotoAlternate,
-        title = "Agregar Producto",
-        description = "Nuevo producto con foto",
-        route = Route.AdminAgregarProducto.path
+// Lista de opciones disponibles para el cliente
+private val clienteMenuItems = listOf(
+    ClienteMenuItem(
+        icon = Icons.Filled.ShoppingCart,
+        title = "Catálogo",
+        description = "Ver productos",
+        route = "catalogo" // TODO: Crear esta ruta
     ),
-    AdminMenuItem(
-        icon = Icons.Default.ShoppingCart,
-        title = "Ventas",
-        description = "Gestionar ventas",
-        route = Route.AdminVentas.path
+    ClienteMenuItem(
+        icon = Icons.Filled.ShoppingBag,
+        title = "Mis Pedidos",
+        description = "Ver mis compras",
+        route = "mis_pedidos" // TODO: Crear esta ruta
     ),
-    AdminMenuItem(
-        icon = Icons.Default.People,
-        title = "Clientes",
-        description = "Gestionar clientes",
-        route = Route.AdminClientes.path
+    ClienteMenuItem(
+        icon = Icons.Filled.Favorite,
+        title = "Favoritos",
+        description = "Productos guardados",
+        route = "favoritos" // TODO: Crear esta ruta
     ),
-    AdminMenuItem(
-        icon = Icons.Default.Inventory,
-        title = "Inventario",
-        description = "Gestionar stock",
-        route = Route.AdminInventario.path
-    ),
-    AdminMenuItem(
-        icon = Icons.Default.ManageAccounts,
-        title = "Usuarios",
-        description = "Gestionar usuarios",
-        route = Route.AdminUsuarios.path
-    ),
-    AdminMenuItem(
-        icon = Icons.Default.Assessment,
-        title = "Reportes",
-        description = "Ver estadísticas",
-        route = Route.AdminReportes.path
-    ),
-    AdminMenuItem(
-        icon = Icons.Default.Person,
+    ClienteMenuItem(
+        icon = Icons.Filled.Person,
         title = "Mi Perfil",
-        description = "Ver mi información",
-        route = Route.AdminPerfil.path
+        description = "Datos personales",
+        route = "perfil" // TODO: Crear esta ruta
     )
 )
 

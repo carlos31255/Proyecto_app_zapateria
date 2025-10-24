@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 
@@ -85,11 +84,8 @@ private fun RegisterScreen(
     onSubmit: () -> Unit,
     onGoLogin: () -> Unit
 ) {
-    // Colores inspirados en zapatos de cuero y tonos oscuros elegantes
-    val darkLeather = Color(0xFF2C2416)
-    val brownLeather = Color(0xFF4A3C2A)
-    val lightBrown = Color(0xFF8B7355)
-    val cream = Color(0xFFD4C5B0)
+    // Nuevo esquema de colores morado/violeta claro - Material Design 3
+    val colorScheme = MaterialTheme.colorScheme
 
     var showPass by remember { mutableStateOf(false) }
     var showConfirm by remember { mutableStateOf(false) }
@@ -100,7 +96,11 @@ private fun RegisterScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(darkLeather, brownLeather)
+                    colors = listOf(
+                        colorScheme.primary.copy(alpha = 0.1f),
+                        colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        colorScheme.background
+                    )
                 )
             )
             .padding(16.dp),
@@ -109,30 +109,30 @@ private fun RegisterScreen(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(16.dp)),
-            shape = RoundedCornerShape(16.dp),
+                .shadow(12.dp, RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF3D3228).copy(alpha = 0.95f)
+                containerColor = colorScheme.surface
             )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
-                    .padding(24.dp),
+                    .padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Crear Cuenta",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = cream
+                    color = colorScheme.onSurface
                 )
                 Spacer(Modifier.height(8.dp))
 
                 Text(
                     text = "Únete a nuestra comunidad",
                     textAlign = TextAlign.Center,
-                    color = lightBrown,
+                    color = colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(20.dp))
@@ -141,7 +141,7 @@ private fun RegisterScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = onNameChange,
-                    label = { Text("Nombre completo", color = lightBrown) },
+                    label = { Text("Nombre completo") },
                     singleLine = true,
                     isError = nameError != null,
                     keyboardOptions = KeyboardOptions(
@@ -149,16 +149,18 @@ private fun RegisterScreen(
                         capitalization = KeyboardCapitalization.Words
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = cream,
-                        unfocusedTextColor = cream,
-                        focusedBorderColor = lightBrown,
-                        unfocusedBorderColor = lightBrown.copy(alpha = 0.5f),
-                        cursorColor = lightBrown
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (nameError != null) {
-                    Text(nameError, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.labelSmall)
+                    Text(nameError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -167,21 +169,23 @@ private fun RegisterScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = onEmailChange,
-                    label = { Text("Email", color = lightBrown) },
+                    label = { Text("Email") },
                     singleLine = true,
                     isError = emailError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = cream,
-                        unfocusedTextColor = cream,
-                        focusedBorderColor = lightBrown,
-                        unfocusedBorderColor = lightBrown.copy(alpha = 0.5f),
-                        cursorColor = lightBrown
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (emailError != null) {
-                    Text(emailError, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.labelSmall)
+                    Text(emailError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -190,21 +194,21 @@ private fun RegisterScreen(
                 OutlinedTextField(
                     value = phone,
                     onValueChange = onPhoneChange,
-                    label = { Text("Teléfono", color = lightBrown) },
+                    label = { Text("Teléfono") },
                     singleLine = true,
                     isError = phoneError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = cream,
-                        unfocusedTextColor = cream,
-                        focusedBorderColor = lightBrown,
-                        unfocusedBorderColor = lightBrown.copy(alpha = 0.5f),
-                        cursorColor = lightBrown
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant),
+                    modifier = Modifier.fillMaxWidth())
                 if (phoneError != null) {
-                    Text(phoneError, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.labelSmall)
+                    Text(phoneError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -213,7 +217,7 @@ private fun RegisterScreen(
                 OutlinedTextField(
                     value = pass,
                     onValueChange = onPassChange,
-                    label = { Text("Contraseña", color = lightBrown) },
+                    label = { Text("Contraseña") },
                     singleLine = true,
                     visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -221,22 +225,24 @@ private fun RegisterScreen(
                             Icon(
                                 imageVector = if (showPass) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                                 contentDescription = if (showPass) "Ocultar contraseña" else "Mostrar contraseña",
-                                tint = lightBrown
+                                tint = colorScheme.onSurfaceVariant
                             )
                         }
                     },
                     isError = passError != null,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = cream,
-                        unfocusedTextColor = cream,
-                        focusedBorderColor = lightBrown,
-                        unfocusedBorderColor = lightBrown.copy(alpha = 0.5f),
-                        cursorColor = lightBrown
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (passError != null) {
-                    Text(passError, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.labelSmall)
+                    Text(passError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -245,7 +251,7 @@ private fun RegisterScreen(
                 OutlinedTextField(
                     value = confirm,
                     onValueChange = onConfirmChange,
-                    label = { Text("Confirmar contraseña", color = lightBrown) },
+                    label = { Text("Confirmar contraseña") },
                     singleLine = true,
                     visualTransformation = if (showConfirm) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -253,22 +259,24 @@ private fun RegisterScreen(
                             Icon(
                                 imageVector = if (showConfirm) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                                 contentDescription = if (showConfirm) "Ocultar contraseña" else "Mostrar contraseña",
-                                tint = lightBrown
+                                tint = colorScheme.onSurfaceVariant
                             )
                         }
                     },
                     isError = confirmError != null,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = cream,
-                        unfocusedTextColor = cream,
-                        focusedBorderColor = lightBrown,
-                        unfocusedBorderColor = lightBrown.copy(alpha = 0.5f),
-                        cursorColor = lightBrown
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (confirmError != null) {
-                    Text(confirmError, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.labelSmall)
+                    Text(confirmError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
 
                 Spacer(Modifier.height(20.dp))
@@ -278,21 +286,21 @@ private fun RegisterScreen(
                     onClick = onSubmit,
                     enabled = canSubmit && !isSubmitting,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFC4A57B),
-                        contentColor = Color(0xFF1A1410),
-                        disabledContainerColor = Color(0xFF6B5D4F),
-                        disabledContentColor = Color(0xFF3D3228)
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.onPrimary,
+                        disabledContainerColor = colorScheme.surfaceVariant,
+                        disabledContentColor = colorScheme.onSurfaceVariant
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     if (isSubmitting) {
                         CircularProgressIndicator(
                             strokeWidth = 2.dp,
-                            modifier = Modifier.size(18.dp),
-                            color = Color(0xFF1A1410)
+                            modifier = Modifier.size(20.dp),
+                            color = colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(8.dp))
                         Text("Registrando...", style = MaterialTheme.typography.bodyLarge)
@@ -303,7 +311,7 @@ private fun RegisterScreen(
 
                 if (errorMsg != null) {
                     Spacer(Modifier.height(12.dp))
-                    Text(errorMsg, color = Color(0xFFFF6B6B))
+                    Text(errorMsg, color = colorScheme.error)
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -312,12 +320,12 @@ private fun RegisterScreen(
                 OutlinedButton(
                     onClick = onGoLogin,
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = cream
+                        contentColor = colorScheme.primary
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text("Ya tengo cuenta", style = MaterialTheme.typography.bodyLarge)
                 }

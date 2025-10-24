@@ -24,10 +24,18 @@ sealed class Route(val path: String) {
     data object AdminUsuarios : Route("admin/usuarios")
     data object AdminReportes : Route("admin/reportes")
     data object AdminPerfil : Route("admin/perfil")
+    data object AdminAgregarProducto : Route("admin/agregar-producto")
 
     // Rutas del Transportista
     data object TransportistaHome : Route("transportista/home")
     data object TransportistaEntregas : Route("transportista/entregas")
     data object TransportistaPerfil : Route("transportista/perfil")
+
+    // Rutas del Cliente
+    data object ClienteHome : Route("cliente/home")
+    data object ClienteCatalogo : Route("cliente/catalogo")
+    data object ClientePedidos : Route("cliente/pedidos")
+    data object ClienteFavoritos : Route("cliente/favoritos")
+    data object ClientePerfil : Route("cliente/perfil")
 }
 

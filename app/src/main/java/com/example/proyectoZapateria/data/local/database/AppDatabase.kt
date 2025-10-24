@@ -52,7 +52,7 @@ import kotlinx.coroutines.launch
         DetalleBoletaEntity::class,
         EntregaEntity::class
     ],
-    version = 1,
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -122,6 +122,7 @@ abstract class AppDatabase : RoomDatabase() {
             val rolDao = database.rolDao()
             val personaDao = database.personaDao()
             val usuarioDao = database.usuarioDao()
+            val marcaDao = database.marcaDao()
 
             // Roles predefinidos para una zapatería pequeña
             val rolesIniciales = listOf(
@@ -139,6 +140,11 @@ abstract class AppDatabase : RoomDatabase() {
                     idRol = 0,
                     nombreRol = "Transportista",
                     descripcion = "Personal de entregas: gestión de despachos y seguimiento de pedidos"
+                ),
+                RolEntity(
+                    idRol = 0,
+                    nombreRol = "Cliente",
+                    descripcion = "Usuario cliente: puede ver catálogo, realizar pedidos y gestionar su perfil"
                 )
             )
 
@@ -192,6 +198,21 @@ abstract class AppDatabase : RoomDatabase() {
                     passHash = PasswordHasher.hashPassword("transportista123"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "María",
+                    apellido = "González",
+                    rut = "44444444-4",
+                    telefono = "+56944444444",
+                    email = "cliente@zapateria.cl",
+                    idComuna = null,
+                    calle = null,
+                    numeroPuerta = null,
+                    username = "cliente@zapateria.cl",
+                    passHash = PasswordHasher.hashPassword("cliente123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
                 )
             )
 
@@ -214,11 +235,67 @@ abstract class AppDatabase : RoomDatabase() {
                 UsuarioEntity(
                     idPersona = idsPersonas[2].toInt(),
                     idRol = 3 // Transportista
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[3].toInt(),
+                    idRol = 4 // Cliente
                 )
             )
 
             usuariosIniciales.forEach { usuario ->
                 usuarioDao.insert(usuario)
+            }
+
+            // Marcas predefinidas para productos
+            val marcasIniciales = listOf(
+                MarcaEntity(
+                    idMarca = 0,
+                    nombreMarca = "Nike",
+                    descripcion = "Marca deportiva líder mundial",
+                    estado = "activa"
+                ),
+                MarcaEntity(
+                    idMarca = 0,
+                    nombreMarca = "Adidas",
+                    descripcion = "Calzado deportivo de alta calidad",
+                    estado = "activa"
+                ),
+                MarcaEntity(
+                    idMarca = 0,
+                    nombreMarca = "Puma",
+                    descripcion = "Estilo y rendimiento deportivo",
+                    estado = "activa"
+                ),
+                MarcaEntity(
+                    idMarca = 0,
+                    nombreMarca = "Reebok",
+                    descripcion = "Innovación en calzado deportivo",
+                    estado = "activa"
+                ),
+                MarcaEntity(
+                    idMarca = 0,
+                    nombreMarca = "Converse",
+                    descripcion = "Estilo clásico y casual",
+                    estado = "activa"
+                ),
+                MarcaEntity(
+                    idMarca = 0,
+                    nombreMarca = "Vans",
+                    descripcion = "Cultura urbana y skateboarding",
+                    estado = "activa"
+                )
+            )
+
+            // Insertar marcas solo si no existen (evitar error UNIQUE constraint)
+            marcasIniciales.forEach { marca ->
+                try {
+                    val existe = marcaDao.existeMarcaConNombre(marca.nombreMarca)
+                    if (existe == 0) {
+                        marcaDao.insertMarca(marca)
+                    }
+                } catch (e: Exception) {
+                    // Si falla por duplicado, ignoramos y continuamos
+                }
             }
         }
     }
