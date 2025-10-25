@@ -25,11 +25,13 @@ import com.example.proyectoZapateria.ui.screen.HomeScreen
 import com.example.proyectoZapateria.ui.screen.LoginScreenVm
 import com.example.proyectoZapateria.ui.screen.RegisterScreenVm
 import com.example.proyectoZapateria.ui.screen.admin.AdminHomeScreen
-<<<<<<< Updated upstream
+
 import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
-=======
+====
+import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
+
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
 >>>>>>> Stashed changes
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
@@ -218,6 +220,7 @@ fun AppNavGraph(
                     )
                 }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 // Rutas del cliente
                 composable(Route.ClienteHome.path) {
                     ClienteHomeScreen(
@@ -232,10 +235,15 @@ fun AppNavGraph(
                         Text("Pantalla de Ventas - Próximamente")
                     }
 =======
+=======
+>>>>>>> Stashed changes
                 composable(Route.TransportistaEntregas.path) {
                     TransportistaEntregasScreen(
                         navController = navController
                     )
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                 }
                 composable(
