@@ -8,9 +8,11 @@ import com.example.proyectoZapateria.data.local.marca.MarcaEntity
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
 import com.example.proyectoZapateria.data.repository.ProductoRepository
 import com.example.proyectoZapateria.utils.ImageHelper
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
+import javax.inject.Inject
 
 data class ProductoFormState(
     val nombreModelo: String = "",
@@ -33,7 +35,8 @@ data class ProductoFormState(
     val errorMsg: String? = null
 )
 
-class ProductoViewModel(
+@HiltViewModel
+class ProductoViewModel @Inject constructor(
     private val productoRepository: ProductoRepository
 ) : ViewModel() {
 

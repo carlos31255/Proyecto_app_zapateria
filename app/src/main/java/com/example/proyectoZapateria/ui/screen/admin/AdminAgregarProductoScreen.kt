@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
@@ -40,7 +41,7 @@ import java.io.File
 @Composable
 fun AdminAgregarProductoScreen(
     navController: NavHostController,
-    productoViewModel: ProductoViewModel
+    productoViewModel: ProductoViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
@@ -272,7 +273,7 @@ fun AdminAgregarProductoScreen(
                     supportingText = formState.marcaError?.let { { Text(it) } },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                        .menuAnchor(), // <- Cambio aquí
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = colorScheme.primary,
                         focusedLabelColor = colorScheme.primary

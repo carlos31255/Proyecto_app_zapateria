@@ -68,7 +68,7 @@ import kotlinx.coroutines.launch
         DetalleBoletaEntity::class,
         EntregaEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -141,29 +141,31 @@ abstract class AppDatabase : RoomDatabase() {
             val marcaDao = database.marcaDao()
 
             // Roles predefinidos para una zapatería pequeña
+            // Usamos IDs fijos (1, 2, 3, 4) para garantizar consistencia
             val rolesIniciales = listOf(
                 RolEntity(
-                    idRol = 0,
+                    idRol = 1,
                     nombreRol = "Administrador",
                     descripcion = "Encargado principal: acceso total al sistema, gestión de usuarios, inventario y configuración"
                 ),
                 RolEntity(
-                    idRol = 0,
+                    idRol = 2,
                     nombreRol = "Vendedor",
                     descripcion = "Personal de ventas: gestión de ventas, clientes y boletas de venta"
                 ),
                 RolEntity(
-                    idRol = 0,
+                    idRol = 3,
                     nombreRol = "Transportista",
                     descripcion = "Personal de entregas: gestión de despachos y seguimiento de pedidos"
                 ),
                 RolEntity(
-                    idRol = 0,
+                    idRol = 4,
                     nombreRol = "Cliente",
                     descripcion = "Usuario cliente: puede ver catálogo, realizar pedidos y gestionar su perfil"
                 )
             )
 
+            // Insertar roles con IDs específicos
             rolesIniciales.forEach { rol ->
                 rolDao.insert(rol)
             }

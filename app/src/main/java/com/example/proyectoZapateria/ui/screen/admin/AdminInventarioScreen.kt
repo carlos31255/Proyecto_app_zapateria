@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
@@ -35,7 +36,7 @@ import java.io.File
 fun AdminInventarioScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    inventarioViewModel: InventarioViewModel
+    inventarioViewModel: InventarioViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
@@ -455,7 +456,7 @@ fun EditarProductoDialog(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMarcas) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                            .menuAnchor()
                     )
 
                     ExposedDropdownMenu(

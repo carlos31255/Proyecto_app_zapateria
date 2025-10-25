@@ -1,7 +1,6 @@
 
 package com.example.proyectoZapateria.ui.screen.transportista
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,56 +12,62 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import com.example.proyectoZapateria.data.local.entrega.EntregaConDetalles
 import com.example.proyectoZapateria.navigation.Route
+import com.example.proyectoZapateria.viewmodel.AuthViewModel
 import com.example.proyectoZapateria.viewmodel.transportista.TransportistaEntregasViewModel
 
 @Composable
 fun TransportistaEntregasScreen(
     navController: NavHostController,
-    // Inyectamos el ViewModel usando Hilt
-    viewModel: TransportistaEntregasViewModel = hiltViewModel()
+    authViewModel: AuthViewModel,
+    backStackEntry: NavBackStackEntry
 ) {
-    // Colores del tema oscuro de cuero
-    val darkLeather = Color(0xFF2C2416)
-    val brownLeather = Color(0xFF4A3C2A)
-    val lightBrown = Color(0xFF8B7355)
-    val cream = Color(0xFFD4C5B0)
+    // Obtenemos el ID del usuario actual del AuthViewModel
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+
+    // Establecemos el transportistaId en el SavedStateHandle
+    LaunchedEffect(currentUser) {
+        currentUser?.let { user ->
+            backStackEntry.savedStateHandle["transportistaId"] = user.idPersona
+        }
+    }
+
+    // Inyectamos el ViewModel usando Hilt (ahora tiene acceso al transportistaId)
+    val viewModel: TransportistaEntregasViewModel = hiltViewModel(backStackEntry)
 
     // Observamos el UiState del ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(darkLeather, brownLeather)
-                )
-            )
-    ) {
+    // Colores del MaterialTheme
+    val colorScheme = MaterialTheme.colorScheme
+
+    Scaffold(
+        containerColor = colorScheme.background
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(16.dp)
         ) {
             // Título principal
             Text(
                 text = "Mis Entregas",
                 style = MaterialTheme.typography.headlineMedium,
-                color = cream,
+                color = colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -70,7 +75,7 @@ fun TransportistaEntregasScreen(
             Text(
                 text = "Gestiona tus entregas pendientes y completadas",
                 style = MaterialTheme.typography.bodyMedium,
-                color = lightBrown,
+                color = colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
@@ -85,17 +90,13 @@ fun TransportistaEntregasScreen(
                 ResumenCard(
                     icon = Icons.Default.Schedule,
                     titulo = "Pendientes",
-                    conteo = uiState.pendientesCount.toString(),
-                    lightBrown = lightBrown,
-                    cream = cream
+                    conteo = uiState.pendientesCount.toString()
                 )
 
                 ResumenCard(
                     icon = Icons.Default.CheckCircle,
                     titulo = "Completadas",
-                    conteo = uiState.completadasCount.toString(),
-                    lightBrown = lightBrown,
-                    cream = cream
+                    conteo = uiState.completadasCount.toString()
                 )
             }
 
@@ -103,7 +104,7 @@ fun TransportistaEntregasScreen(
             Text(
                 text = "Entregas de Hoy",
                 style = MaterialTheme.typography.titleMedium,
-                color = cream,
+                color = colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 12.dp)
             )
@@ -117,7 +118,7 @@ fun TransportistaEntregasScreen(
                             .fillMaxWidth()
                             .wrapContentSize(Alignment.Center)
                             .padding(top = 32.dp),
-                        color = cream
+                        color = colorScheme.primary
                     )
                 }
 
@@ -126,7 +127,7 @@ fun TransportistaEntregasScreen(
                     Text(
                         text = "Error al cargar entregas: ${uiState.error}",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Red.copy(alpha = 0.8f),
+                        color = colorScheme.error,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -139,7 +140,7 @@ fun TransportistaEntregasScreen(
                     Text(
                         text = "No tienes entregas asignadas por ahora.",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = lightBrown,
+                        color = colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -158,12 +159,8 @@ fun TransportistaEntregasScreen(
                                 entrega = entrega,
                                 onClick = {
                                     //  Navegamos al detalle al hacer click
-                                    // (Asegúrate de tener esta ruta en tu NavGraph)
                                     navController.navigate(Route.TransportistaEntregaDetalle.path + "/${entrega.idEntrega}")
-                                },
-                                darkLeather = darkLeather,
-                                lightBrown = lightBrown,
-                                cream = cream
+                                }
                             )
                         }
                     }
@@ -178,14 +175,14 @@ fun TransportistaEntregasScreen(
 fun RowScope.ResumenCard(
     icon: ImageVector,
     titulo: String,
-    conteo: String,
-    lightBrown: Color,
-    cream: Color
+    conteo: String
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Card(
         modifier = Modifier.weight(1f),
         colors = CardDefaults.cardColors(
-            containerColor = lightBrown.copy(alpha = 0.3f)
+            containerColor = colorScheme.primaryContainer
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -198,20 +195,20 @@ fun RowScope.ResumenCard(
             Icon(
                 imageVector = icon,
                 contentDescription = titulo,
-                tint = cream,
+                tint = colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = conteo, // Dato dinámico
+                text = conteo,
                 style = MaterialTheme.typography.headlineSmall,
-                color = cream,
+                color = colorScheme.onPrimaryContainer,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = titulo,
                 style = MaterialTheme.typography.bodySmall,
-                color = lightBrown
+                color = colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
         }
     }
@@ -220,18 +217,17 @@ fun RowScope.ResumenCard(
 
 @Composable
 fun EntregaCard(
-    entrega: EntregaConDetalles, // Recibimos el objeto POJO
-    onClick: () -> Unit,
-    darkLeather: Color,
-    lightBrown: Color,
-    cream: Color
+    entrega: EntregaConDetalles,
+    onClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick), // 13. Hacemos la tarjeta clickeable
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = lightBrown.copy(alpha = 0.2f)
+            containerColor = colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -244,7 +240,7 @@ fun EntregaCard(
             Icon(
                 imageVector = Icons.Default.LocalShipping,
                 contentDescription = "Entrega",
-                tint = cream,
+                tint = colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
 
@@ -254,37 +250,40 @@ fun EntregaCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    // Usamos las funciones auxiliares del POJO
                     text = entrega.getNumeroOrdenFormateado(),
                     style = MaterialTheme.typography.titleMedium,
-                    color = cream,
+                    color = colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = entrega.clienteNombre,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = lightBrown
+                    color = colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = entrega.getDireccionCompleta(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = lightBrown.copy(alpha = 0.8f)
+                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
 
             // Estado
             Surface(
-                //  Usamos el estado dinámico
-                color = if (entrega.estadoEntrega == "pendiente") lightBrown else Color(0xFF4CAF50),
+                color = if (entrega.estadoEntrega == "pendiente")
+                    colorScheme.secondaryContainer
+                else
+                    colorScheme.tertiaryContainer,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    // Capitalizamos el estado (ej: "Pendiente")
                     text = entrega.estadoEntrega.replaceFirstChar { it.titlecase() },
                     style = MaterialTheme.typography.labelSmall,
-                    color = darkLeather,
+                    color = if (entrega.estadoEntrega == "pendiente")
+                        colorScheme.onSecondaryContainer
+                    else
+                        colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )

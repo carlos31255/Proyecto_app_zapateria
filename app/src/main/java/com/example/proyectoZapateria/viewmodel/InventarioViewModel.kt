@@ -8,10 +8,13 @@ import com.example.proyectoZapateria.data.local.marca.MarcaEntity
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
 import com.example.proyectoZapateria.data.repository.ProductoRepository
 import com.example.proyectoZapateria.utils.ImageHelper
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class InventarioViewModel(
+@HiltViewModel
+class InventarioViewModel @Inject constructor(
     private val productoRepository: ProductoRepository
 ) : ViewModel() {
 

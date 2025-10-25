@@ -1,17 +1,13 @@
 package com.example.proyectoZapateria.navigation
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -29,26 +25,20 @@ import com.example.proyectoZapateria.ui.screen.admin.AdminHomeScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
-====
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
 
-import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
->>>>>>> Stashed changes
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
 import com.example.proyectoZapateria.ui.screen.vendedor.VendedorHomeScreen
-import com.example.proyectoZapateria.viewmodel.AuthViewModel
-import com.example.proyectoZapateria.viewmodel.ProductoViewModel
-import com.example.proyectoZapateria.viewmodel.InventarioViewModel
+import com.example.proyectoZapateria.ui.screen.transportista.DetalleEntregaScreen
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
 
 @Composable
 fun AppNavGraph(
-    navController: NavHostController,
-    authViewModel: AuthViewModel,
-    productoViewModel: ProductoViewModel,
-    inventarioViewModel: InventarioViewModel
+    navController: NavHostController
 ) {
+    val authViewModel: com.example.proyectoZapateria.viewmodel.AuthViewModel = hiltViewModel()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
@@ -198,19 +188,26 @@ fun AppNavGraph(
 
                 composable(Route.AdminAgregarProducto.path) {
                     AdminAgregarProductoScreen(
-                        navController = navController,
-                        productoViewModel = productoViewModel
+                        navController = navController
                     )
                 }
 
                 composable(Route.AdminInventario.path) {
                     AdminInventarioScreen(
                         navController = navController,
-                        authViewModel = authViewModel,
-                        inventarioViewModel = inventarioViewModel
+                        authViewModel = authViewModel
                     )
                 }
 
+
+
+                // Rutas del cliente
+                composable(Route.ClienteHome.path) {
+                    ClienteHomeScreen(
+                        navController = navController,
+                        authViewModel = authViewModel
+                    )
+                }
                 // Rutas del transportista
                 composable(Route.TransportistaHome.path) {
                     TransportistaHomeScreen(
@@ -219,54 +216,29 @@ fun AppNavGraph(
 
                     )
                 }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                // Rutas del cliente
-                composable(Route.ClienteHome.path) {
-                    ClienteHomeScreen(
-                        navController = navController,
-                        authViewModel = authViewModel
-                    )
-                }
-
-                // pantallas pendientes de implementar
-                composable(Route.VendedorVentas.path) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Pantalla de Ventas - Próximamente")
-                    }
-=======
-=======
->>>>>>> Stashed changes
-                composable(Route.TransportistaEntregas.path) {
-                    TransportistaEntregasScreen(
-                        navController = navController
-                    )
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-                }
                 composable(
-                    // 1. Usa la ruta base + el argumento
-                    route = Route.TransportistaEntregaDetalle.path + "/{idEntrega}",
-
-                    // 2. Define que el argumento es un Entero
-                    arguments = listOf(navArgument("idEntrega") { type = NavType.IntType })
-                ) { backStackEntry -> // 'it' se renombra a 'backStackEntry' para más claridad
-
-                    // 3. Obtiene el ID que viene en la URL
-                    val id = backStackEntry.arguments?.getInt("idEntrega") ?: 0
-
-                    // 4. Llama a la pantalla de detalle (que crearemos después)
-                    // TransportistaEntregaDetalleScreen(navController = navController, entregaId = id)
-
-                    // Por ahora, un placeholder para que compile:
-                    Text(
-                        text = "Pantalla de Detalle. ID de Entrega: $id",
-                        modifier = Modifier.padding(32.dp)
+                    route = Route.TransportistaEntregas.path
+                ) { backStackEntry ->
+                    TransportistaEntregasScreen(
+                        navController = navController,
+                        authViewModel = authViewModel,
+                        backStackEntry = backStackEntry
                     )
+                }
+
+                composable(
+                    // Esta es la ruta base: "transportista/entregas/detalle/{idEntrega}"
+                    route = Route.TransportistaEntregaDetalle.path,
+
+                    // Define el argumento que esperamos
+                    arguments = listOf(navArgument("idEntrega") { type = NavType.IntType })
+                ) {
+                    // Llama a la pantalla de detalle real.
+                    // El DetalleEntregaViewModel (inyectado con hiltViewModel())
+                    // leerá automáticamente el "idEntrega" de la ruta.
+                    DetalleEntregaScreen(navController = navController)
+                }
                 }
             }
         }
     }
-}

@@ -13,11 +13,13 @@ import com.example.proyectoZapateria.domain.validation.validateNameLettersOnly
 import com.example.proyectoZapateria.domain.validation.validatePhoneDigitsOnly
 import com.example.proyectoZapateria.domain.validation.validateStrongPassword
 import com.example.proyectoZapateria.utils.PasswordHasher
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
 data class LoginUiState(
     val email: String = "",
@@ -49,11 +51,18 @@ data class RegisterUiState(
     val errorMsg: String? = null,
 )
 
-// ViewModel que usa Room
-class AuthViewModel(
+// ViewModel que usa Room con Hilt
+@HiltViewModel
+class AuthViewModel @Inject constructor(
     private val personaRepository: PersonaRepository,
     private val usuarioRepository: UsuarioRepository
 ) : ViewModel() {
+
+    init {
+        android.util.Log.d("AuthViewModel", "AuthViewModel inicializado con Hilt")
+        android.util.Log.d("AuthViewModel", "PersonaRepository: $personaRepository")
+        android.util.Log.d("AuthViewModel", "UsuarioRepository: $usuarioRepository")
+    }
 
     private val _login = MutableStateFlow(LoginUiState())
     val login: StateFlow<LoginUiState> = _login
@@ -92,10 +101,14 @@ class AuthViewModel(
             delay(500)
 
             try {
+                android.util.Log.d("AuthViewModel", "Intentando login con email: ${s.email}")
+
                 // Buscar el usuario por username
                 val usuarioCompleto = usuarioRepository.getUsuarioByUsername(s.email)
+                android.util.Log.d("AuthViewModel", "Usuario encontrado: ${usuarioCompleto?.idPersona}")
 
                 if (usuarioCompleto == null) {
+                    android.util.Log.e("AuthViewModel", "Usuario no encontrado en BD")
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -106,8 +119,11 @@ class AuthViewModel(
                     return@launch
                 }
 
+                android.util.Log.d("AuthViewModel", "Estado del usuario: ${usuarioCompleto.estado}")
+
                 // Verificar si el usuario está activo
                 if (usuarioCompleto.estado != "activo") {
+                    android.util.Log.e("AuthViewModel", "Usuario inactivo")
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -120,7 +136,10 @@ class AuthViewModel(
 
                 // Obtener la persona para verificar la contraseña
                 val persona = personaRepository.getPersonaById(usuarioCompleto.idPersona)
+                android.util.Log.d("AuthViewModel", "Persona encontrada: ${persona?.nombre}")
+
                 if (persona == null) {
+                    android.util.Log.e("AuthViewModel", "Persona no encontrada en BD")
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -133,10 +152,14 @@ class AuthViewModel(
 
                 // Verificar la contraseña
                 val passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
+                android.util.Log.d("AuthViewModel", "Password válida: $passwordValida")
 
                 if (passwordValida) {
                     // Guardar el usuario autenticado
                     _currentUser.value = usuarioCompleto
+                    android.util.Log.d("AuthViewModel", "Login exitoso. Usuario guardado: ${usuarioCompleto.idPersona}")
+                } else {
+                    android.util.Log.e("AuthViewModel", "Password incorrecta")
                 }
 
                 _login.update {

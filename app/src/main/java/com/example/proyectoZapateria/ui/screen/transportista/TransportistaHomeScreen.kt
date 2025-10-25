@@ -27,7 +27,6 @@ fun TransportistaHomeScreen(
 ) {
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
 
-    // Colores de Material Design
     val colorScheme = MaterialTheme.colorScheme
 
     Scaffold(
@@ -115,7 +114,25 @@ fun TransportistaHomeScreen(
                         icon = menuItem.icon,
                         title = menuItem.title,
                         description = menuItem.description,
-                        onClick = { navController.navigate(menuItem.route) },
+                        onClick = {
+                            if (menuItem.route == Route.TransportistaEntregas.path) {
+                                // Obtenemos el ID del usuario logueado
+                                val currentUserId = authViewModel.currentUser.value?.idPersona
+
+                                if (currentUserId != null) {
+                                    // Construimos la ruta real:
+                                    val rutaCompleta = menuItem.route.replace(
+                                        "{transportistaId}",
+                                        currentUserId.toString()
+                                    )
+                                    // Navegamos a la ruta completa
+                                    navController.navigate(rutaCompleta)
+                                }
+                            } else {
+                                // Para "Mi Perfil" (o cualquier otra ruta), navegamos normal
+                                navController.navigate(menuItem.route)
+                            }
+                        },
                         backgroundColor = colorScheme.secondaryContainer,
                         contentColor = colorScheme.onSecondaryContainer
                     )
