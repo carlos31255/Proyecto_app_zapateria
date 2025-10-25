@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.ui.screen.transportista
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -18,129 +19,34 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.example.proyectoZapateria.navigation.Route
+import com.example.proyectoZapateria.ui.components.AppDrawer
+import com.example.proyectoZapateria.ui.components.AuthenticatedDrawerHeader
+import com.example.proyectoZapateria.ui.components.DrawerItem
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
-@Composable
-fun TransportistaHomeScreen(
-    navController: NavHostController,
-    authViewModel: AuthViewModel
-) {
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+data class TransportistaMenuItem(
+    val icon: ImageVector,
+    val title: String,
+    val description: String,
+    val route: String
+)
 
-    val colorScheme = MaterialTheme.colorScheme
 
-    Scaffold(
-        topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colorScheme.primaryContainer)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        // Texto StepStyle con colores de Material Design
-                        Row {
-                            Text(
-                                text = "Step",
-                                color = colorScheme.onPrimaryContainer,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Style",
-                                color = colorScheme.error,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Panel de Transportista",
-                            color = colorScheme.onPrimaryContainer,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        currentUser?.let {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Bienvenido, ${it.nombre}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
-                            )
-                        }
-                    }
-                    IconButton(onClick = {
-                        authViewModel.logout()
-                        navController.navigate(Route.Login.path) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Cerrar sesión",
-                            tint = colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "¿Qué deseas hacer?",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            // Grid de opciones del transportista
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(transportistaMenuItems) { menuItem ->
-                    TransportistaMenuCard(
-                        icon = menuItem.icon,
-                        title = menuItem.title,
-                        description = menuItem.description,
-                        onClick = {
-                            if (menuItem.route == Route.TransportistaEntregas.path) {
-                                // Obtenemos el ID del usuario logueado
-                                val currentUserId = authViewModel.currentUser.value?.idPersona
-
-                                if (currentUserId != null) {
-                                    // Construimos la ruta real:
-                                    val rutaCompleta = menuItem.route.replace(
-                                        "{transportistaId}",
-                                        currentUserId.toString()
-                                    )
-                                    // Navegamos a la ruta completa
-                                    navController.navigate(rutaCompleta)
-                                }
-                            } else {
-                                // Para "Mi Perfil" (o cualquier otra ruta), navegamos normal
-                                navController.navigate(menuItem.route)
-                            }
-                        },
-                        backgroundColor = colorScheme.secondaryContainer,
-                        contentColor = colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-        }
-    }
-}
+val transportistaMenuItems = listOf(
+    TransportistaMenuItem(
+        icon = Icons.Default.LocalShipping,
+        title = "Entregas",
+        description = "Ver mis entregas",
+        route = Route.TransportistaEntregas.path
+    ),
+    TransportistaMenuItem(
+        icon = Icons.Default.Person,
+        title = "Mi Perfil",
+        description = "Ver mi información",
+        route = Route.TransportistaPerfil.path
+    )
+)
 
 @Composable
 fun TransportistaMenuCard(
@@ -191,26 +97,70 @@ fun TransportistaMenuCard(
         }
     }
 }
+@SuppressLint("SuspiciousIndentation")
+@Composable
+fun TransportistaHomeScreen(
+    navController: NavHostController,
+    authViewModel: AuthViewModel,
+) {
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
 
-data class TransportistaMenuItem(
-    val icon: ImageVector,
-    val title: String,
-    val description: String,
-    val route: String
-)
+    val colorScheme = MaterialTheme.colorScheme
 
-val transportistaMenuItems = listOf(
-    TransportistaMenuItem(
-        icon = Icons.Default.LocalShipping,
-        title = "Entregas",
-        description = "Ver mis entregas",
-        route = Route.TransportistaEntregas.path
-    ),
-    TransportistaMenuItem(
-        icon = Icons.Default.Person,
-        title = "Mi Perfil",
-        description = "Ver mi información",
-        route = Route.TransportistaPerfil.path
-    )
-)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "¿Qué deseas hacer?",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Grid de opciones del transportista
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(transportistaMenuItems) { menuItem ->
+                    TransportistaMenuCard(
+                        icon = menuItem.icon,
+                        title = menuItem.title,
+                        description = menuItem.description,
+                        onClick = {
+                            val currentUserId = authViewModel.currentUser.value?.idPersona
+
+                            if (currentUserId != null) {
+                                val rutaCompleta = when (menuItem.route) {
+                                    // Para rutas que requieren el ID del transportista
+                                    Route.TransportistaEntregas.path -> {
+                                        menuItem.route.replace("{transportistaId}", currentUserId.toString())
+                                    }
+                                    Route.TransportistaPerfil.path -> {
+                                        menuItem.route.replace("{transportistaId}", currentUserId.toString())
+                                    }
+                                    else -> menuItem.route
+                                }
+                                navController.navigate(rutaCompleta)
+                            } else {
+                                // Para "Mi Perfil" (o cualquier otra ruta), navegamos normal
+                                navController.navigate(menuItem.route)
+                            }
+                        },
+                        backgroundColor = colorScheme.secondaryContainer,
+                        contentColor = colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+    }
+
+
+
+
+
+
 

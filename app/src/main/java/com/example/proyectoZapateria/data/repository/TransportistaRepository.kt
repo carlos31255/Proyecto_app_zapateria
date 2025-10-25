@@ -4,8 +4,9 @@ import com.example.proyectoZapateria.data.local.transportista.TransportistaConPe
 import com.example.proyectoZapateria.data.local.transportista.TransportistaDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-class TransportistaRepository (
+class TransportistaRepository @Inject constructor(
     private val transportistaDao: TransportistaDao
 ){
     // --- FUNCIONES PARA "MI PERFIL" ---

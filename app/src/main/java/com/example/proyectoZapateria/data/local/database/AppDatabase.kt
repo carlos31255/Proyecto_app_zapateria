@@ -68,7 +68,7 @@ import kotlinx.coroutines.launch
         DetalleBoletaEntity::class,
         EntregaEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -139,6 +139,10 @@ abstract class AppDatabase : RoomDatabase() {
             val personaDao = database.personaDao()
             val usuarioDao = database.usuarioDao()
             val marcaDao = database.marcaDao()
+            val transportistaDao = database.transportistaDao()
+            val clienteDao = database.clienteDao()
+            val boletaVentaDao = database.boletaVentaDao()
+            val entregaDao = database.entregaDao()
 
             // Roles predefinidos para una zapatería pequeña
             // Usamos IDs fijos (1, 2, 3, 4) para garantizar consistencia
@@ -183,7 +187,7 @@ abstract class AppDatabase : RoomDatabase() {
                     calle = null,
                     numeroPuerta = null,
                     username = "admin@zapateria.cl",
-                    passHash = PasswordHasher.hashPassword("admin123"),
+                    passHash = PasswordHasher.hashPassword("admin123!"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 ),
@@ -193,12 +197,12 @@ abstract class AppDatabase : RoomDatabase() {
                     apellido = "Vendedor",
                     rut = "22222222-2",
                     telefono = "+56922222222",
-                    email = "vendedor@zapateria.cl",
+                    email = "vend@zapa.cl",
                     idComuna = null,
                     calle = null,
                     numeroPuerta = null,
-                    username = "vendedor@zapateria.cl",
-                    passHash = PasswordHasher.hashPassword("vendedor123"),
+                    username = "vend@zapa.cl",
+                    passHash = PasswordHasher.hashPassword("vend123!"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 ),
@@ -208,12 +212,12 @@ abstract class AppDatabase : RoomDatabase() {
                     apellido = "Transportista",
                     rut = "33333333-3",
                     telefono = "+56933333333",
-                    email = "transportista@zapateria.cl",
+                    email = "tra@zapa.cl",
                     idComuna = null,
                     calle = null,
                     numeroPuerta = null,
-                    username = "transportista@zapateria.cl",
-                    passHash = PasswordHasher.hashPassword("transportista123"),
+                    username = "tra@zapa.cl",
+                    passHash = PasswordHasher.hashPassword("tra123!"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 ),
@@ -223,12 +227,12 @@ abstract class AppDatabase : RoomDatabase() {
                     apellido = "González",
                     rut = "44444444-4",
                     telefono = "+56944444444",
-                    email = "cliente@zapateria.cl",
+                    email = "cli@zapa.cl",
                     idComuna = null,
-                    calle = null,
-                    numeroPuerta = null,
-                    username = "cliente@zapateria.cl",
-                    passHash = PasswordHasher.hashPassword("cliente123"),
+                    calle = "Av. Libertador Bernardo O'Higgins",
+                    numeroPuerta = "1234",
+                    username = "cli@zapa.cl",
+                    passHash = PasswordHasher.hashPassword("cli123!"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 )
@@ -263,6 +267,89 @@ abstract class AppDatabase : RoomDatabase() {
             usuariosIniciales.forEach { usuario ->
                 usuarioDao.insert(usuario)
             }
+
+            // Crear transportista para el usuario transportista
+            val transportistaEntity = TransportistaEntity(
+                idPersona = idsPersonas[2].toInt(), // Juan Transportista
+                licencia = "A12345678",
+                vehiculo = "ABCD12"
+            )
+            transportistaDao.insert(transportistaEntity)
+
+            // Crear cliente para el usuario cliente
+            val clienteEntity = ClienteEntity(
+                idPersona = idsPersonas[3].toInt(), // María González
+                categoria = "regular"
+            )
+            clienteDao.insert(clienteEntity)
+
+            // Crear boletas de venta de prueba
+            val boleta1Id = boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    idCliente = idsPersonas[3].toInt(),
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 59990,
+                    fecha = System.currentTimeMillis()
+                )
+            )
+
+            val boleta2Id = boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    idCliente = idsPersonas[3].toInt(),
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 79990,
+                    fecha = System.currentTimeMillis()
+                )
+            )
+
+            val boleta3Id = boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    idCliente = idsPersonas[3].toInt(),
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 45990,
+                    fecha = System.currentTimeMillis()
+                )
+            )
+
+            // Crear entregas de prueba asignadas al transportista
+            entregaDao.insert(
+                EntregaEntity(
+                    idEntrega = 0,
+                    idBoleta = boleta1Id.toInt(),
+                    idTransportista = idsPersonas[2].toInt(),
+                    estadoEntrega = "pendiente",
+                    fechaAsignacion = System.currentTimeMillis(),
+                    fechaEntrega = null,
+                    observacion = "Entregar en horario de oficina"
+                )
+            )
+
+            entregaDao.insert(
+                EntregaEntity(
+                    idEntrega = 0,
+                    idBoleta = boleta2Id.toInt(),
+                    idTransportista = idsPersonas[2].toInt(),
+                    estadoEntrega = "pendiente",
+                    fechaAsignacion = System.currentTimeMillis(),
+                    fechaEntrega = null,
+                    observacion = "Tocar el timbre"
+                )
+            )
+
+            entregaDao.insert(
+                EntregaEntity(
+                    idEntrega = 0,
+                    idBoleta = boleta3Id.toInt(),
+                    idTransportista = idsPersonas[2].toInt(),
+                    estadoEntrega = "completada",
+                    fechaAsignacion = System.currentTimeMillis() - 86400000, // Hace 1 día
+                    fechaEntrega = System.currentTimeMillis() - 43200000, // Hace 12 horas
+                    observacion = "Entrega exitosa"
+                )
+            )
 
             // Marcas predefinidas para productos
             val marcasIniciales = listOf(

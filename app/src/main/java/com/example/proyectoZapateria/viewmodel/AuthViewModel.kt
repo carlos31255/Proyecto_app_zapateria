@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.local.persona.PersonaEntity
 import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
+import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
 import com.example.proyectoZapateria.domain.validation.validateConfirm
@@ -55,13 +56,15 @@ data class RegisterUiState(
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val personaRepository: PersonaRepository,
-    private val usuarioRepository: UsuarioRepository
+    private val usuarioRepository: UsuarioRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     init {
         android.util.Log.d("AuthViewModel", "AuthViewModel inicializado con Hilt")
         android.util.Log.d("AuthViewModel", "PersonaRepository: $personaRepository")
         android.util.Log.d("AuthViewModel", "UsuarioRepository: $usuarioRepository")
+        android.util.Log.d("AuthViewModel", "AuthRepository: $authRepository")
     }
 
     private val _login = MutableStateFlow(LoginUiState())
@@ -70,9 +73,8 @@ class AuthViewModel @Inject constructor(
     private val _register = MutableStateFlow(RegisterUiState())
     val register: StateFlow<RegisterUiState> = _register
 
-    // Estado para el usuario logueado
-    private val _currentUser = MutableStateFlow<UsuarioConPersonaYRol?>(null)
-    val currentUser: StateFlow<UsuarioConPersonaYRol?> = _currentUser
+    // Estado para el usuario logueado - ahora viene del AuthRepository
+    val currentUser: StateFlow<UsuarioConPersonaYRol?> = authRepository.currentUser
 
     // ========== HANDLERS LOGIN ==========
 
@@ -155,8 +157,8 @@ class AuthViewModel @Inject constructor(
                 android.util.Log.d("AuthViewModel", "Password válida: $passwordValida")
 
                 if (passwordValida) {
-                    // Guardar el usuario autenticado
-                    _currentUser.value = usuarioCompleto
+                    // Guardar el usuario autenticado en el repositorio
+                    authRepository.setCurrentUser(usuarioCompleto)
                     android.util.Log.d("AuthViewModel", "Login exitoso. Usuario guardado: ${usuarioCompleto.idPersona}")
                 } else {
                     android.util.Log.e("AuthViewModel", "Password incorrecta")
@@ -323,7 +325,7 @@ class AuthViewModel @Inject constructor(
     // ========== LOGOUT ==========
 
     fun logout() {
-        _currentUser.value = null
+        authRepository.logout()
         _login.value = LoginUiState()
     }
 }

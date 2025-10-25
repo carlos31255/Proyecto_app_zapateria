@@ -31,22 +31,11 @@ import com.example.proyectoZapateria.viewmodel.transportista.TransportistaEntreg
 
 @Composable
 fun TransportistaEntregasScreen(
-    navController: NavHostController,
-    authViewModel: AuthViewModel,
-    backStackEntry: NavBackStackEntry
+    navController: NavHostController
+
 ) {
-    // Obtenemos el ID del usuario actual del AuthViewModel
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-
-    // Establecemos el transportistaId en el SavedStateHandle
-    LaunchedEffect(currentUser) {
-        currentUser?.let { user ->
-            backStackEntry.savedStateHandle["transportistaId"] = user.idPersona
-        }
-    }
-
     // Inyectamos el ViewModel usando Hilt (ahora tiene acceso al transportistaId)
-    val viewModel: TransportistaEntregasViewModel = hiltViewModel(backStackEntry)
+    val viewModel: TransportistaEntregasViewModel = hiltViewModel()
 
     // Observamos el UiState del ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

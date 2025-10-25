@@ -6,10 +6,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,7 +18,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 import com.example.proyectoZapateria.viewmodel.transportista.TransportistaPerfilViewModel
@@ -26,65 +25,75 @@ import com.example.proyectoZapateria.viewmodel.transportista.TransportistaPerfil
 @Composable
 fun TransportistaPerfilScreen(
     navController: NavHostController,
-    authViewModel: AuthViewModel,
-    backStackEntry: NavBackStackEntry
+    viewModel: TransportistaPerfilViewModel = hiltViewModel(),
+    authViewModel : AuthViewModel = hiltViewModel()
 ) {
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-
-    LaunchedEffect(currentUser) {
-        currentUser?.let { user ->
-            backStackEntry.savedStateHandle["transportistaId"] = user.idPersona
-        }
-    }
-
-    val viewModel: TransportistaPerfilViewModel = hiltViewModel(backStackEntry)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val colorScheme = MaterialTheme.colorScheme
 
-    Scaffold(
-        containerColor = colorScheme.background
-    ) { paddingValues ->
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = colorScheme.primary)
-                }
+    when {
+        uiState.isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = colorScheme.primary)
             }
+        }
 
-            uiState.error != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
+        uiState.error != null -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
                 ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier.align(Alignment.Start)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Error: ${uiState.error}",
                         style = MaterialTheme.typography.bodyLarge,
                         color = colorScheme.error,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(16.dp)
+                        textAlign = TextAlign.Center
                     )
                 }
             }
+        }
 
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .verticalScroll(rememberScrollState())
+        else -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Botón de regreso
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.padding(8.dp)
                 ) {
-                    // Header con foto de perfil
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = colorScheme.onBackground
+                    )
+                }
+
+                // Header con foto de perfil
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = colorScheme.primaryContainer
                     ) {
+                        // Informacion del usuario
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -133,7 +142,7 @@ fun TransportistaPerfilScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "Información de Contacto",
+                            text = "Información Personal",
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.onBackground,
                             fontWeight = FontWeight.Bold,
@@ -150,6 +159,16 @@ fun TransportistaPerfilScreen(
                             icon = Icons.Default.Phone,
                             label = "Teléfono",
                             value = uiState.telefono
+                        )
+                        InfoCard(
+                            icon = Icons.Default.Badge,
+                            label = "Licencia",
+                            value = uiState.licencia
+                        )
+                        InfoCard(
+                            icon = Icons.Default.DirectionsCar,
+                            label = "Vehículo",
+                            value = uiState.vehiculo
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -224,7 +243,6 @@ fun TransportistaPerfilScreen(
             }
         }
     }
-}
 
 @Composable
 fun InfoCard(

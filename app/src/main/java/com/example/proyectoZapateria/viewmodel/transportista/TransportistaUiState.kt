@@ -42,6 +42,12 @@ data class TransportistaPerfilUiState(
     val totalEntregas: Int = 0,
     val entregasCompletadas: Int = 0,
     val entregasPendientes: Int = 0,
+    //placeholder
+    val licencia: String = "...",
+    val vehiculo: String = "...",
+
     val isLoading: Boolean = true,
     val error: String? = null
 )
+
+

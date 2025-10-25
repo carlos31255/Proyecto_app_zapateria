@@ -18,7 +18,11 @@ class EntregaRepository @Inject constructor (
     suspend fun getEntregaSimple(idEntrega: Int): EntregaEntity? {
         return entregaDao.getEntregaById(idEntrega)
     }
-
+    // Cuenta las entregas de un transportista por estado
+    suspend fun getCountEntregasPorEstado(transportistaId: Int, estado:
+    String): Int {
+            return entregaDao.getCountByEstadoParaTransportista(transportistaId, estado)
+        }
     // Obtiene los detalles completos de una entrega por su ID
     fun getDetallesPorId(idEntrega: Int): Flow<EntregaConDetalles> {
         return entregaDao.getDetallesPorId(idEntrega)

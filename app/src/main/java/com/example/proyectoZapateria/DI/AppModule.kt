@@ -13,6 +13,7 @@ import com.example.proyectoZapateria.data.repository.DetalleBoletaRepository
 import com.example.proyectoZapateria.data.repository.EntregaRepository
 import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
+import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.MarcaRepository
 import com.example.proyectoZapateria.data.repository.ModeloZapatoRepository
 import com.example.proyectoZapateria.data.repository.ProductoRepository
@@ -101,6 +102,16 @@ object AppModule {
     @Singleton
     fun provideUsuarioRepository(usuarioDao: UsuarioDao): UsuarioRepository {
         return UsuarioRepository(usuarioDao)
+    }
+
+    // Provee el AuthRepository
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        personaDao: PersonaDao,
+        usuarioDao: UsuarioDao
+    ): AuthRepository {
+        return AuthRepository(personaDao, usuarioDao)
     }
 
     // Provee el EntregaRepository

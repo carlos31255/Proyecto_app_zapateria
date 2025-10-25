@@ -51,7 +51,10 @@ interface EntregaDao {
         // Contar entregas de un transportista
         @Query("SELECT COUNT(*) FROM entrega WHERE id_transportista = :idTransportista")
         suspend fun getCountByTransportista(idTransportista: Int): Int
+        // Cuenta entregas para un transportista específico con un estado específico.
 
+        @Query("SELECT COUNT(*) FROM entrega WHERE id_transportista = :transportistaId AND estado_entrega = :estado")
+        suspend fun getCountByEstadoParaTransportista(transportistaId: Int, estado: String): Int
         // Obtener la lista de entregas de un transportista, usando la boleta (para el id) y la persona (para el nombre y direccion)
         @Query("""
         SELECT 

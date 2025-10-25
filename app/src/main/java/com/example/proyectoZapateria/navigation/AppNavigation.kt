@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.navigation
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
@@ -16,12 +17,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.proyectoZapateria.ui.components.AppDrawer
 import com.example.proyectoZapateria.ui.components.AppTopBar
-import com.example.proyectoZapateria.ui.components.defaultDrawerItems
+import com.example.proyectoZapateria.ui.components.publicDrawerItems
 import com.example.proyectoZapateria.ui.screen.HomeScreen
 import com.example.proyectoZapateria.ui.screen.LoginScreenVm
 import com.example.proyectoZapateria.ui.screen.RegisterScreenVm
 import com.example.proyectoZapateria.ui.screen.admin.AdminHomeScreen
-
 import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
@@ -30,7 +30,12 @@ import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntreg
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
 import com.example.proyectoZapateria.ui.screen.vendedor.VendedorHomeScreen
 import com.example.proyectoZapateria.ui.screen.transportista.DetalleEntregaScreen
+import com.example.proyectoZapateria.ui.screen.transportista.TransportistaPerfilScreen
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.proyectoZapateria.ui.components.AuthenticatedDrawerHeader
+import com.example.proyectoZapateria.ui.components.PublicDrawerHeader
+import com.example.proyectoZapateria.ui.screen.transportista.transportistaDrawerItems
 import kotlinx.coroutines.launch
 
 
@@ -113,24 +118,73 @@ fun AppNavGraph(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            AppDrawer(
-                currentRoute = null,
-                items = defaultDrawerItems(
-                    onHome = {
-                        scope.launch { drawerState.close() }
-                        goHome()
-                    },
-                    onLogin = {
-                        scope.launch { drawerState.close() }
-                        goLogin()
-                    },
-                    onRegister = {
-                        scope.launch { drawerState.close() }
-                        goRegister()
-                    },
-                    isAuthenticated = currentUser != null
-                )
-            )
+            val currentRoute by navController.currentBackStackEntryAsState()
+            val routeString = currentRoute?.destination?.route ?: Route.Home.path
+            val userRole = currentUser?.nombreRol
+
+            Log.d("AppNavGraph", "Current user role for drawer: '$userRole'")
+
+            // Decidimos qué menú mostrar
+            when (currentUser?.nombreRol) {
+                // --- CASO 1: TRANSPORTISTA ---
+                "Transportista" -> {
+                    AppDrawer(
+                        currentRoute = routeString,
+                        items = transportistaDrawerItems(
+                            onEntregas = {
+                                scope.launch { drawerState.close() }
+                                val id = currentUser?.idPersona
+                                if (id != null) {
+                                    val rutaCompleta = Route.TransportistaEntregas.path.replace(
+                                        "{transportistaId}", id.toString()
+                                    )
+                                    navController.navigate(rutaCompleta)
+                                }
+                            },
+                            onPerfil = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.TransportistaPerfil.path)
+                            },
+                            onLogout = {
+                                scope.launch { drawerState.close() }
+                                authViewModel.logout()
+                                navController.navigate(Route.Login.path) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        ),
+                        header = {
+                            AuthenticatedDrawerHeader(
+                                username = currentUser?.nombre ?: "Usuario",
+                                role = currentUser?.nombreRol ?: "Transportista"
+                            )
+                        }
+                    )
+                }
+                else -> {
+                    AppDrawer(
+                        currentRoute = routeString,
+                        items = publicDrawerItems(
+                            onHome = {
+                                scope.launch { drawerState.close() }
+                                goHome()
+                            },
+                            onLogin = {
+                                scope.launch { drawerState.close() }
+                                goLogin()
+                            },
+                            onRegister = {
+                                scope.launch { drawerState.close() }
+                                goRegister()
+                            },
+                            isAuthenticated = currentUser != null
+                        ),
+                        header = {
+                            PublicDrawerHeader()
+                        }
+                    )
+                }
+            }
         }
     ) {
         Scaffold(
@@ -213,32 +267,31 @@ fun AppNavGraph(
                     TransportistaHomeScreen(
                         navController = navController,
                         authViewModel = authViewModel
-
                     )
                 }
                 composable(
-                    route = Route.TransportistaEntregas.path
-                ) { backStackEntry ->
+                    route = Route.TransportistaEntregas.path,
+                    arguments = listOf(navArgument("transportistaId") { type = NavType.IntType })
+                ) {
                     TransportistaEntregasScreen(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        backStackEntry = backStackEntry
+                        navController = navController
                     )
                 }
 
                 composable(
-                    // Esta es la ruta base: "transportista/entregas/detalle/{idEntrega}"
                     route = Route.TransportistaEntregaDetalle.path,
-
                     // Define el argumento que esperamos
                     arguments = listOf(navArgument("idEntrega") { type = NavType.IntType })
                 ) {
-                    // Llama a la pantalla de detalle real.
                     // El DetalleEntregaViewModel (inyectado con hiltViewModel())
                     // leerá automáticamente el "idEntrega" de la ruta.
                     DetalleEntregaScreen(navController = navController)
                 }
+
+                composable(route = Route.TransportistaPerfil.path) {
+                    TransportistaPerfilScreen(navController = navController)
                 }
             }
         }
     }
+}
