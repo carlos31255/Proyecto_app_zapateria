@@ -76,18 +76,18 @@ dependencies {
     // Hash para contraseñas
     implementation("org.mindrot:jbcrypt:0.4")
 
-<<<<<<< Updated upstream
+
     // Coil - Carga de imágenes en Compose
     implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Accompanist - Permisos en Compose
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
-=======
+
     // Dependencias de Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler.ksp)
 
     // Para inyectar ViewModels en Compose
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
->>>>>>> Stashed changes
+
 }
