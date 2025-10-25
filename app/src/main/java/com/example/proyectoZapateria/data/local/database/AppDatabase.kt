@@ -5,21 +5,37 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
 import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaEntity
+import com.example.proyectoZapateria.data.local.cliente.ClienteDao
 import com.example.proyectoZapateria.data.local.cliente.ClienteEntity
+import com.example.proyectoZapateria.data.local.comuna.ComunaDao
 import com.example.proyectoZapateria.data.local.comuna.ComunaEntity
+import com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaDao
 import com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity
+import com.example.proyectoZapateria.data.local.entrega.EntregaDao
 import com.example.proyectoZapateria.data.local.entrega.EntregaEntity
+import com.example.proyectoZapateria.data.local.inventario.InventarioDao
 import com.example.proyectoZapateria.data.local.inventario.InventarioEntity
+import com.example.proyectoZapateria.data.local.marca.MarcaDao
 import com.example.proyectoZapateria.data.local.marca.MarcaEntity
+import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoDao
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
+import com.example.proyectoZapateria.data.local.movimientoinventario.MovimientoInventarioDao
 import com.example.proyectoZapateria.data.local.movimientoinventario.MovimientoInventarioEntity
+import com.example.proyectoZapateria.data.local.persona.PersonaDao
 import com.example.proyectoZapateria.data.local.persona.PersonaEntity
+import com.example.proyectoZapateria.data.local.region.RegionDao
 import com.example.proyectoZapateria.data.local.region.RegionEntity
+import com.example.proyectoZapateria.data.local.rol.RolDao
 import com.example.proyectoZapateria.data.local.rol.RolEntity
+import com.example.proyectoZapateria.data.local.talla.TallaDao
 import com.example.proyectoZapateria.data.local.talla.TallaEntity
+import com.example.proyectoZapateria.data.local.tipomovimiento.TipoMovimientoDao
 import com.example.proyectoZapateria.data.local.tipomovimiento.TipoMovimientoEntity
+import com.example.proyectoZapateria.data.local.transportista.TransportistaDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
+import com.example.proyectoZapateria.data.local.usuario.UsuarioDao
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
 import com.example.proyectoZapateria.utils.PasswordHasher
 import kotlinx.coroutines.CoroutineScope
@@ -59,28 +75,28 @@ abstract class AppDatabase : RoomDatabase() {
 
     // === Catálogos base ===
     // Daos que rara vez cambian pero son necesarios
-    abstract fun regionDao(): com.example.proyectoZapateria.data.local.region.RegionDao
-    abstract fun comunaDao(): com.example.proyectoZapateria.data.local.comuna.ComunaDao
-    abstract fun rolDao(): com.example.proyectoZapateria.data.local.rol.RolDao
-    abstract fun tallaDao(): com.example.proyectoZapateria.data.local.talla.TallaDao
-    abstract fun tipoMovimientoDao(): com.example.proyectoZapateria.data.local.tipomovimiento.TipoMovimientoDao
+    abstract fun regionDao(): RegionDao
+    abstract fun comunaDao(): ComunaDao
+    abstract fun rolDao(): RolDao
+    abstract fun tallaDao(): TallaDao
+    abstract fun tipoMovimientoDao(): TipoMovimientoDao
 
     // === Entidades principales ===
-    abstract fun personaDao(): com.example.proyectoZapateria.data.local.persona.PersonaDao
-    abstract fun clienteDao(): com.example.proyectoZapateria.data.local.cliente.ClienteDao
-    abstract fun usuarioDao(): com.example.proyectoZapateria.data.local.usuario.UsuarioDao
-    abstract fun transportistaDao(): com.example.proyectoZapateria.data.local.transportista.TransportistaDao
+    abstract fun personaDao(): PersonaDao
+    abstract fun clienteDao(): ClienteDao
+    abstract fun usuarioDao(): UsuarioDao
+    abstract fun transportistaDao(): TransportistaDao
 
     // === Productos e inventario ===
-    abstract fun marcaDao(): com.example.proyectoZapateria.data.local.marca.MarcaDao
-    abstract fun modeloZapatoDao(): com.example.proyectoZapateria.data.local.modelo.ModeloZapatoDao
-    abstract fun inventarioDao(): com.example.proyectoZapateria.data.local.inventario.InventarioDao
-    abstract fun movimientoInventarioDao(): com.example.proyectoZapateria.data.local.movimientoinventario.MovimientoInventarioDao
+    abstract fun marcaDao(): MarcaDao
+    abstract fun modeloZapatoDao(): ModeloZapatoDao
+    abstract fun inventarioDao(): InventarioDao
+    abstract fun movimientoInventarioDao(): MovimientoInventarioDao
 
     // === Ventas y entregas ===
-    abstract fun boletaVentaDao(): com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
-    abstract fun detalleBoletaDao(): com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaDao
-    abstract fun entregaDao(): com.example.proyectoZapateria.data.local.entrega.EntregaDao
+    abstract fun boletaVentaDao(): BoletaVentaDao
+    abstract fun detalleBoletaDao(): DetalleBoletaDao
+    abstract fun entregaDao(): EntregaDao
 
     companion object {
         @Volatile

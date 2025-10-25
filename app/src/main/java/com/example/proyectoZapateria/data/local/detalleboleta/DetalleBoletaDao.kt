@@ -45,5 +45,21 @@ interface DetalleBoletaDao {
     // Eliminar todos los detalles de una boleta
     @Query("DELETE FROM detalleboleta WHERE id_boleta = :idBoleta")
     suspend fun deleteByBoleta(idBoleta: Int)
+
+    // Obtener lista de productos (modelo, talla, cantidad, marca) de una boleta específica
+    @Query("""
+        SELECT 
+            mz.nombre_modelo as nombreZapato, 
+            t.numero_talla as talla, 
+            d.cantidad as cantidad, 
+            m.nombre_marca as marca
+        FROM DetalleBoleta d
+        INNER JOIN Inventario i ON d.id_inventario = i.id_inventario
+        INNER JOIN ModeloZapato mz ON i.id_modelo = mz.id_modelo
+        INNER JOIN Talla t ON i.id_talla = t.id_talla
+        INNER JOIN Marca m ON mz.id_marca = m.id_marca
+        WHERE d.id_boleta = :idBoleta
+    """)
+    fun getProductosDeBoleta(idBoleta: Int): Flow<List<ProductoDetalle>>
 }
 

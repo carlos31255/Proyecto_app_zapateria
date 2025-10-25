@@ -41,8 +41,8 @@ data class DetalleBoletaEntity(
     val cantidad: Int,
 
     @ColumnInfo(name = "precio_unitario")
-    val precioUnitario: Double,
+    val precioUnitario: Int,
 
-    val subtotal: Double
+    val subtotal: Int
 )
 

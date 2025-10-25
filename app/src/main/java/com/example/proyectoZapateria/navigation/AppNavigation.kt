@@ -1,19 +1,23 @@
 package com.example.proyectoZapateria.navigation
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.proyectoZapateria.ui.components.AppDrawer
 import com.example.proyectoZapateria.ui.components.AppTopBar
 import com.example.proyectoZapateria.ui.components.defaultDrawerItems
@@ -21,9 +25,13 @@ import com.example.proyectoZapateria.ui.screen.HomeScreen
 import com.example.proyectoZapateria.ui.screen.LoginScreenVm
 import com.example.proyectoZapateria.ui.screen.RegisterScreenVm
 import com.example.proyectoZapateria.ui.screen.admin.AdminHomeScreen
+<<<<<<< Updated upstream
 import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
+=======
+import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
+>>>>>>> Stashed changes
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
 import com.example.proyectoZapateria.ui.screen.vendedor.VendedorHomeScreen
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
@@ -42,7 +50,7 @@ fun AppNavGraph(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     // Helpers de navegación
     val goHome: () -> Unit = {
@@ -60,12 +68,7 @@ fun AppNavGraph(
             val currentRoute = navController.currentBackStackEntry?.destination?.route
             if (currentRoute == destination) {
                 // Ya está en home, mostrar mensaje
-                scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = "Ya estás en la pantalla principal",
-                        duration = SnackbarDuration.Short
-                    )
-                }
+                Toast.makeText(context, "Ya estás en la pantalla principal", Toast.LENGTH_SHORT).show()
             } else {
                 // Navegar a su home
                 navController.navigate(destination) {
@@ -76,12 +79,7 @@ fun AppNavGraph(
             // Usuario no autenticado
             val currentRoute = navController.currentBackStackEntry?.destination?.route
             if (currentRoute == Route.Home.path) {
-                scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = "Ya estás en la pantalla principal",
-                        duration = SnackbarDuration.Short
-                    )
-                }
+                Toast.makeText(context, "Ya estás en la pantalla principal", Toast.LENGTH_SHORT).show()
             } else {
                 navController.navigate(Route.Home.path)
             }
@@ -91,12 +89,7 @@ fun AppNavGraph(
     val goLogin: () -> Unit = {
         // Si ya está autenticado, mostrar mensaje
         if (currentUser != null) {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = "Ya tienes una sesión activa",
-                    duration = SnackbarDuration.Short
-                )
-            }
+            Toast.makeText(context, "Ya tienes una sesión activa", Toast.LENGTH_SHORT).show()
         } else {
             navController.navigate(Route.Login.path)
         }
@@ -105,12 +98,7 @@ fun AppNavGraph(
     val goRegister: () -> Unit = {
         // Si ya está autenticado, mostrar mensaje
         if (currentUser != null) {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = "Ya tienes una sesión activa",
-                    duration = SnackbarDuration.Short
-                )
-            }
+            Toast.makeText(context, "Ya tienes una sesión activa", Toast.LENGTH_SHORT).show()
         } else {
             navController.navigate(Route.Register.path)
         }
@@ -162,8 +150,7 @@ fun AppNavGraph(
                     onRegister = goRegister,
                     isAuthenticated = currentUser != null
                 )
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+            }
         ) { innerPadding ->
             NavHost(
                 navController = navController,
@@ -230,6 +217,7 @@ fun AppNavGraph(
 
                     )
                 }
+<<<<<<< Updated upstream
                 // Rutas del cliente
                 composable(Route.ClienteHome.path) {
                     ClienteHomeScreen(
@@ -243,24 +231,32 @@ fun AppNavGraph(
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("Pantalla de Ventas - Próximamente")
                     }
+=======
+                composable(Route.TransportistaEntregas.path) {
+                    TransportistaEntregasScreen(
+                        navController = navController
+                    )
+>>>>>>> Stashed changes
                 }
+                composable(
+                    // 1. Usa la ruta base + el argumento
+                    route = Route.TransportistaEntregaDetalle.path + "/{idEntrega}",
 
-                composable(Route.VendedorClientes.path) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Pantalla de Clientes - Próximamente")
-                    }
-                }
+                    // 2. Define que el argumento es un Entero
+                    arguments = listOf(navArgument("idEntrega") { type = NavType.IntType })
+                ) { backStackEntry -> // 'it' se renombra a 'backStackEntry' para más claridad
 
-                composable(Route.VendedorInventario.path) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Pantalla de Inventario - Próximamente")
-                    }
-                }
+                    // 3. Obtiene el ID que viene en la URL
+                    val id = backStackEntry.arguments?.getInt("idEntrega") ?: 0
 
-                composable(Route.VendedorPerfil.path) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Pantalla de Perfil - Próximamente")
-                    }
+                    // 4. Llama a la pantalla de detalle (que crearemos después)
+                    // TransportistaEntregaDetalleScreen(navController = navController, entregaId = id)
+
+                    // Por ahora, un placeholder para que compile:
+                    Text(
+                        text = "Pantalla de Detalle. ID de Entrega: $id",
+                        modifier = Modifier.padding(32.dp)
+                    )
                 }
             }
         }
