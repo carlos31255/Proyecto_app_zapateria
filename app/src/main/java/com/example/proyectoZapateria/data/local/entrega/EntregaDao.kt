@@ -56,6 +56,19 @@ interface EntregaDao {
         @Query("SELECT COUNT(*) FROM entrega WHERE id_transportista = :transportistaId AND estado_entrega = :estado")
         suspend fun getCountByEstadoParaTransportista(transportistaId: Int, estado: String): Int
         // Obtener la lista de entregas de un transportista, usando la boleta (para el id) y la persona (para el nombre y direccion)
+
+        @Query("""
+        UPDATE entrega 
+        SET estado_entrega = 'entregado', 
+            fecha_entrega = :fechaEntrega, 
+            observacion = :observacion 
+        WHERE id_entrega = :idEntrega
+    """)
+        suspend fun confirmarEntrega(
+                idEntrega: Int,
+                fechaEntrega: Long,
+                observacion: String?
+        )
         @Query("""
         SELECT 
             e.id_entrega as idEntrega,
@@ -82,20 +95,23 @@ interface EntregaDao {
 
 
         // Obtener los detalles (con JOIN) de una sola entrega por su ID
+        @Transaction
         @Query("""
         SELECT 
-            e.id_entrega as idEntrega,
-            e.estado_entrega as estadoEntrega,
-            e.fecha_asignacion as fechaAsignacion,
-            b.id_boleta as numeroBoleta,
-            (p.nombre || ' ' || p.apellido) as clienteNombre,
-            p.calle as calle,
-            p.numero_puerta as numeroPuerta
-        FROM entrega e
-        INNER JOIN boletaventa b ON e.id_boleta = b.id_boleta
-        INNER JOIN cliente c ON b.id_cliente = c.id_persona
-        INNER JOIN persona p ON c.id_persona = p.id_persona
-        WHERE e.id_entrega = :idEntrega
+            T1.id_entrega as idEntrega,
+            T1.estado_entrega as estadoEntrega, 
+            T1.fecha_asignacion as fechaAsignacion, 
+            T1.fecha_entrega as fechaEntrega, 
+            T1.observacion as observacion,
+            T2.id_boleta as numeroBoleta, 
+            (T3.nombre || ' ' || T3.apellido) AS clienteNombre, 
+            T3.calle as calle, 
+            T3.numero_puerta AS numeroPuerta
+        FROM entrega AS T1
+        INNER JOIN boletaventa AS T2 ON T1.id_boleta = T2.id_boleta
+        INNER JOIN cliente AS C ON T2.id_cliente = C.id_persona
+        INNER JOIN persona AS T3 ON C.id_persona = T3.id_persona
+        WHERE T1.id_entrega = :idEntrega
     """)
         // Usamos Flow para que la UI se actualice si el estado cambia
         fun getDetallesPorId(idEntrega: Int): Flow<EntregaConDetalles>

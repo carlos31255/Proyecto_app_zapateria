@@ -36,9 +36,9 @@ data class TransportistaMenuItem(
 val transportistaMenuItems = listOf(
     TransportistaMenuItem(
         icon = Icons.Default.LocalShipping,
-        title = "Entregas",
-        description = "Ver mis entregas",
-        route = Route.TransportistaEntregas.path
+        title = "Mis Entregas",
+        description = "Ver todas mis entregas",
+        route = Route.TransportistaListaEntregas.path
     ),
     TransportistaMenuItem(
         icon = Icons.Default.Person,
@@ -131,24 +131,8 @@ fun TransportistaHomeScreen(
                         title = menuItem.title,
                         description = menuItem.description,
                         onClick = {
-                            val currentUserId = authViewModel.currentUser.value?.idPersona
-
-                            if (currentUserId != null) {
-                                val rutaCompleta = when (menuItem.route) {
-                                    // Para rutas que requieren el ID del transportista
-                                    Route.TransportistaEntregas.path -> {
-                                        menuItem.route.replace("{transportistaId}", currentUserId.toString())
-                                    }
-                                    Route.TransportistaPerfil.path -> {
-                                        menuItem.route.replace("{transportistaId}", currentUserId.toString())
-                                    }
-                                    else -> menuItem.route
-                                }
-                                navController.navigate(rutaCompleta)
-                            } else {
-                                // Para "Mi Perfil" (o cualquier otra ruta), navegamos normal
-                                navController.navigate(menuItem.route)
-                            }
+                            // Simplemente navegamos a la ruta, el ViewModel obtiene el usuario desde AuthViewModel
+                            navController.navigate(menuItem.route)
                         },
                         backgroundColor = colorScheme.secondaryContainer,
                         contentColor = colorScheme.onSecondaryContainer

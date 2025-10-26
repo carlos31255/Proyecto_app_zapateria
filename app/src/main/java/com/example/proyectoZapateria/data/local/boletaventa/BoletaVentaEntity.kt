@@ -24,13 +24,17 @@ import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
     ],
     indices = [
         Index(value = ["id_vendedor"]),
-        Index(value = ["id_cliente"])
+        Index(value = ["id_cliente"]),
+        Index(value = ["numero_boleta"], unique = true)
     ]
 )
 data class BoletaVentaEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id_boleta")
     val idBoleta: Int = 0,
+
+    @ColumnInfo(name = "numero_boleta")
+    val numeroBoleta: String,
 
     val fecha: Long = System.currentTimeMillis(), // Timestamp en milisegundos
 

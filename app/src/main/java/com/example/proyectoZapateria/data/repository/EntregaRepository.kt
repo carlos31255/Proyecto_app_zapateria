@@ -32,4 +32,16 @@ class EntregaRepository @Inject constructor (
     suspend fun updateEntrega(entrega: EntregaEntity) {
         entregaDao.updateEntrega(entrega)
     }
+    // Confirma la entrega, actualizando su estado, fecha y observación
+    suspend fun confirmarEntrega(idEntrega: Int, observacion: String?): Boolean {
+        return try {
+            val fechaEntrega = System.currentTimeMillis()
+            entregaDao.confirmarEntrega(idEntrega, fechaEntrega, observacion)
+            true
+        } catch (e: Exception) {
+
+            e.printStackTrace()
+            false
+        }
+    }
 }

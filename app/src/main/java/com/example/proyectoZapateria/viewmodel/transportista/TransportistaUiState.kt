@@ -15,7 +15,12 @@ data class DetalleEntregaUiState(
 
     // Se pone en true cuando la actualización es exitosa,
     // para que la UI pueda navegar hacia atrás.
-    val actualizacionExitosa: Boolean = false
+    val actualizacionExitosa: Boolean = false,
+
+    // Confirmacion de entrega
+    val observacionInput: String = "", // Campo para la observación del transportista
+    val isConfirming: Boolean = false, // Estado para el proceso de confirmación
+    val isConfirmed: Boolean = false // Estado para mostrar el éxito de la confirmació
 )
 
 data class TransportistaEntregasUiState (

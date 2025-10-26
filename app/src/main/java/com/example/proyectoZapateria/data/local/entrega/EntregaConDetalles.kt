@@ -4,7 +4,11 @@ data class EntregaConDetalles (
     // De EntregaEntity
     val idEntrega: Int,
     val estadoEntrega: String,
-    val fechaAsignacion: Long,
+    val fechaAsignacion: Long, // Asignacion de la entrega
+
+    val fechaEntrega: Long?, // Timestamp en milisegundos, null si no se ha completado
+    val observacion: String?, // Observación del transportista
+
 
     // De BoletaVentaEntity
     val numeroBoleta: Int, // para el "numero orden"

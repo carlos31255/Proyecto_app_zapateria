@@ -17,7 +17,7 @@ fun transportistaDrawerItems(
         DrawerItem.NavItem(
             label = "Mis Entregas",
             icon = Icons.Default.LocalShipping,
-            route = Route.TransportistaEntregas.path,
+            route = Route.TransportistaListaEntregas.path,
             onClick = onEntregas
         ),
         DrawerItem.NavItem(

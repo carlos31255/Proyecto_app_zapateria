@@ -1,4 +1,3 @@
-
 package com.example.proyectoZapateria.ui.screen.transportista
 
 import androidx.compose.foundation.clickable
@@ -7,12 +6,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,11 +21,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import com.example.proyectoZapateria.data.local.entrega.EntregaConDetalles
 import com.example.proyectoZapateria.navigation.Route
-import com.example.proyectoZapateria.viewmodel.AuthViewModel
 import com.example.proyectoZapateria.viewmodel.transportista.TransportistaEntregasViewModel
 
 @Composable
@@ -43,15 +40,24 @@ fun TransportistaEntregasScreen(
     // Colores del MaterialTheme
     val colorScheme = MaterialTheme.colorScheme
 
-    Scaffold(
-        containerColor = colorScheme.background
-    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+                .padding(start = 16.dp, end = 16.dp)
         ) {
+            // Botón de regreso (igual que en Perfil)
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = colorScheme.onBackground
+                )
+            }
+
             // Título principal
             Text(
                 text = "Mis Entregas",
@@ -147,8 +153,10 @@ fun TransportistaEntregasScreen(
                             EntregaCard(
                                 entrega = entrega,
                                 onClick = {
-                                    //  Navegamos al detalle al hacer click
-                                    navController.navigate(Route.TransportistaEntregaDetalle.path + "/${entrega.idEntrega}")
+                                    //  Navegamos a confirmar/completar entrega al hacer click
+                                    navController.navigate(
+                                        Route.TransportistaConfirmarEntrega.path.replace("{idEntrega}", entrega.idEntrega.toString())
+                                    )
                                 }
                             )
                         }
@@ -157,7 +165,7 @@ fun TransportistaEntregasScreen(
             }
         }
     }
-}
+
 
 // (Composable auxiliar para no duplicar código en las tarjetas de resumen)
 @Composable

@@ -28,8 +28,8 @@ sealed class Route(val path: String) {
 
     // Rutas del Transportista
     data object TransportistaHome : Route("transportista/home")
-    data object TransportistaEntregas : Route("transportista/entregas/{transportistaId}")
-    data object TransportistaEntregaDetalle : Route("transportista/entregas/detalle/{idEntrega}")
+    data object TransportistaListaEntregas : Route("transportista/entregas/lista")  // Lista de todas las entregas
+    data object TransportistaConfirmarEntrega : Route("transportista/entregas/confirmar/{idEntrega}")  // Confirmar una entrega específica
     data object TransportistaPerfil : Route("transportista/perfil")
 
     // Rutas del Cliente

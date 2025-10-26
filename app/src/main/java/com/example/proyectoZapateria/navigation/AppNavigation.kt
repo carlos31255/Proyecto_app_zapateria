@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -26,10 +27,9 @@ import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
-
+import com.example.proyectoZapateria.ui.screen.transportista.ConfirmarEntregaScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
 import com.example.proyectoZapateria.ui.screen.vendedor.VendedorHomeScreen
-import com.example.proyectoZapateria.ui.screen.transportista.DetalleEntregaScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaPerfilScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -48,6 +48,32 @@ fun AppNavGraph(
     val scope = rememberCoroutineScope()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // Redireccionar automáticamente si hay sesión guardada
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            val currentRoute = navController.currentBackStackEntry?.destination?.route
+            val isOnAuthScreen = currentRoute == Route.Login.path ||
+                                currentRoute == Route.Register.path ||
+                                currentRoute == Route.Home.path
+
+            if (isOnAuthScreen) {
+                // Redireccionar al home correspondiente según el rol
+                val destination = when(currentUser?.idRol) {
+                    1 -> Route.AdminHome.path
+                    2 -> Route.VendedorHome.path
+                    3 -> Route.TransportistaHome.path
+                    4 -> Route.ClienteHome.path
+                    else -> Route.Home.path
+                }
+
+                Log.d("AppNavGraph", "Sesión restaurada, redirigiendo a: $destination")
+                navController.navigate(destination) {
+                    popUpTo(Route.Home.path) { inclusive = true }
+                }
+            }
+        }
+    }
 
     // Helpers de navegación
     val goHome: () -> Unit = {
@@ -133,13 +159,7 @@ fun AppNavGraph(
                         items = transportistaDrawerItems(
                             onEntregas = {
                                 scope.launch { drawerState.close() }
-                                val id = currentUser?.idPersona
-                                if (id != null) {
-                                    val rutaCompleta = Route.TransportistaEntregas.path.replace(
-                                        "{transportistaId}", id.toString()
-                                    )
-                                    navController.navigate(rutaCompleta)
-                                }
+                                navController.navigate(Route.TransportistaListaEntregas.path)
                             },
                             onPerfil = {
                                 scope.launch { drawerState.close() }
@@ -269,23 +289,21 @@ fun AppNavGraph(
                         authViewModel = authViewModel
                     )
                 }
+                // TRANSPORTISTA - Lista de entregas
                 composable(
-                    route = Route.TransportistaEntregas.path,
-                    arguments = listOf(navArgument("transportistaId") { type = NavType.IntType })
+                    route = Route.TransportistaListaEntregas.path
                 ) {
                     TransportistaEntregasScreen(
                         navController = navController
                     )
                 }
 
+                // TRANSPORTISTA - Confirmar/Completar entrega
                 composable(
-                    route = Route.TransportistaEntregaDetalle.path,
-                    // Define el argumento que esperamos
+                    route = Route.TransportistaConfirmarEntrega.path,
                     arguments = listOf(navArgument("idEntrega") { type = NavType.IntType })
                 ) {
-                    // El DetalleEntregaViewModel (inyectado con hiltViewModel())
-                    // leerá automáticamente el "idEntrega" de la ruta.
-                    DetalleEntregaScreen(navController = navController)
+                    ConfirmarEntregaScreen(navController = navController)
                 }
 
                 composable(route = Route.TransportistaPerfil.path) {

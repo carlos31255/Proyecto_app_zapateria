@@ -88,6 +88,12 @@ object AppModule {
         return database.transportistaDao()
     }
 
+    // ========== Preferences ==========
+
+    // NOTE: SessionPreferences tiene un constructor @Inject con @ApplicationContext,
+    // por lo que no es necesario (y provoca binding duplicado) proveerlo manualmente aquí.
+    // Si prefieres mantener un proveedor explícito, elimina el @Inject constructor de la clase.
+
     // ========== Repositories ==========
 
     // Provee el PersonaRepository

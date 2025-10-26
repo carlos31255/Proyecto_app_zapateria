@@ -68,7 +68,7 @@ import kotlinx.coroutines.launch
         DetalleBoletaEntity::class,
         EntregaEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -287,6 +287,7 @@ abstract class AppDatabase : RoomDatabase() {
             val boleta1Id = boletaVentaDao.insert(
                 BoletaVentaEntity(
                     idBoleta = 0,
+                    numeroBoleta = "B-000001",
                     idCliente = idsPersonas[3].toInt(),
                     idVendedor = idsPersonas[1].toInt(),
                     montoTotal = 59990,
@@ -297,6 +298,7 @@ abstract class AppDatabase : RoomDatabase() {
             val boleta2Id = boletaVentaDao.insert(
                 BoletaVentaEntity(
                     idBoleta = 0,
+                    numeroBoleta = "B-000002",
                     idCliente = idsPersonas[3].toInt(),
                     idVendedor = idsPersonas[1].toInt(),
                     montoTotal = 79990,
@@ -307,6 +309,7 @@ abstract class AppDatabase : RoomDatabase() {
             val boleta3Id = boletaVentaDao.insert(
                 BoletaVentaEntity(
                     idBoleta = 0,
+                    numeroBoleta = "B-000003",
                     idCliente = idsPersonas[3].toInt(),
                     idVendedor = idsPersonas[1].toInt(),
                     montoTotal = 45990,

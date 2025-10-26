@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.local.persona.PersonaEntity
 import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
+import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
@@ -57,14 +58,13 @@ data class RegisterUiState(
 class AuthViewModel @Inject constructor(
     private val personaRepository: PersonaRepository,
     private val usuarioRepository: UsuarioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val sessionPreferences: SessionPreferences
 ) : ViewModel() {
 
     init {
-        android.util.Log.d("AuthViewModel", "AuthViewModel inicializado con Hilt")
-        android.util.Log.d("AuthViewModel", "PersonaRepository: $personaRepository")
-        android.util.Log.d("AuthViewModel", "UsuarioRepository: $usuarioRepository")
-        android.util.Log.d("AuthViewModel", "AuthRepository: $authRepository")
+        // Cargar sesión guardada al iniciar
+        cargarSesionGuardada()
     }
 
     private val _login = MutableStateFlow(LoginUiState())
@@ -103,29 +103,22 @@ class AuthViewModel @Inject constructor(
             delay(500)
 
             try {
-                android.util.Log.d("AuthViewModel", "Intentando login con email: ${s.email}")
-
                 // Buscar el usuario por username
                 val usuarioCompleto = usuarioRepository.getUsuarioByUsername(s.email)
-                android.util.Log.d("AuthViewModel", "Usuario encontrado: ${usuarioCompleto?.idPersona}")
 
                 if (usuarioCompleto == null) {
-                    android.util.Log.e("AuthViewModel", "Usuario no encontrado en BD")
                     _login.update {
                         it.copy(
                             isLoading = false,
                             success = false,
-                            errorMsg = "Usuario o contraseña inválidos"
+                            errorMsg = "Usuario no encontrado. Verifica tu email"
                         )
                     }
                     return@launch
                 }
 
-                android.util.Log.d("AuthViewModel", "Estado del usuario: ${usuarioCompleto.estado}")
-
                 // Verificar si el usuario está activo
                 if (usuarioCompleto.estado != "activo") {
-                    android.util.Log.e("AuthViewModel", "Usuario inactivo")
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -138,10 +131,8 @@ class AuthViewModel @Inject constructor(
 
                 // Obtener la persona para verificar la contraseña
                 val persona = personaRepository.getPersonaById(usuarioCompleto.idPersona)
-                android.util.Log.d("AuthViewModel", "Persona encontrada: ${persona?.nombre}")
 
                 if (persona == null) {
-                    android.util.Log.e("AuthViewModel", "Persona no encontrada en BD")
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -154,14 +145,18 @@ class AuthViewModel @Inject constructor(
 
                 // Verificar la contraseña
                 val passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
-                android.util.Log.d("AuthViewModel", "Password válida: $passwordValida")
 
                 if (passwordValida) {
                     // Guardar el usuario autenticado en el repositorio
                     authRepository.setCurrentUser(usuarioCompleto)
-                    android.util.Log.d("AuthViewModel", "Login exitoso. Usuario guardado: ${usuarioCompleto.idPersona}")
-                } else {
-                    android.util.Log.e("AuthViewModel", "Password incorrecta")
+
+                    // Guardar la sesión en DataStore para persistencia
+                    sessionPreferences.saveSession(
+                        userId = usuarioCompleto.idPersona,
+                        username = usuarioCompleto.username,
+                        userRole = usuarioCompleto.nombreRol,
+                        userRoleId = usuarioCompleto.idRol
+                    )
                 }
 
                 _login.update {
@@ -325,8 +320,42 @@ class AuthViewModel @Inject constructor(
     // ========== LOGOUT ==========
 
     fun logout() {
-        authRepository.logout()
-        _login.value = LoginUiState()
+        viewModelScope.launch {
+            // Limpiar sesión del repositorio
+            authRepository.logout()
+
+            // Limpiar sesión guardada en DataStore
+            sessionPreferences.clearSession()
+
+            // Resetear estado del login
+            _login.value = LoginUiState()
+        }
+    }
+
+    /**
+     * Carga la sesión guardada desde DataStore al iniciar la app
+     */
+    private fun cargarSesionGuardada() {
+        viewModelScope.launch {
+            sessionPreferences.sessionData.collect { sessionData ->
+                if (sessionData != null) {
+                    // Cargar el usuario completo desde la base de datos
+                    try {
+                        // getUsuarioCompletoById usa id_persona como parámetro
+                        val usuarioCompleto = usuarioRepository.getUsuarioCompletoById(sessionData.userId)
+
+                        if (usuarioCompleto != null && usuarioCompleto.estado == "activo") {
+                            // Restaurar el usuario en el repositorio
+                            authRepository.setCurrentUser(usuarioCompleto)
+                        } else {
+                            // Si el usuario ya no existe o está inactivo, limpiar la sesión
+                            sessionPreferences.clearSession()
+                        }
+                    } catch (e: Exception) {
+                        sessionPreferences.clearSession()
+                    }
+                }
+            }
+        }
     }
 }
-

@@ -76,6 +76,8 @@ dependencies {
     // Hash para contraseñas
     implementation("org.mindrot:jbcrypt:0.4")
 
+    // DataStore - Persistencia de datos (reemplazo de SharedPreferences)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Coil - Carga de imágenes en Compose
     implementation("io.coil-kt:coil-compose:2.5.0")
