@@ -3,6 +3,7 @@ package com.example.proyectoZapateria.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.proyectoZapateria.data.local.database.AppDatabase
 import com.example.proyectoZapateria.data.local.persona.PersonaEntity
 import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
@@ -15,6 +16,8 @@ import com.example.proyectoZapateria.domain.validation.validateEmail
 import com.example.proyectoZapateria.domain.validation.validateNameLettersOnly
 import com.example.proyectoZapateria.domain.validation.validatePhoneDigitsOnly
 import com.example.proyectoZapateria.domain.validation.validateStrongPassword
+import com.example.proyectoZapateria.domain.validation.validateStreet
+import com.example.proyectoZapateria.domain.validation.validateHouseNumber
 import com.example.proyectoZapateria.utils.PasswordHasher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -41,12 +44,16 @@ data class RegisterUiState(
     val phone: String = "",
     val pass: String = "",
     val confirm: String = "",
+    val calle: String = "",
+    val numeroPuerta: String = "",
 
     val nameError: String? = null,
     val emailError: String? = null,
     val phoneError: String? = null,
     val passError: String? = null,
     val confirmPassError: String? = null,
+    val calleError: String? = null,
+    val numeroPuertaError: String? = null,
 
     val isLoading: Boolean = false,
     val canSubmit: Boolean = false,
@@ -107,9 +114,17 @@ class AuthViewModel @Inject constructor(
                 // Normalizar el input
                 val usernameInput = s.email.trim()
 
+                // Esperar a que la precarga de la DB termine (para evitar falsos negativos tras reinstalar)
+                val maxWaitMs = 2000L
+                var waited = 0L
+                while (!AppDatabase.preloadComplete.value && waited < maxWaitMs) {
+                    delay(100)
+                    waited += 100
+                }
+
                 // Intentar encontrar el usuario con reintentos cortos.
                 // Esto evita un falso negativo si la precarga de la BD (seed) aún está terminando.
-                var usuarioCompleto = null as com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol?
+                var usuarioCompleto: UsuarioConPersonaYRol? = null
                 val maxAttempts = 3
                 var attempt = 0
                 while (attempt < maxAttempts && usuarioCompleto == null) {
@@ -260,10 +275,29 @@ class AuthViewModel @Inject constructor(
         recomputeRegisterCanSubmit()
     }
 
+    // Dirección handlers
+    fun onRegisterCalleChange(value: String) {
+        _register.update { it.copy(calle = value, calleError = validateStreet(value)) }
+        recomputeRegisterCanSubmit()
+    }
+
+    fun onRegisterNumeroPuertaChange(value: String) {
+        _register.update { it.copy(numeroPuerta = value, numeroPuertaError = validateHouseNumber(value)) }
+        recomputeRegisterCanSubmit()
+    }
+
     private fun recomputeRegisterCanSubmit() {
         val s = _register.value
-        val noErrors = listOf(s.nameError, s.emailError, s.phoneError, s.passError, s.confirmPassError).all { it == null }
-        val filled = s.name.isNotBlank() && s.email.isNotBlank() && s.phone.isNotBlank() && s.pass.isNotBlank() && s.confirm.isNotBlank()
+        val noErrors = listOf(
+            s.nameError,
+            s.emailError,
+            s.phoneError,
+            s.passError,
+            s.confirmPassError,
+            s.calleError,
+            s.numeroPuertaError
+        ).all { it == null }
+        val filled = s.name.isNotBlank() && s.email.isNotBlank() && s.phone.isNotBlank() && s.pass.isNotBlank() && s.confirm.isNotBlank() && s.calle.isNotBlank() && s.numeroPuerta.isNotBlank()
         _register.update { it.copy(canSubmit = noErrors && filled) }
     }
 
@@ -304,8 +338,8 @@ class AuthViewModel @Inject constructor(
                     telefono = s.phone.trim(),
                     email = s.email.trim(),
                     idComuna = null,
-                    calle = null,
-                    numeroPuerta = null,
+                    calle = s.calle.trim(),
+                    numeroPuerta = s.numeroPuerta.trim(),
                     username = s.email.trim(),
                     passHash = passHashed,
                     fechaRegistro = System.currentTimeMillis(),

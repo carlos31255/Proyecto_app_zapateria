@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,11 +42,15 @@ fun RegisterScreenVm(
         phone = state.phone,
         pass = state.pass,
         confirm = state.confirm,
+        calle = state.calle,
+        numeroPuerta = state.numeroPuerta,
         nameError = state.nameError,
         emailError = state.emailError,
         phoneError = state.phoneError,
         passError = state.passError,
         confirmError = state.confirmPassError,
+        calleError = state.calleError,
+        numeroPuertaError = state.numeroPuertaError,
         canSubmit = state.canSubmit,
         isSubmitting = state.isLoading,
         errorMsg = state.errorMsg,
@@ -56,6 +59,8 @@ fun RegisterScreenVm(
         onPhoneChange = authViewModel::onRegisterPhoneChange,
         onPassChange = authViewModel::onRegisterPassChange,
         onConfirmChange = authViewModel::onConfirmChange,
+        onCalleChange = authViewModel::onRegisterCalleChange,
+        onNumeroPuertaChange = authViewModel::onRegisterNumeroPuertaChange,
         onSubmit = authViewModel::submitRegister,
         onGoLogin = onGoLogin
     )
@@ -68,11 +73,15 @@ private fun RegisterScreen(
     phone: String,
     pass: String,
     confirm: String,
+    calle: String,
+    numeroPuerta: String,
     nameError: String?,
     emailError: String?,
     phoneError: String?,
     passError: String?,
     confirmError: String?,
+    calleError: String?,
+    numeroPuertaError: String?,
     canSubmit: Boolean,
     isSubmitting: Boolean,
     errorMsg: String?,
@@ -81,6 +90,8 @@ private fun RegisterScreen(
     onPhoneChange: (String) -> Unit,
     onPassChange: (String) -> Unit,
     onConfirmChange: (String) -> Unit,
+    onCalleChange: (String) -> Unit,
+    onNumeroPuertaChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onGoLogin: () -> Unit
 ) {
@@ -279,6 +290,56 @@ private fun RegisterScreen(
                     Text(confirmError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
 
+                Spacer(Modifier.height(12.dp))
+
+                // Campo CALLE
+                OutlinedTextField(
+                    value = calle,
+                    onValueChange = onCalleChange,
+                    label = { Text("Calle") },
+                    singleLine = true,
+                    isError = calleError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (calleError != null) {
+                    Text(calleError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Campo NÚMERO PUERTA
+                OutlinedTextField(
+                    value = numeroPuerta,
+                    onValueChange = onNumeroPuertaChange,
+                    label = { Text("N° puerta") },
+                    singleLine = true,
+                    isError = numeroPuertaError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (numeroPuertaError != null) {
+                    Text(numeroPuertaError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                }
+
                 Spacer(Modifier.height(20.dp))
 
                 // Botón REGISTRAR
@@ -333,4 +394,3 @@ private fun RegisterScreen(
         }
     }
 }
-

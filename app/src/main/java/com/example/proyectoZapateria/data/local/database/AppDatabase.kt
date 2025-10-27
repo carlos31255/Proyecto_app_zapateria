@@ -45,6 +45,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 @Database(
     entities = [
@@ -112,6 +114,10 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        // Señal pública que indica si la precarga inicial terminó
+        private val _preloadComplete = MutableStateFlow(false)
+        val preloadComplete = _preloadComplete.asStateFlow()
+
         // Nombre del archivo de base de datos
         private const val DB_NAME = "zapateria.db"
 
@@ -130,7 +136,12 @@ abstract class AppDatabase : RoomDatabase() {
                             super.onCreate(db)
                             // Lanzamos una corrutina en IO para insertar datos iniciales
                             CoroutineScope(Dispatchers.IO).launch {
-                                preloadData(getInstance(context))
+                                try {
+                                    preloadData(getInstance(context))
+                                } finally {
+                                    // Asegurarse de que la señal se marque aunque algo falle
+                                    _preloadComplete.value = true
+                                }
                             }
                         }
                     })

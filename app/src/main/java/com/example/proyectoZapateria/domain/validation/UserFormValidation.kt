@@ -42,3 +42,17 @@ fun validateConfirm(pass: String, confirm: String): String? {
     if (confirm.isBlank()) return "Confirma tu contraseña" // no vacio
     return if (pass != confirm) "Las contraseñas no coinciden" else null //deben ser iguales
 }
+
+// validar que la calle no esté vacía
+fun validateStreet(calle: String): String? {
+    if (calle.isBlank()) return "La calle es obligatoria"
+    if (calle.length < 3) return "Nombre de calle demasiado corto"
+    return null
+}
+
+// validar que el número de puerta no esté vacío y sea razonablemente corto
+fun validateHouseNumber(numero: String): String? {
+    if (numero.isBlank()) return "El número de puerta es obligatorio"
+    if (numero.length > 10) return "Número de puerta inválido"
+    return null
+}
