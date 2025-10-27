@@ -33,6 +33,7 @@ import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminClientesScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminUsuariosScreen
+import com.example.proyectoZapateria.ui.screen.admin.AdminPerfilScreen
 import com.example.proyectoZapateria.ui.screen.admin.ClienteDetalleScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteCatalogoScreen
@@ -345,6 +346,12 @@ fun AppNavGraph(
 
                 composable(Route.AdminUsuarios.path) {
                     AdminUsuariosScreen(
+                        navController = navController
+                    )
+                }
+
+                composable(Route.AdminPerfil.path) {
+                    AdminPerfilScreen(
                         navController = navController
                     )
                 }
