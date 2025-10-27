@@ -17,6 +17,22 @@ class PersonaRepository(private val personaDao: PersonaDao) {
         return personaDao.getById(id)
     }
 
+    suspend fun getById(id: Int): PersonaEntity? {
+        return personaDao.getById(id)
+    }
+
+    suspend fun insert(persona: PersonaEntity): Long {
+        return personaDao.insert(persona)
+    }
+
+    suspend fun update(persona: PersonaEntity) {
+        personaDao.update(persona)
+    }
+
+    suspend fun delete(persona: PersonaEntity) {
+        personaDao.delete(persona)
+    }
+
     // Obtener persona por username (para login)
     suspend fun getPersonaByUsername(username: String): PersonaEntity? {
         return personaDao.getByUsername(username)

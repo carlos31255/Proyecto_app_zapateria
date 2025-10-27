@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -57,12 +57,15 @@ class ClienteViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    // Clientes filtrados
-    val clientesFiltrados: StateFlow<List<ClienteConPersona>> = _searchQuery.map { query ->
+    // Clientes filtrados - combina clientes y searchQuery para reaccionar a ambos
+    val clientesFiltrados: StateFlow<List<ClienteConPersona>> = combine(
+        clientes,
+        _searchQuery
+    ) { listaClientes, query ->
         if (query.isBlank()) {
-            clientes.value
+            listaClientes
         } else {
-            clientes.value.filter { cliente ->
+            listaClientes.filter { cliente ->
                 cliente.nombre.contains(query, ignoreCase = true) ||
                 cliente.apellido.contains(query, ignoreCase = true) ||
                 cliente.rut.contains(query, ignoreCase = true) ||
@@ -80,6 +83,14 @@ class ClienteViewModel @Inject constructor(
         viewModelScope.launch {
             clientes.collect { lista ->
                 // Actualizar isLoading a false cuando lleguen datos (incluso si es una lista vacía)
+                _isLoading.value = false
+            }
+        }
+
+        // Timeout de seguridad: si después de 5 segundos no hay datos, desactivar carga
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(5000)
+            if (_isLoading.value) {
                 _isLoading.value = false
             }
         }

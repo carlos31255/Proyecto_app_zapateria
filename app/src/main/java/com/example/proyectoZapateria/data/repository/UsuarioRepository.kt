@@ -13,6 +13,16 @@ class UsuarioRepository(private val usuarioDao: UsuarioDao) {
     // Obtener todos los usuarios con datos completos
     fun getAllUsuariosCompletos(): Flow<List<UsuarioConPersonaYRol>> = usuarioDao.getAllConPersonaYRol()
 
+    fun getAllConPersonaYRol(): Flow<List<UsuarioConPersonaYRol>> = usuarioDao.getAllConPersonaYRol()
+
+    suspend fun insert(usuario: UsuarioEntity): Long {
+        return usuarioDao.insert(usuario)
+    }
+
+    suspend fun delete(usuario: UsuarioEntity) {
+        usuarioDao.delete(usuario)
+    }
+
     // Obtener usuario por ID
     suspend fun getUsuarioById(id: Int): UsuarioEntity? {
         return usuarioDao.getById(id)

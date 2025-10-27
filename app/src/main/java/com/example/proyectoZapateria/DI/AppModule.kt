@@ -123,6 +123,13 @@ object AppModule {
         return database.cartDao()
     }
 
+    // Provee el RolDao
+    @Provides
+    @Singleton
+    fun provideRolDao(database: AppDatabase): com.example.proyectoZapateria.data.local.rol.RolDao {
+        return database.rolDao()
+    }
+
     // ========== Preferences ==========
 
     // NOTE: SessionPreferences tiene un constructor @Inject con @ApplicationContext,
@@ -230,5 +237,12 @@ object AppModule {
     @Singleton
     fun provideCartRepository(cartDao: CartDao, inventarioRepository: InventarioRepository, tallaRepository: TallaRepository): CartRepository {
         return CartRepository(cartDao, inventarioRepository, tallaRepository)
+    }
+
+    // Provee el RolRepository
+    @Provides
+    @Singleton
+    fun provideRolRepository(rolDao: com.example.proyectoZapateria.data.local.rol.RolDao): com.example.proyectoZapateria.data.repository.RolRepository {
+        return com.example.proyectoZapateria.data.repository.RolRepository(rolDao)
     }
 }

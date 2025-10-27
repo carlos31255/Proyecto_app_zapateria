@@ -75,7 +75,7 @@ import kotlinx.coroutines.flow.first
         // Carrito
         CartItemEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -125,7 +125,7 @@ abstract class AppDatabase : RoomDatabase() {
                     DB_NAME
                 )
                     // Callback para ejecutar cuando la DB se crea por primera vez
-                    .addCallback(object : Callback() {
+                        .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             // Lanzamos una corrutina en IO para insertar datos iniciales
@@ -392,12 +392,46 @@ abstract class AppDatabase : RoomDatabase() {
                 ),
                 UsuarioEntity(
                     idPersona = idsPersonas[3].toInt(),
-                    idRol = 4 // Cliente
+                    idRol = 4 // Cliente - María González
+                ),
+                // Usuarios clientes adicionales
+                UsuarioEntity(
+                    idPersona = idsPersonas[4].toInt(),
+                    idRol = 4 // Cliente - Pedro Ramírez
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[5].toInt(),
+                    idRol = 4 // Cliente - Ana Martínez
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[6].toInt(),
+                    idRol = 4 // Cliente - Luis Fernández
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[7].toInt(),
+                    idRol = 4 // Cliente - Carmen López
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[8].toInt(),
+                    idRol = 4 // Cliente - Roberto Silva
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[9].toInt(),
+                    idRol = 4 // Cliente - Patricia Rojas
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[10].toInt(),
+                    idRol = 4 // Cliente - Diego Morales
+                ),
+                UsuarioEntity(
+                    idPersona = idsPersonas[11].toInt(),
+                    idRol = 4 // Cliente - Sofía Vargas
                 )
             )
 
             usuariosIniciales.forEach { usuario ->
                 usuarioDao.insert(usuario)
+                Log.d("AppDatabase", "Preload: inserted usuario idPersona=${usuario.idPersona} rol=${usuario.idRol}")
             }
 
             // Crear transportista para el usuario transportista
