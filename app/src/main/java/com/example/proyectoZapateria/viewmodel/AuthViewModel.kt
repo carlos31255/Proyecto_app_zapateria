@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.local.persona.PersonaEntity
@@ -103,8 +104,34 @@ class AuthViewModel @Inject constructor(
             delay(500)
 
             try {
-                // Buscar el usuario por username
-                val usuarioCompleto = usuarioRepository.getUsuarioByUsername(s.email)
+                // Normalizar el input
+                val usernameInput = s.email.trim()
+
+                // Intentar encontrar el usuario con reintentos cortos.
+                // Esto evita un falso negativo si la precarga de la BD (seed) aún está terminando.
+                var usuarioCompleto = null as com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol?
+                val maxAttempts = 3
+                var attempt = 0
+                while (attempt < maxAttempts && usuarioCompleto == null) {
+                    // Buscar el usuario por username (primera opción)
+                    usuarioCompleto = usuarioRepository.getUsuarioByUsername(usernameInput)
+
+                    // Si no lo encontramos por username, intentar buscar la persona por email y luego el usuario por id
+                    if (usuarioCompleto == null) {
+                        val persona = personaRepository.getPersonaByEmail(usernameInput)
+                        if (persona != null) {
+                            usuarioCompleto = usuarioRepository.getUsuarioCompletoById(persona.idPersona)
+                        }
+                    }
+
+                    if (usuarioCompleto == null) {
+                        attempt++
+                        if (attempt < maxAttempts) {
+                            // Pequeño retraso antes de reintentar (esperar a que termine la precarga)
+                            delay(250)
+                        }
+                    }
+                }
 
                 if (usuarioCompleto == null) {
                     _login.update {
@@ -116,6 +143,8 @@ class AuthViewModel @Inject constructor(
                     }
                     return@launch
                 }
+
+                Log.d("AuthViewModel", "submitLogin: usuarioCompleto found id=${usuarioCompleto.idPersona} username=${usuarioCompleto.username} rol=${usuarioCompleto.nombreRol}")
 
                 // Verificar si el usuario está activo
                 if (usuarioCompleto.estado != "activo") {
@@ -144,7 +173,21 @@ class AuthViewModel @Inject constructor(
                 }
 
                 // Verificar la contraseña
-                val passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
+                var passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
+
+                // Si falla en la primera verificación, reintentar una vez tras un pequeño delay (mitiga condiciones de carrera)
+                if (!passwordValida) {
+                    try {
+                        delay(200)
+                        val personaRetry = personaRepository.getPersonaById(usuarioCompleto.idPersona)
+                        if (personaRetry != null) {
+                            passwordValida = PasswordHasher.checkPassword(s.pass, personaRetry.passHash)
+                            Log.d("AuthViewModel", "submitLogin: reintento password check result=$passwordValida for id=${usuarioCompleto.idPersona}")
+                        }
+                    } catch (_: Exception) {
+                        // ignorar
+                    }
+                }
 
                 if (passwordValida) {
                     // Guardar el usuario autenticado en el repositorio
@@ -157,6 +200,10 @@ class AuthViewModel @Inject constructor(
                         userRole = usuarioCompleto.nombreRol,
                         userRoleId = usuarioCompleto.idRol
                     )
+
+                    Log.d("AuthViewModel", "submitLogin: password válida para id=${usuarioCompleto.idPersona}")
+                } else {
+                    Log.d("AuthViewModel", "submitLogin: password inválida para id=${usuarioCompleto.idPersona}")
                 }
 
                 _login.update {
@@ -166,12 +213,12 @@ class AuthViewModel @Inject constructor(
                         errorMsg = if (passwordValida) null else "Usuario o contraseña inválidos"
                     )
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _login.update {
                     it.copy(
                         isLoading = false,
                         success = false,
-                        errorMsg = "Error al iniciar sesión: ${e.message}"
+                        errorMsg = "Error al iniciar sesión"
                     )
                 }
             }
@@ -351,7 +398,7 @@ class AuthViewModel @Inject constructor(
                             // Si el usuario ya no existe o está inactivo, limpiar la sesión
                             sessionPreferences.clearSession()
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         sessionPreferences.clearSession()
                     }
                 }

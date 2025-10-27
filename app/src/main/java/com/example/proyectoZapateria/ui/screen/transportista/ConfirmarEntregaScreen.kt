@@ -256,9 +256,7 @@ fun ConfirmarEntregaScreen(
 
 // --- COMPOSABLES AUXILIARES ---
 
-/**
- * Un contenedor genérico para una sección de la pantalla
- */
+// Sección genérica con título y contenido
 @Composable
 fun DetalleSection(
     title: String,
@@ -276,9 +274,7 @@ fun DetalleSection(
     }
 }
 
-/**
- * Muestra la información del cliente y la dirección.
- */
+// Funcion para mostrar la informacion del cliente en una tarjeta
 @Composable
 fun ClienteInfoCard(entrega: EntregaConDetalles) {
     Card(
@@ -311,9 +307,7 @@ fun ClienteInfoCard(entrega: EntregaConDetalles) {
     }
 }
 
-/**
- * Muestra la lista de productos (zapatos) en la entrega.
- */
+// Funcion para mostrar la lista de productos en una tarjeta
 @Composable
 fun ProductosListCard(productos: List<ProductoDetalle>) {
     Card(

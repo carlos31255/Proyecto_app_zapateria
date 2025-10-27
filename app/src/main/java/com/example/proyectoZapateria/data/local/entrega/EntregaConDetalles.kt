@@ -11,7 +11,8 @@ data class EntregaConDetalles (
 
 
     // De BoletaVentaEntity
-    val numeroBoleta: Int, // para el "numero orden"
+    val idBoleta: Int,        // NUEVO: id entero (clave primaria)
+    val numeroBoleta: String, // String para coincidir con el formato
 
     // De PersonaEntity
     val clienteNombre: String,

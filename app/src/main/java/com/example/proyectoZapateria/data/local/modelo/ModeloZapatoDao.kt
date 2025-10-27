@@ -52,6 +52,5 @@ interface ModeloZapatoDao {
 
     // Obtener modelos por rango de precio
     @Query("SELECT * FROM modelozapato WHERE precio_unitario BETWEEN :precioMin AND :precioMax ORDER BY precio_unitario ASC")
-    fun getModelosByRangoPrecio(precioMin: Double, precioMax: Double): Flow<List<ModeloZapatoEntity>>
+    fun getModelosByRangoPrecio(precioMin: Int, precioMax: Int): Flow<List<ModeloZapatoEntity>>
 }
-

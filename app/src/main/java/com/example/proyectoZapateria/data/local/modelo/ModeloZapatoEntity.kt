@@ -35,11 +35,10 @@ data class ModeloZapatoEntity(
     val descripcion: String?,
 
     @ColumnInfo(name = "precio_unitario")
-    val precioUnitario: Double,
+    val precioUnitario: Int,  // Cambiado a Int (precio en CLP, sin decimales)
 
     @ColumnInfo(name = "imagen_url")
     val imagenUrl: String? = null,  // Ruta de la imagen del producto
 
     val estado: String = "activo"
 )
-

@@ -35,8 +35,8 @@ sealed class Route(val path: String) {
     // Rutas del Cliente
     data object ClienteHome : Route("cliente/home")
     data object ClienteCatalogo : Route("cliente/catalogo")
+    data object ClienteProductoDetail : Route("cliente/catalogo/{idModelo}")
     data object ClientePedidos : Route("cliente/pedidos")
-    data object ClienteFavoritos : Route("cliente/favoritos")
+    data object ClienteCart : Route("cliente/cart")
     data object ClientePerfil : Route("cliente/perfil")
 }
-

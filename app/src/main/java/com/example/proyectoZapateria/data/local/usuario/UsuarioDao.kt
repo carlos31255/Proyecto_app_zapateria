@@ -93,6 +93,18 @@ interface UsuarioDao {
     """)
     suspend fun getByUsernameConPersonaYRol(username: String): UsuarioConPersonaYRol?
 
+    // Búsqueda insensible a mayúsculas/minúsculas por username (respaldo)
+    @Query("""
+        SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
+               p.telefono, p.email, p.username, p.estado,
+               u.id_rol as idRol, r.nombre_rol as nombreRol, r.descripcion as descripcionRol
+        FROM usuario u
+        INNER JOIN persona p ON u.id_persona = p.id_persona
+        INNER JOIN rol r ON u.id_rol = r.id_rol
+        WHERE LOWER(p.username) = LOWER(:username)
+    """)
+    suspend fun getByUsernameConPersonaYRolInsensitive(username: String): UsuarioConPersonaYRol?
+
     // Buscar usuario por RUT con datos completos
     @Query("""
         SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
@@ -132,4 +144,3 @@ interface UsuarioDao {
     """)
     fun getByEstadoConPersonaYRol(estado: String): Flow<List<UsuarioConPersonaYRol>>
 }
-

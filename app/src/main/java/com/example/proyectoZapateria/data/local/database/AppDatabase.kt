@@ -1,12 +1,15 @@
 package com.example.proyectoZapateria.data.local.database
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
 import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaEntity
+import com.example.proyectoZapateria.data.local.cart.CartDao
+import com.example.proyectoZapateria.data.local.cart.CartItemEntity
 import com.example.proyectoZapateria.data.local.cliente.ClienteDao
 import com.example.proyectoZapateria.data.local.cliente.ClienteEntity
 import com.example.proyectoZapateria.data.local.comuna.ComunaDao
@@ -41,6 +44,7 @@ import com.example.proyectoZapateria.utils.PasswordHasher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 @Database(
     entities = [
@@ -66,9 +70,12 @@ import kotlinx.coroutines.launch
         // Ventas y entregas
         BoletaVentaEntity::class,
         DetalleBoletaEntity::class,
-        EntregaEntity::class
+        EntregaEntity::class,
+
+        // Carrito
+        CartItemEntity::class
     ],
-    version = 7,
+    version = 10,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -97,6 +104,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun boletaVentaDao(): BoletaVentaDao
     abstract fun detalleBoletaDao(): DetalleBoletaDao
     abstract fun entregaDao(): EntregaDao
+
+    // === Carrito ===
+    abstract fun cartDao(): CartDao
 
     companion object {
         @Volatile
@@ -242,6 +252,7 @@ abstract class AppDatabase : RoomDatabase() {
             personasIniciales.forEach { persona ->
                 val id = personaDao.insert(persona)
                 idsPersonas.add(id)
+                Log.d("AppDatabase", "Preload: inserted persona id=$id username=${persona.username}")
             }
 
             // Usuarios asociados a cada rol
@@ -404,6 +415,96 @@ abstract class AppDatabase : RoomDatabase() {
                 } catch (e: Exception) {
                     // Si falla por duplicado, ignoramos y continuamos
                 }
+            }
+
+            // Marca propia de la aplicación (precarga)
+            try {
+                val appBrandName = "StepStyle"
+                var appMarca = marcaDao.getMarcaByNombre(appBrandName)
+                val appMarcaId = if (appMarca == null) {
+                    // Insertar y obtener id
+                    val id = marcaDao.insertMarca(MarcaEntity(idMarca = 0, nombreMarca = appBrandName, descripcion = "Marca propia StepStyle", estado = "activa"))
+                    id.toInt()
+                } else {
+                    appMarca.idMarca
+                }
+
+                // Precargar modelos para la marca propia
+                val modeloDao = database.modeloZapatoDao()
+                val modelosApp = listOf(
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Classic", descripcion = "Zapatillas clásicas cómodas", precioUnitario = 39990, imagenUrl = null, estado = "activo"),
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Runner", descripcion = "Runner ligero para entrenamiento", precioUnitario = 49990, imagenUrl = null, estado = "activo"),
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Urban", descripcion = "Casual urbano con diseño moderno", precioUnitario = 45990, imagenUrl = null, estado = "activo"),
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Kids", descripcion = "Zapatillas para niños", precioUnitario = 29990, imagenUrl = null, estado = "activo")
+                )
+
+                modelosApp.forEach { modelo ->
+                    try {
+                        val existeModelo = modeloDao.existeModeloEnMarca(appMarcaId, modelo.nombreModelo)
+                        if (existeModelo == 0) {
+                            modeloDao.insertModelo(modelo)
+                            Log.d("AppDatabase", "Preload: inserted modelo '${modelo.nombreModelo}' for marcaId=$appMarcaId")
+                        }
+                    } catch (_: Exception) {
+                        // Ignorar errores de inserción duplicada y continuar
+                    }
+                }
+                Log.d("AppDatabase", "Preload: marca '$appBrandName' id=$appMarcaId, modelos intentados=${modelosApp.size}")
+
+                // --- Precargar tallas e inventario para los modelos de StepStyle ---
+                try {
+                    val tallaDao = database.tallaDao()
+                    val inventarioDao = database.inventarioDao()
+
+                    val tallasIniciales = listOf("38", "39", "40", "41", "42", "43")
+                    val idsTallas = mutableListOf<Int>()
+                    tallasIniciales.forEach { numero ->
+                        val existe = tallaDao.getByNumero(numero)
+                        val id = if (existe == null) {
+                            tallaDao.insert(com.example.proyectoZapateria.data.local.talla.TallaEntity(idTalla = 0, numeroTalla = numero)).toInt()
+                        } else {
+                            existe.idTalla
+                        }
+                        idsTallas.add(id)
+                        Log.d("AppDatabase", "Preload: talla '$numero' id=$id")
+                    }
+
+                    // Obtener modelos creados para la marca
+                    val modelosCreados = modeloDao.getModelosByMarca(appMarcaId).first()
+                    modelosCreados.forEach { modeloCreado ->
+                        idsTallas.forEachIndexed { idx, idTalla ->
+                            try {
+                                val existeInv = inventarioDao.getByModeloYTalla(modeloCreado.idModelo, idTalla)
+                                if (existeInv == null) {
+                                    // Asignar stock inicial variable por talla (ejemplo)
+                                    val stockInicial = when (idx) {
+                                        0 -> 5
+                                        1 -> 4
+                                        2 -> 6
+                                        3 -> 3
+                                        4 -> 2
+                                        else -> 1
+                                    }
+                                    val invId = inventarioDao.insert(
+                                        com.example.proyectoZapateria.data.local.inventario.InventarioEntity(
+                                            idInventario = 0,
+                                            idModelo = modeloCreado.idModelo,
+                                            idTalla = idTalla,
+                                            stockActual = stockInicial
+                                        )
+                                    )
+                                    Log.d("AppDatabase", "Preload: inventario creado id=$invId modelo=${modeloCreado.nombreModelo} tallaId=$idTalla stock=$stockInicial")
+                                }
+                            } catch (_: Exception) {
+                                // Ignorar errores y continuar
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Si algo falla no interrumpir la precarga
+                }
+            } catch (e: Exception) {
+                // Si algo falla en la precarga de la marca propia, no detener la creación de la DB
             }
         }
     }

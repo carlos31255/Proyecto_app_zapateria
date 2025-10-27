@@ -87,12 +87,12 @@ class ProductoViewModel @Inject constructor(
     }
 
     fun onPrecioChange(value: String) {
-        // Validar que solo sean números y punto decimal
-        val filtrado = value.filter { it.isDigit() || it == '.' }
+        // Validar que solo sean números enteros (CLP)
+        val filtrado = value.filter { it.isDigit() }
         val error = when {
             filtrado.isBlank() -> "El precio es requerido"
-            filtrado.toDoubleOrNull() == null -> "Precio inválido"
-            filtrado.toDouble() <= 0 -> "El precio debe ser mayor a 0"
+            filtrado.toIntOrNull() == null -> "Precio inválido"
+            filtrado.toInt() <= 0 -> "El precio debe ser mayor a 0"
             else -> null
         }
 
@@ -207,7 +207,7 @@ class ProductoViewModel @Inject constructor(
                     idMarca = s.idMarcaSeleccionada,
                     nombreModelo = s.nombreModelo.trim(),
                     descripcion = s.descripcion.trim().ifBlank { null },
-                    precioUnitario = s.precio.toDouble(),
+                    precioUnitario = s.precio.toInt(),
                     imagenUrl = imagenPath,
                     estado = "activo"
                 )
@@ -275,4 +275,3 @@ class ProductoViewModel @Inject constructor(
         }
     }
 }
-

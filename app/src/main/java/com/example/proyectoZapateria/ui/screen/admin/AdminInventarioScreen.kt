@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,9 +28,11 @@ import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 import com.example.proyectoZapateria.viewmodel.InventarioViewModel
-import java.io.File
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun AdminInventarioScreen(
     navController: NavHostController,
@@ -237,7 +238,7 @@ fun AdminInventarioScreen(
         )
     }
 
-    // Diálogo de editar
+    // Diálogo de editar (solo una implementación, acepta precio Int en CLP)
     if (mostrarDialogoEditar && productoSeleccionado != null) {
         EditarProductoDialog(
             producto = productoSeleccionado!!,
@@ -256,8 +257,7 @@ fun AdminInventarioScreen(
                 )
                 mostrarDialogoEditar = false
                 productoSeleccionado = null
-            },
-            colorScheme = colorScheme
+            }
         )
     }
 }
@@ -346,17 +346,19 @@ fun ProductoCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                // Mostrar precio en CLP
+                val clpFormatter = remember { NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CL")) }
                 Text(
-                    text = "$${String.format("%.2f", producto.precioUnitario)}",
+                    text = clpFormatter.format(producto.precioUnitario),
                     style = MaterialTheme.typography.titleLarge,
                     color = colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
 
-                if (producto.descripcion != null) {
+                if (!producto.descripcion.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = producto.descripcion!!,
+                        text = producto.descripcion,
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -396,8 +398,7 @@ fun EditarProductoDialog(
     producto: ModeloZapatoEntity,
     marcas: List<com.example.proyectoZapateria.data.local.marca.MarcaEntity>,
     onDismiss: () -> Unit,
-    onConfirm: (nombre: String, precio: Double, descripcion: String?, idMarca: Int) -> Unit,
-    colorScheme: ColorScheme
+    onConfirm: (nombre: String, precio: Int, descripcion: String?, idMarca: Int) -> Unit
 ) {
     var nombre by remember { mutableStateOf(producto.nombreModelo) }
     var precio by remember { mutableStateOf(producto.precioUnitario.toString()) }
@@ -481,11 +482,12 @@ fun EditarProductoDialog(
                 OutlinedTextField(
                     value = precio,
                     onValueChange = {
-                        precio = it.filter { char -> char.isDigit() || char == '.' }
+                        // Mantener solo dígitos (CLP)
+                        precio = it.filter { char -> char.isDigit() }
                         precioError = when {
-                            it.isBlank() -> "El precio es requerido"
-                            it.toDoubleOrNull() == null -> "Precio inválido"
-                            it.toDouble() <= 0 -> "El precio debe ser mayor a 0"
+                            precio.isBlank() -> "El precio es requerido"
+                            precio.toIntOrNull() == null -> "Precio inválido"
+                            precio.toInt() <= 0 -> "El precio debe ser mayor a 0"
                             else -> null
                         }
                     },
@@ -526,11 +528,11 @@ fun EditarProductoDialog(
                     Button(
                         onClick = {
                             if (nombre.isNotBlank() &&
-                                precio.toDoubleOrNull() != null &&
-                                precio.toDouble() > 0) {
+                                precio.toIntOrNull() != null &&
+                                precio.toInt() > 0) {
                                 onConfirm(
                                     nombre.trim(),
-                                    precio.toDouble(),
+                                    precio.toInt(),
                                     descripcion.trim().ifBlank { null },
                                     idMarcaSeleccionada
                                 )
@@ -538,8 +540,8 @@ fun EditarProductoDialog(
                         },
                         modifier = Modifier.weight(1f),
                         enabled = nombre.isNotBlank() &&
-                                 precio.toDoubleOrNull() != null &&
-                                 precio.toDouble() > 0
+                                 precio.toIntOrNull() != null &&
+                                 precio.toInt() > 0
                     ) {
                         Text("Guardar")
                     }
@@ -548,4 +550,3 @@ fun EditarProductoDialog(
         }
     }
 }
-

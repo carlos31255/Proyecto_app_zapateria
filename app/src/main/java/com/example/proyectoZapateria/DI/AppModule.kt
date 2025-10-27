@@ -9,6 +9,7 @@ import com.example.proyectoZapateria.data.local.usuario.UsuarioDao
 import com.example.proyectoZapateria.data.local.marca.MarcaDao
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaDao
+import com.example.proyectoZapateria.data.local.cart.CartDao
 import com.example.proyectoZapateria.data.repository.DetalleBoletaRepository
 import com.example.proyectoZapateria.data.repository.EntregaRepository
 import com.example.proyectoZapateria.data.repository.PersonaRepository
@@ -18,6 +19,9 @@ import com.example.proyectoZapateria.data.repository.MarcaRepository
 import com.example.proyectoZapateria.data.repository.ModeloZapatoRepository
 import com.example.proyectoZapateria.data.repository.ProductoRepository
 import com.example.proyectoZapateria.data.repository.TransportistaRepository
+import com.example.proyectoZapateria.data.repository.CartRepository
+import com.example.proyectoZapateria.data.repository.InventarioRepository
+import com.example.proyectoZapateria.data.repository.TallaRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -81,11 +85,39 @@ object AppModule {
         return database.modeloZapatoDao()
     }
 
+    // Provee el TallaDao
+    @Provides
+    @Singleton
+    fun provideTallaDao(database: AppDatabase): com.example.proyectoZapateria.data.local.talla.TallaDao {
+        return database.tallaDao()
+    }
+
     // Provee el TransportistaDao
     @Provides
     @Singleton
     fun provideTransportistaDao(database: AppDatabase): TransportistaDao {
         return database.transportistaDao()
+    }
+
+    // Provee el InventarioDao
+    @Provides
+    @Singleton
+    fun provideInventarioDao(database: AppDatabase): com.example.proyectoZapateria.data.local.inventario.InventarioDao {
+        return database.inventarioDao()
+    }
+
+    // Provee el BoletaVentaDao
+    @Provides
+    @Singleton
+    fun provideBoletaVentaDao(database: AppDatabase): com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao {
+        return database.boletaVentaDao()
+    }
+
+    // Provee el CartDao
+    @Provides
+    @Singleton
+    fun provideCartDao(database: AppDatabase): CartDao {
+        return database.cartDao()
     }
 
     // ========== Preferences ==========
@@ -159,10 +191,38 @@ object AppModule {
         return ProductoRepository(modeloZapatoDao, marcaDao)
     }
 
+    // Provee el TallaRepository
+    @Provides
+    @Singleton
+    fun provideTallaRepository(tallaDao: com.example.proyectoZapateria.data.local.talla.TallaDao): com.example.proyectoZapateria.data.repository.TallaRepository {
+        return com.example.proyectoZapateria.data.repository.TallaRepository(tallaDao)
+    }
+
     // Provee el TransportistaRepository
     @Provides
     @Singleton
     fun provideTransportistaRepository(transportistaDao: TransportistaDao): TransportistaRepository {
         return TransportistaRepository(transportistaDao)
+    }
+
+    // Provee el InventarioRepository
+    @Provides
+    @Singleton
+    fun provideInventarioRepository(inventarioDao: com.example.proyectoZapateria.data.local.inventario.InventarioDao): com.example.proyectoZapateria.data.repository.InventarioRepository {
+        return com.example.proyectoZapateria.data.repository.InventarioRepository(inventarioDao)
+    }
+
+    // Provee el ClienteRepository (usar AppDatabase para evitar problemas de binding directo de ClienteDao)
+    @Provides
+    @Singleton
+    fun provideClienteRepository(database: AppDatabase): com.example.proyectoZapateria.data.repository.ClienteRepository{
+        return com.example.proyectoZapateria.data.repository.ClienteRepository(database.clienteDao())
+    }
+
+    // Provee el CartRepository
+    @Provides
+    @Singleton
+    fun provideCartRepository(cartDao: CartDao, inventarioRepository: InventarioRepository, tallaRepository: TallaRepository): CartRepository {
+        return CartRepository(cartDao, inventarioRepository, tallaRepository)
     }
 }

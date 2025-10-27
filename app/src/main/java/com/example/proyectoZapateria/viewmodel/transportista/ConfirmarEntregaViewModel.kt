@@ -56,7 +56,7 @@ class ConfirmarEntregaViewModel @Inject constructor(
                 val d = detalles
                 productosJob = viewModelScope.launch {
                     try {
-                        detalleBoletaRepository.getProductos(d.numeroBoleta).collect { productos ->
+                        detalleBoletaRepository.getProductosPorNumeroBoleta(d.numeroBoleta).collect { productos ->
                             _uiState.update { it.copy(productos = productos) }
                         }
                     } catch (e: Exception) {

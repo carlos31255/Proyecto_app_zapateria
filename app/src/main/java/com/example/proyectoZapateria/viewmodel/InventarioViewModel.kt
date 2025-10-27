@@ -48,7 +48,7 @@ class InventarioViewModel @Inject constructor(
     fun actualizarProducto(
         producto: ModeloZapatoEntity,
         nuevoNombre: String,
-        nuevoPrecio: Double,
+        nuevoPrecio: Int,
         nuevaDescripcion: String?,
         nuevoIdMarca: Int
     ) {
@@ -71,7 +71,7 @@ class InventarioViewModel @Inject constructor(
                 )
 
                 productoRepository.updateModelo(productoActualizado)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Manejar error
             }
         }
@@ -93,17 +93,17 @@ class InventarioViewModel @Inject constructor(
                     "Producto eliminado exitosamente",
                     Toast.LENGTH_SHORT
                 ).show()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Toast.makeText(
                     context,
-                    "Error al eliminar el producto: ${e.message}",
+                    "Error al eliminar el producto: ocurrió un error",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
     }
 
-    fun buscarProductos(query: String) {
+    private fun buscarProductos(query: String) {
         if (query.isBlank()) {
             cargarProductos()
         } else {
@@ -115,4 +115,3 @@ class InventarioViewModel @Inject constructor(
         }
     }
 }
-

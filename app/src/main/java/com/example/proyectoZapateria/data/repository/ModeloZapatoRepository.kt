@@ -32,8 +32,8 @@ class ModeloZapatoRepository(private val modeloDao: ModeloZapatoDao) {
         return modeloDao.searchModelosByNombre(query)
     }
 
-    // Obtener modelos por rango de precio
-    fun getModelosByRangoPrecio(precioMin: Double, precioMax: Double): Flow<List<ModeloZapatoEntity>> {
+    // Obtener modelos por rango de precio (CLP como Int)
+    fun getModelosByRangoPrecio(precioMin: Int, precioMax: Int): Flow<List<ModeloZapatoEntity>> {
         return modeloDao.getModelosByRangoPrecio(precioMin, precioMax)
     }
 
@@ -94,4 +94,3 @@ class ModeloZapatoRepository(private val modeloDao: ModeloZapatoDao) {
         return modeloDao.existeModeloEnMarca(idMarca, nombreModelo) > 0
     }
 }
-

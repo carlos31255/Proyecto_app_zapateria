@@ -26,16 +26,21 @@ import com.example.proyectoZapateria.ui.screen.admin.AdminHomeScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
+import com.example.proyectoZapateria.ui.screen.cliente.ClienteCatalogoScreen
+import com.example.proyectoZapateria.ui.screen.cliente.ClienteProductoDetailScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
 import com.example.proyectoZapateria.ui.screen.transportista.ConfirmarEntregaScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
-import com.example.proyectoZapateria.ui.screen.vendedor.VendedorHomeScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaPerfilScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.proyectoZapateria.ui.components.AuthenticatedDrawerHeader
 import com.example.proyectoZapateria.ui.components.PublicDrawerHeader
 import com.example.proyectoZapateria.ui.screen.transportista.transportistaDrawerItems
+import com.example.proyectoZapateria.ui.screen.cliente.clienteDrawerItems
+import com.example.proyectoZapateria.ui.screen.cliente.ClientePerfilScreen
+import com.example.proyectoZapateria.ui.screen.cliente.ClientePedidosScreen
+import com.example.proyectoZapateria.ui.screen.cliente.ClienteCartScreen
 import kotlinx.coroutines.launch
 
 
@@ -61,7 +66,7 @@ fun AppNavGraph(
                 // Redireccionar al home correspondiente según el rol
                 val destination = when(currentUser?.idRol) {
                     1 -> Route.AdminHome.path
-                    2 -> Route.VendedorHome.path
+                    2 -> Route.AdminHome.path // Vendedor redirige al admin por ahora
                     3 -> Route.TransportistaHome.path
                     4 -> Route.ClienteHome.path
                     else -> Route.Home.path
@@ -81,7 +86,7 @@ fun AppNavGraph(
         if (currentUser != null) {
             val destination = when(currentUser?.idRol) {
                 1 -> Route.AdminHome.path
-                2 -> Route.VendedorHome.path
+                2 -> Route.AdminHome.path // Vendedor redirige al admin por ahora
                 3 -> Route.TransportistaHome.path
                 4 -> Route.ClienteHome.path
                 else -> Route.Home.path
@@ -131,7 +136,7 @@ fun AppNavGraph(
     val redirectByRole: (String) -> Unit = { role ->
         val destination = when (role) {
             "Administrador" -> Route.AdminHome.path
-            "Vendedor" -> Route.VendedorHome.path
+            "Vendedor" -> Route.AdminHome.path // mantener consistente: vendor->admin
             "Transportista" -> Route.TransportistaHome.path
             "Cliente" -> Route.ClienteHome.path
             else -> Route.Home.path
@@ -152,35 +157,70 @@ fun AppNavGraph(
 
             // Decidimos qué menú mostrar
             when (currentUser?.nombreRol) {
-                // --- CASO 1: TRANSPORTISTA ---
-                "Transportista" -> {
+                // --- CASO 1: CLIENTE ---
+                "Cliente" -> {
                     AppDrawer(
                         currentRoute = routeString,
-                        items = transportistaDrawerItems(
-                            onEntregas = {
+                        items = clienteDrawerItems(
+                            onCatalogo = {
                                 scope.launch { drawerState.close() }
-                                navController.navigate(Route.TransportistaListaEntregas.path)
+                                navController.navigate(Route.ClienteCatalogo.path)
+                            },
+                            onPedidos = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.ClientePedidos.path)
                             },
                             onPerfil = {
                                 scope.launch { drawerState.close() }
-                                navController.navigate(Route.TransportistaPerfil.path)
+                                navController.navigate(Route.ClientePerfil.path)
                             },
                             onLogout = {
                                 scope.launch { drawerState.close() }
                                 authViewModel.logout()
-                                navController.navigate(Route.Login.path) {
-                                    popUpTo(0) { inclusive = true }
-                                }
+                                navController.navigate(Route.Login.path) { popUpTo(0) { inclusive = true } }
+                            },
+                            onCart = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.ClienteCart.path)
                             }
                         ),
                         header = {
                             AuthenticatedDrawerHeader(
                                 username = currentUser?.nombre ?: "Usuario",
-                                role = currentUser?.nombreRol ?: "Transportista"
+                                role = currentUser?.nombreRol ?: "Cliente"
                             )
                         }
                     )
                 }
+                // --- CASO 2: TRANSPORTISTA ---
+                "Transportista" -> {
+                     AppDrawer(
+                         currentRoute = routeString,
+                         items = transportistaDrawerItems(
+                             onEntregas = {
+                                 scope.launch { drawerState.close() }
+                                 navController.navigate(Route.TransportistaListaEntregas.path)
+                             },
+                             onPerfil = {
+                                 scope.launch { drawerState.close() }
+                                 navController.navigate(Route.TransportistaPerfil.path)
+                             },
+                             onLogout = {
+                                 scope.launch { drawerState.close() }
+                                 authViewModel.logout()
+                                 navController.navigate(Route.Login.path) {
+                                     popUpTo(0) { inclusive = true }
+                                 }
+                             }
+                         ),
+                         header = {
+                             AuthenticatedDrawerHeader(
+                                 username = currentUser?.nombre ?: "Usuario",
+                                 role = currentUser?.nombreRol ?: "Transportista"
+                             )
+                         }
+                     )
+                 }
                 else -> {
                     AppDrawer(
                         currentRoute = routeString,
@@ -244,13 +284,6 @@ fun AppNavGraph(
                         onGoLogin = goLogin
                     )
                 }
-                // Rutas del vendedor
-                composable(Route.VendedorHome.path) {
-                    VendedorHomeScreen(
-                        navController = navController,
-                        authViewModel = authViewModel
-                    )
-                }
 
                 // Rutas del administrador
                 composable(Route.AdminHome.path) {
@@ -282,6 +315,24 @@ fun AppNavGraph(
                         authViewModel = authViewModel
                     )
                 }
+                composable(Route.ClienteCatalogo.path) {
+                    ClienteCatalogoScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel()
+                    )
+                }
+                composable(Route.ClientePedidos.path) {
+                    ClientePedidosScreen(navController = navController)
+                }
+                composable(Route.ClienteCart.path) {
+                    ClienteCartScreen(navController = navController)
+                }
+                composable(
+                    route = Route.ClienteProductoDetail.path,
+                    arguments = listOf(navArgument("idModelo") { type = NavType.IntType })
+                ) {
+                    ClienteProductoDetailScreen(navController = navController)
+                }
                 // Rutas del transportista
                 composable(Route.TransportistaHome.path) {
                     TransportistaHomeScreen(
@@ -308,6 +359,10 @@ fun AppNavGraph(
 
                 composable(route = Route.TransportistaPerfil.path) {
                     TransportistaPerfilScreen(navController = navController)
+                }
+
+                composable(route = Route.ClientePerfil.path) {
+                    ClientePerfilScreen(navController = navController)
                 }
             }
         }

@@ -14,12 +14,14 @@ import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
         ForeignKey(
             entity = UsuarioEntity::class,
             parentColumns = ["id_persona"],
-            childColumns = ["id_vendedor"]
+            childColumns = ["id_vendedor"],
+            onDelete = ForeignKey.SET_NULL
         ),
         ForeignKey(
             entity = ClienteEntity::class,
             parentColumns = ["id_persona"],
-            childColumns = ["id_cliente"]
+            childColumns = ["id_cliente"],
+            onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
@@ -39,7 +41,7 @@ data class BoletaVentaEntity(
     val fecha: Long = System.currentTimeMillis(), // Timestamp en milisegundos
 
     @ColumnInfo(name = "id_vendedor")
-    val idVendedor: Int,
+    val idVendedor: Int? = null,
 
     @ColumnInfo(name = "id_cliente")
     val idCliente: Int,
@@ -48,4 +50,3 @@ data class BoletaVentaEntity(
     @ColumnInfo(name = "monto_total")
     val montoTotal: Int
 )
-

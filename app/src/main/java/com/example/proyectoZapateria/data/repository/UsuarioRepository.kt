@@ -25,7 +25,13 @@ class UsuarioRepository(private val usuarioDao: UsuarioDao) {
 
     // Obtener usuario por username (para login)
     suspend fun getUsuarioByUsername(username: String): UsuarioConPersonaYRol? {
-        return usuarioDao.getByUsernameConPersonaYRol(username)
+        // Primero búsqueda exacta
+        var res = usuarioDao.getByUsernameConPersonaYRol(username)
+        if (res == null) {
+            // Intentar búsqueda insensible a mayúsculas/minúsculas
+            res = usuarioDao.getByUsernameConPersonaYRolInsensitive(username)
+        }
+        return res
     }
 
     // Obtener usuarios por rol
@@ -89,4 +95,3 @@ class UsuarioRepository(private val usuarioDao: UsuarioDao) {
         return usuarioDao.getById(idPersona) != null
     }
 }
-

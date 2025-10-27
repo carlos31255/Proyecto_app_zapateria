@@ -1,12 +1,10 @@
 package com.example.proyectoZapateria.ui.screen.cliente
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,96 +28,43 @@ fun ClienteHomeScreen(
     // Colores de Material Design
     val colorScheme = MaterialTheme.colorScheme
 
-    Scaffold(
-        topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colorScheme.primaryContainer)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        // Texto StepStyle con colores de Material Design
-                        Row {
-                            Text(
-                                text = "Step",
-                                color = colorScheme.onPrimaryContainer,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Style",
-                                color = colorScheme.error,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Panel de Cliente",
-                            color = colorScheme.onPrimaryContainer,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        currentUser?.let {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Bienvenido, ${it.nombre}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
-                            )
-                        }
-                    }
-                    IconButton(onClick = {
-                        authViewModel.logout()
-                        navController.navigate(Route.Login.path) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Cerrar sesión",
-                            tint = colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "¿Qué deseas hacer?",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+    // Usar el scaffold global; aquí solo renderizamos el contenido de la pantalla
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "¿Qué deseas hacer?",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
-            // Grid de opciones del cliente
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(clienteMenuItems) { menuItem ->
-                    ClienteMenuCard(
-                        icon = menuItem.icon,
-                        title = menuItem.title,
-                        description = menuItem.description,
-                        onClick = { navController.navigate(menuItem.route) },
-                        backgroundColor = colorScheme.secondaryContainer,
-                        contentColor = colorScheme.onSecondaryContainer
-                    )
-                }
+        // Saludo con nombre del usuario si existe
+        currentUser?.let { user ->
+            Text(
+                text = "Bienvenido, ${user.nombre}",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
+        // Grid de opciones del cliente
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(clienteMenuItems) { menuItem ->
+                ClienteMenuCard(
+                    icon = menuItem.icon,
+                    title = menuItem.title,
+                    description = menuItem.description,
+                    onClick = { navController.navigate(menuItem.route) },
+                    backgroundColor = colorScheme.secondaryContainer,
+                    contentColor = colorScheme.onSecondaryContainer
+                )
             }
         }
     }
@@ -188,25 +133,18 @@ private val clienteMenuItems = listOf(
         icon = Icons.Filled.ShoppingCart,
         title = "Catálogo",
         description = "Ver productos",
-        route = "catalogo" // TODO: Crear esta ruta
+        route = Route.ClienteCatalogo.path
     ),
     ClienteMenuItem(
         icon = Icons.Filled.ShoppingBag,
         title = "Mis Pedidos",
         description = "Ver mis compras",
-        route = "mis_pedidos" // TODO: Crear esta ruta
-    ),
-    ClienteMenuItem(
-        icon = Icons.Filled.Favorite,
-        title = "Favoritos",
-        description = "Productos guardados",
-        route = "favoritos" // TODO: Crear esta ruta
+        route = Route.ClientePedidos.path
     ),
     ClienteMenuItem(
         icon = Icons.Filled.Person,
         title = "Mi Perfil",
         description = "Datos personales",
-        route = "perfil" // TODO: Crear esta ruta
+        route = Route.ClientePerfil.path
     )
 )
-

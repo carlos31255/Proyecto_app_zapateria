@@ -74,7 +74,8 @@ interface EntregaDao {
             e.id_entrega as idEntrega,
             e.estado_entrega as estadoEntrega,
             e.fecha_asignacion as fechaAsignacion,
-            b.id_boleta as numeroBoleta,
+            b.id_boleta as idBoleta,
+            b.numero_boleta as numeroBoleta,
             (p.nombre || ' ' || p.apellido) as clienteNombre,
             p.calle as calle,
             p.numero_puerta as numeroPuerta
@@ -103,7 +104,8 @@ interface EntregaDao {
             T1.fecha_asignacion as fechaAsignacion, 
             T1.fecha_entrega as fechaEntrega, 
             T1.observacion as observacion,
-            T2.id_boleta as numeroBoleta, 
+            T2.id_boleta as idBoleta,
+            T2.numero_boleta as numeroBoleta, 
             (T3.nombre || ' ' || T3.apellido) AS clienteNombre, 
             T3.calle as calle, 
             T3.numero_puerta AS numeroPuerta
@@ -117,5 +119,3 @@ interface EntregaDao {
         fun getDetallesPorId(idEntrega: Int): Flow<EntregaConDetalles>
 
     }
-
-
