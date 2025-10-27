@@ -163,8 +163,11 @@ object AppModule {
     // Provee el DetalleBoletaRepository
     @Provides
     @Singleton
-    fun provideDetalleBoletaRepository(detalleBoletaDao: DetalleBoletaDao): DetalleBoletaRepository {
-        return DetalleBoletaRepository(detalleBoletaDao)
+    fun provideDetalleBoletaRepository(
+        detalleBoletaDao: DetalleBoletaDao,
+        boletaVentaDao: com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
+    ): DetalleBoletaRepository {
+        return DetalleBoletaRepository(detalleBoletaDao, boletaVentaDao)
     }
 
     // Provee el MarcaRepository

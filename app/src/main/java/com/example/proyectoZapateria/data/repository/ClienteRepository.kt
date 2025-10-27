@@ -16,5 +16,7 @@ class ClienteRepository(private val clienteDao: ClienteDao) {
 
     fun getAll(): Flow<List<com.example.proyectoZapateria.data.local.cliente.ClienteEntity>> = clienteDao.getAll()
 
+    fun getAllConPersona(): Flow<List<ClienteConPersona>> = clienteDao.getAllConPersona()
+
 }
 

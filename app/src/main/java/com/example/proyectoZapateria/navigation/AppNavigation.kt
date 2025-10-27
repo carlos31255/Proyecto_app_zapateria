@@ -25,6 +25,8 @@ import com.example.proyectoZapateria.ui.screen.RegisterScreenVm
 import com.example.proyectoZapateria.ui.screen.admin.AdminHomeScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminAgregarProductoScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
+import com.example.proyectoZapateria.ui.screen.admin.AdminClientesScreen
+import com.example.proyectoZapateria.ui.screen.admin.ClienteDetalleScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteCatalogoScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteProductoDetailScreen
@@ -262,6 +264,7 @@ fun AppNavGraph(
                 navController = navController,
                 startDestination = Route.Home.path,
                 modifier = Modifier.padding(innerPadding)
+
             ) {
                 // Rutas publicas
                 composable(Route.Home.path) {
@@ -303,6 +306,23 @@ fun AppNavGraph(
                     AdminInventarioScreen(
                         navController = navController,
                         authViewModel = authViewModel
+                    )
+                }
+
+                composable(Route.AdminClientes.path) {
+                    AdminClientesScreen(
+                        navController = navController
+                    )
+                }
+
+                composable(
+                    route = Route.ClienteDetalle.path,
+                    arguments = listOf(navArgument("idCliente") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val idCliente = backStackEntry.arguments?.getInt("idCliente") ?: 0
+                    ClienteDetalleScreen(
+                        navController = navController,
+                        idCliente = idCliente
                     )
                 }
 

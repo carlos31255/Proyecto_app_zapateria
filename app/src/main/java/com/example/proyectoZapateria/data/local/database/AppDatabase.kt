@@ -75,7 +75,7 @@ import kotlinx.coroutines.flow.first
         // Carrito
         CartItemEntity::class
     ],
-    version = 10,
+    version = 12,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -245,6 +245,127 @@ abstract class AppDatabase : RoomDatabase() {
                     passHash = PasswordHasher.hashPassword("cli123!"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
+                ),
+                // Clientes adicionales para pruebas
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Pedro",
+                    apellido = "Ramírez",
+                    rut = "15678432-1",
+                    telefono = "+56912345678",
+                    email = "pedro.ramirez@email.cl",
+                    idComuna = null,
+                    calle = "Calle Los Aromos",
+                    numeroPuerta = "567",
+                    username = "pedro.ramirez@email.cl",
+                    passHash = PasswordHasher.hashPassword("pedro123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Ana",
+                    apellido = "Martínez",
+                    rut = "18234567-8",
+                    telefono = "+56987654321",
+                    email = "ana.martinez@email.cl",
+                    idComuna = null,
+                    calle = "Pasaje Las Flores",
+                    numeroPuerta = "123",
+                    username = "ana.martinez@email.cl",
+                    passHash = PasswordHasher.hashPassword("ana123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Luis",
+                    apellido = "Fernández",
+                    rut = "19876543-2",
+                    telefono = "+56945678901",
+                    email = "luis.fernandez@email.cl",
+                    idComuna = null,
+                    calle = "Av. Italia",
+                    numeroPuerta = "890",
+                    username = "luis.fernandez@email.cl",
+                    passHash = PasswordHasher.hashPassword("luis123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Carmen",
+                    apellido = "López",
+                    rut = "17345678-9",
+                    telefono = "+56956781234",
+                    email = "carmen.lopez@email.cl",
+                    idComuna = null,
+                    calle = "Calle Errázuriz",
+                    numeroPuerta = "456",
+                    username = "carmen.lopez@email.cl",
+                    passHash = PasswordHasher.hashPassword("carmen123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Roberto",
+                    apellido = "Silva",
+                    rut = "16543210-7",
+                    telefono = "+56923456789",
+                    email = "roberto.silva@email.cl",
+                    idComuna = null,
+                    calle = "Av. Providencia",
+                    numeroPuerta = "2345",
+                    username = "roberto.silva@email.cl",
+                    passHash = PasswordHasher.hashPassword("roberto123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Patricia",
+                    apellido = "Rojas",
+                    rut = "20123456-5",
+                    telefono = "+56934567890",
+                    email = "patricia.rojas@email.cl",
+                    idComuna = null,
+                    calle = "Calle San Martín",
+                    numeroPuerta = "678",
+                    username = "patricia.rojas@email.cl",
+                    passHash = PasswordHasher.hashPassword("patricia123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Diego",
+                    apellido = "Morales",
+                    rut = "19234567-3",
+                    telefono = "+56945678012",
+                    email = "diego.morales@email.cl",
+                    idComuna = null,
+                    calle = "Av. Vicuña Mackenna",
+                    numeroPuerta = "1567",
+                    username = "diego.morales@email.cl",
+                    passHash = PasswordHasher.hashPassword("diego123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
+                ),
+                PersonaEntity(
+                    idPersona = 0,
+                    nombre = "Sofía",
+                    apellido = "Vargas",
+                    rut = "18765432-0",
+                    telefono = "+56956789012",
+                    email = "sofia.vargas@email.cl",
+                    idComuna = null,
+                    calle = "Calle Huérfanos",
+                    numeroPuerta = "890",
+                    username = "sofia.vargas@email.cl",
+                    passHash = PasswordHasher.hashPassword("sofia123"),
+                    fechaRegistro = System.currentTimeMillis(),
+                    estado = "activo"
                 )
             )
 
@@ -287,12 +408,29 @@ abstract class AppDatabase : RoomDatabase() {
             )
             transportistaDao.insert(transportistaEntity)
 
-            // Crear cliente para el usuario cliente
+            // Crear cliente para el usuario cliente principal (idPersona[3])
             val clienteEntity = ClienteEntity(
                 idPersona = idsPersonas[3].toInt(), // María González
-                categoria = "regular"
+                categoria = "VIP"
             )
             clienteDao.insert(clienteEntity)
+
+            // Crear clientes adicionales (índices 4-11 de idsPersonas)
+            val clientesAdicionales = listOf(
+                ClienteEntity(idPersona = idsPersonas[4].toInt(), categoria = "regular"), // Pedro
+                ClienteEntity(idPersona = idsPersonas[5].toInt(), categoria = "VIP"),     // Ana
+                ClienteEntity(idPersona = idsPersonas[6].toInt(), categoria = "regular"), // Luis
+                ClienteEntity(idPersona = idsPersonas[7].toInt(), categoria = "premium"), // Carmen
+                ClienteEntity(idPersona = idsPersonas[8].toInt(), categoria = "regular"), // Roberto
+                ClienteEntity(idPersona = idsPersonas[9].toInt(), categoria = "VIP"),     // Patricia
+                ClienteEntity(idPersona = idsPersonas[10].toInt(), categoria = "premium"),// Diego
+                ClienteEntity(idPersona = idsPersonas[11].toInt(), categoria = "regular") // Sofía
+            )
+
+            clientesAdicionales.forEach { cliente ->
+                clienteDao.insert(cliente)
+                Log.d("AppDatabase", "Preload: inserted cliente idPersona=${cliente.idPersona} categoria=${cliente.categoria}")
+            }
 
             // Crear boletas de venta de prueba
             val boleta1Id = boletaVentaDao.insert(
@@ -327,6 +465,64 @@ abstract class AppDatabase : RoomDatabase() {
                     fecha = System.currentTimeMillis()
                 )
             )
+
+            // Boletas para otros clientes
+            val boleta4Id = boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    numeroBoleta = "B-000004",
+                    idCliente = idsPersonas[4].toInt(), // Pedro
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 89990,
+                    fecha = System.currentTimeMillis() - 172800000 // Hace 2 días
+                )
+            )
+
+            val boleta5Id = boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    numeroBoleta = "B-000005",
+                    idCliente = idsPersonas[5].toInt(), // Ana
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 129990,
+                    fecha = System.currentTimeMillis() - 259200000 // Hace 3 días
+                )
+            )
+
+            boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    numeroBoleta = "B-000006",
+                    idCliente = idsPersonas[5].toInt(), // Ana - segundo pedido
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 65990,
+                    fecha = System.currentTimeMillis() - 86400000 // Hace 1 día
+                )
+            )
+
+            boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    numeroBoleta = "B-000007",
+                    idCliente = idsPersonas[7].toInt(), // Carmen
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 199990,
+                    fecha = System.currentTimeMillis() - 432000000 // Hace 5 días
+                )
+            )
+
+            boletaVentaDao.insert(
+                BoletaVentaEntity(
+                    idBoleta = 0,
+                    numeroBoleta = "B-000008",
+                    idCliente = idsPersonas[9].toInt(), // Patricia
+                    idVendedor = idsPersonas[1].toInt(),
+                    montoTotal = 149990,
+                    fecha = System.currentTimeMillis() - 604800000 // Hace 7 días
+                )
+            )
+
+            Log.d("AppDatabase", "Preload: created ${8} boletas de venta for various clients")
 
             // Crear entregas de prueba asignadas al transportista
             entregaDao.insert(
@@ -505,6 +701,109 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             } catch (e: Exception) {
                 // Si algo falla en la precarga de la marca propia, no detener la creación de la DB
+            }
+
+            // Agregar detalles de boleta (productos en los pedidos)
+            try {
+                val detalleBoletaDao = database.detalleBoletaDao()
+
+                // Obtener algunos IDs de inventario para asignar productos a las boletas
+                // Nota: Esto es una simplificación. En producción, deberías obtener IDs reales del inventario.
+                // Por ahora, asumiremos que existen inventarios con IDs del 1 al 20
+
+                // Boleta 1 (María) - 2 productos
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta1Id.toInt(),
+                        idInventario = 1,
+                        cantidad = 1,
+                        precioUnitario = 39990,
+                        subtotal = 39990
+                    )
+                )
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta1Id.toInt(),
+                        idInventario = 2,
+                        cantidad = 1,
+                        precioUnitario = 20000,
+                        subtotal = 20000
+                    )
+                )
+
+                // Boleta 2 (María) - 1 producto
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta2Id.toInt(),
+                        idInventario = 3,
+                        cantidad = 2,
+                        precioUnitario = 39995,
+                        subtotal = 79990
+                    )
+                )
+
+                // Boleta 3 (María) - 1 producto
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta3Id.toInt(),
+                        idInventario = 4,
+                        cantidad = 1,
+                        precioUnitario = 45990,
+                        subtotal = 45990
+                    )
+                )
+
+                // Boleta 4 (Pedro) - 2 productos
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta4Id.toInt(),
+                        idInventario = 5,
+                        cantidad = 1,
+                        precioUnitario = 49990,
+                        subtotal = 49990
+                    )
+                )
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta4Id.toInt(),
+                        idInventario = 6,
+                        cantidad = 1,
+                        precioUnitario = 40000,
+                        subtotal = 40000
+                    )
+                )
+
+                // Boleta 5 (Ana) - 3 productos
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta5Id.toInt(),
+                        idInventario = 7,
+                        cantidad = 2,
+                        precioUnitario = 44995,
+                        subtotal = 89990
+                    )
+                )
+                detalleBoletaDao.insert(
+                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                        idDetalle = 0,
+                        idBoleta = boleta5Id.toInt(),
+                        idInventario = 8,
+                        cantidad = 1,
+                        precioUnitario = 40000,
+                        subtotal = 40000
+                    )
+                )
+
+                Log.d("AppDatabase", "Preload: created DetalleBoletaEntity for testing")
+            } catch (e: Exception) {
+                Log.e("AppDatabase", "Error creating DetalleBoletaEntity: ${e.message}")
             }
         }
     }

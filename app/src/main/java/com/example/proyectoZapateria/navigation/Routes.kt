@@ -26,6 +26,11 @@ sealed class Route(val path: String) {
     data object AdminPerfil : Route("admin/perfil")
     data object AdminAgregarProducto : Route("admin/agregar-producto")
 
+    // Rutas con parámetros para Admin
+    data object ClienteDetalle : Route("admin/clientes/{idCliente}") {
+        fun createRoute(idCliente: Int) = "admin/clientes/$idCliente"
+    }
+
     // Rutas del Transportista
     data object TransportistaHome : Route("transportista/home")
     data object TransportistaListaEntregas : Route("transportista/entregas/lista")  // Lista de todas las entregas
