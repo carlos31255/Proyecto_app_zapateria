@@ -4,24 +4,27 @@ import android.content.Context
 import com.example.proyectoZapateria.data.local.database.AppDatabase
 import com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaDao
 import com.example.proyectoZapateria.data.local.entrega.EntregaDao
+import com.example.proyectoZapateria.data.local.inventario.InventarioDao
 import com.example.proyectoZapateria.data.local.persona.PersonaDao
+import com.example.proyectoZapateria.data.local.talla.TallaDao
 import com.example.proyectoZapateria.data.local.usuario.UsuarioDao
 import com.example.proyectoZapateria.data.local.marca.MarcaDao
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaDao
 import com.example.proyectoZapateria.data.local.cart.CartDao
+import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.CartRepository
+import com.example.proyectoZapateria.data.repository.ClienteRepository
 import com.example.proyectoZapateria.data.repository.DetalleBoletaRepository
 import com.example.proyectoZapateria.data.repository.EntregaRepository
-import com.example.proyectoZapateria.data.repository.PersonaRepository
-import com.example.proyectoZapateria.data.repository.UsuarioRepository
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.InventarioRepository
 import com.example.proyectoZapateria.data.repository.MarcaRepository
 import com.example.proyectoZapateria.data.repository.ModeloZapatoRepository
+import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.ProductoRepository
-import com.example.proyectoZapateria.data.repository.TransportistaRepository
-import com.example.proyectoZapateria.data.repository.CartRepository
-import com.example.proyectoZapateria.data.repository.InventarioRepository
 import com.example.proyectoZapateria.data.repository.TallaRepository
+import com.example.proyectoZapateria.data.repository.TransportistaRepository
+import com.example.proyectoZapateria.data.repository.UsuarioRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -197,8 +200,8 @@ object AppModule {
     // Provee el TallaRepository
     @Provides
     @Singleton
-    fun provideTallaRepository(tallaDao: com.example.proyectoZapateria.data.local.talla.TallaDao): com.example.proyectoZapateria.data.repository.TallaRepository {
-        return com.example.proyectoZapateria.data.repository.TallaRepository(tallaDao)
+    fun provideTallaRepository(tallaDao: TallaDao): TallaRepository {
+        return TallaRepository(tallaDao)
     }
 
     // Provee el TransportistaRepository
@@ -211,15 +214,15 @@ object AppModule {
     // Provee el InventarioRepository
     @Provides
     @Singleton
-    fun provideInventarioRepository(inventarioDao: com.example.proyectoZapateria.data.local.inventario.InventarioDao): com.example.proyectoZapateria.data.repository.InventarioRepository {
-        return com.example.proyectoZapateria.data.repository.InventarioRepository(inventarioDao)
+    fun provideInventarioRepository(inventarioDao: InventarioDao): InventarioRepository {
+        return InventarioRepository(inventarioDao)
     }
 
     // Provee el ClienteRepository (usar AppDatabase para evitar problemas de binding directo de ClienteDao)
     @Provides
     @Singleton
-    fun provideClienteRepository(database: AppDatabase): com.example.proyectoZapateria.data.repository.ClienteRepository{
-        return com.example.proyectoZapateria.data.repository.ClienteRepository(database.clienteDao())
+    fun provideClienteRepository(database: AppDatabase): ClienteRepository {
+        return ClienteRepository(database.clienteDao())
     }
 
     // Provee el CartRepository

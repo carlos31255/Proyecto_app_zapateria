@@ -2,6 +2,10 @@ package com.example.proyectoZapateria.navigation
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -15,6 +19,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.navArgument
 import com.example.proyectoZapateria.ui.components.AppDrawer
 import com.example.proyectoZapateria.ui.components.AppTopBar
@@ -34,8 +40,6 @@ import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntreg
 import com.example.proyectoZapateria.ui.screen.transportista.ConfirmarEntregaScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaPerfilScreen
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.proyectoZapateria.ui.components.AuthenticatedDrawerHeader
 import com.example.proyectoZapateria.ui.components.PublicDrawerHeader
 import com.example.proyectoZapateria.ui.screen.transportista.transportistaDrawerItems
@@ -263,8 +267,31 @@ fun AppNavGraph(
             NavHost(
                 navController = navController,
                 startDestination = Route.Home.path,
-                modifier = Modifier.padding(innerPadding)
-
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(300)
+                    ) + fadeIn(animationSpec = tween(300))
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(300)
+                    ) + fadeOut(animationSpec = tween(300))
+                },
+                popEnterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(300)
+                    ) + fadeIn(animationSpec = tween(300))
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(300)
+                    ) + fadeOut(animationSpec = tween(300))
+                }
             ) {
                 // Rutas publicas
                 composable(Route.Home.path) {

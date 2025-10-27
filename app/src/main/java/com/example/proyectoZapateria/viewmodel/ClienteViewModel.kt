@@ -88,6 +88,7 @@ class ClienteViewModel @Inject constructor(
     /**
      * Recargar clientes manualmente (opcional)
      */
+    @Suppress("unused")
     fun cargarClientes() {
         _isLoading.value = true
         _errorMessage.value = null
@@ -157,6 +158,7 @@ class ClienteViewModel @Inject constructor(
     /**
      * Limpiar mensaje de error
      */
+    @Suppress("unused")
     fun limpiarError() {
         _errorMessage.value = null
     }

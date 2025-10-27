@@ -125,7 +125,7 @@ abstract class AppDatabase : RoomDatabase() {
                     DB_NAME
                 )
                     // Callback para ejecutar cuando la DB se crea por primera vez
-                    .addCallback(object : RoomDatabase.Callback() {
+                    .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             // Lanzamos una corrutina en IO para insertar datos iniciales
@@ -608,7 +608,7 @@ abstract class AppDatabase : RoomDatabase() {
                     if (existe == 0) {
                         marcaDao.insertMarca(marca)
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Si falla por duplicado, ignoramos y continuamos
                 }
             }
@@ -616,7 +616,7 @@ abstract class AppDatabase : RoomDatabase() {
             // Marca propia de la aplicación (precarga)
             try {
                 val appBrandName = "StepStyle"
-                var appMarca = marcaDao.getMarcaByNombre(appBrandName)
+                val appMarca = marcaDao.getMarcaByNombre(appBrandName)
                 val appMarcaId = if (appMarca == null) {
                     // Insertar y obtener id
                     val id = marcaDao.insertMarca(MarcaEntity(idMarca = 0, nombreMarca = appBrandName, descripcion = "Marca propia StepStyle", estado = "activa"))
@@ -657,7 +657,7 @@ abstract class AppDatabase : RoomDatabase() {
                     tallasIniciales.forEach { numero ->
                         val existe = tallaDao.getByNumero(numero)
                         val id = if (existe == null) {
-                            tallaDao.insert(com.example.proyectoZapateria.data.local.talla.TallaEntity(idTalla = 0, numeroTalla = numero)).toInt()
+                            tallaDao.insert(TallaEntity(idTalla = 0, numeroTalla = numero)).toInt()
                         } else {
                             existe.idTalla
                         }
@@ -682,7 +682,7 @@ abstract class AppDatabase : RoomDatabase() {
                                         else -> 1
                                     }
                                     val invId = inventarioDao.insert(
-                                        com.example.proyectoZapateria.data.local.inventario.InventarioEntity(
+                                        InventarioEntity(
                                             idInventario = 0,
                                             idModelo = modeloCreado.idModelo,
                                             idTalla = idTalla,
@@ -699,7 +699,7 @@ abstract class AppDatabase : RoomDatabase() {
                 } catch (_: Exception) {
                     // Si algo falla no interrumpir la precarga
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Si algo falla en la precarga de la marca propia, no detener la creación de la DB
             }
 
@@ -713,7 +713,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // Boleta 1 (María) - 2 productos
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta1Id.toInt(),
                         idInventario = 1,
@@ -723,7 +723,7 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta1Id.toInt(),
                         idInventario = 2,
@@ -735,7 +735,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // Boleta 2 (María) - 1 producto
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta2Id.toInt(),
                         idInventario = 3,
@@ -747,7 +747,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // Boleta 3 (María) - 1 producto
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta3Id.toInt(),
                         idInventario = 4,
@@ -759,7 +759,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // Boleta 4 (Pedro) - 2 productos
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta4Id.toInt(),
                         idInventario = 5,
@@ -769,7 +769,7 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta4Id.toInt(),
                         idInventario = 6,
@@ -781,7 +781,7 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // Boleta 5 (Ana) - 3 productos
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta5Id.toInt(),
                         idInventario = 7,
@@ -791,7 +791,7 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
                 detalleBoletaDao.insert(
-                    com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaEntity(
+                    DetalleBoletaEntity(
                         idDetalle = 0,
                         idBoleta = boleta5Id.toInt(),
                         idInventario = 8,

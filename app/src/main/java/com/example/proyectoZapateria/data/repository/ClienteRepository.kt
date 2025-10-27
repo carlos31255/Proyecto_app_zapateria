@@ -10,6 +10,7 @@ class ClienteRepository(private val clienteDao: ClienteDao) {
         return clienteDao.getByIdConPersona(id)
     }
 
+    @Suppress("unused")
     suspend fun getByRut(rut: String): ClienteConPersona? {
         return clienteDao.getByRut(rut)
     }
