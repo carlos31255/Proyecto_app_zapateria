@@ -19,11 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.example.proyectoZapateria.navigation.Route
-import com.example.proyectoZapateria.ui.components.AppDrawer
-import com.example.proyectoZapateria.ui.components.AuthenticatedDrawerHeader
-import com.example.proyectoZapateria.ui.components.DrawerItem
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
-import kotlinx.coroutines.launch
 
 data class TransportistaMenuItem(
     val icon: ImageVector,
@@ -97,6 +93,7 @@ fun TransportistaMenuCard(
         }
     }
 }
+
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun TransportistaHomeScreen(
@@ -107,9 +104,70 @@ fun TransportistaHomeScreen(
 
     val colorScheme = MaterialTheme.colorScheme
 
+    Scaffold(
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colorScheme.primaryContainer)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row {
+                            Text(
+                                text = "Step",
+                                color = colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Style",
+                                color = colorScheme.error,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Inicio",
+                            color = colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        currentUser?.let {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Bienvenido, ${it.nombre}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                    IconButton(onClick = {
+                        authViewModel.logout()
+                        navController.navigate(Route.Login.path) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Cerrar sesión",
+                            tint = colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .padding(16.dp)
         ) {
             Text(
@@ -141,10 +199,4 @@ fun TransportistaHomeScreen(
             }
         }
     }
-
-
-
-
-
-
-
+}
