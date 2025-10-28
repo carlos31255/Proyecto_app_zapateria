@@ -18,6 +18,10 @@ class InventarioRepository @Inject constructor(
 
     suspend fun getById(idInventario: Int): InventarioEntity? = inventarioDao.getById(idInventario)
 
+    suspend fun insertInventario(inventario: InventarioEntity): Long {
+        return inventarioDao.insert(inventario)
+    }
+
     suspend fun updateInventario(inventario: InventarioEntity) {
         inventarioDao.update(inventario)
     }

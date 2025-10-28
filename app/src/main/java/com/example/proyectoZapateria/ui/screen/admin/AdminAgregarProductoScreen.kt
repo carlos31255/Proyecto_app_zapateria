@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,7 @@ fun AdminAgregarProductoScreen(
 
     val formState by productoViewModel.formState.collectAsStateWithLifecycle()
     val marcas by productoViewModel.marcas.collectAsStateWithLifecycle()
+    val tallas by productoViewModel.tallas.collectAsStateWithLifecycle()
 
     // Estado para el archivo de la cámara
     var photoFile by remember { mutableStateOf<File?>(null) }
@@ -273,7 +275,7 @@ fun AdminAgregarProductoScreen(
                     supportingText = formState.marcaError?.let { { Text(it) } },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(), // <- Cambio aquí
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = colorScheme.primary,
                         focusedLabelColor = colorScheme.primary
@@ -310,29 +312,10 @@ fun AdminAgregarProductoScreen(
                 value = formState.precio,
                 onValueChange = { productoViewModel.onPrecioChange(it) },
                 label = { Text("Precio") },
-                placeholder = { Text("0.00") },
+                placeholder = { Text("0") },
                 leadingIcon = { Text("$", style = MaterialTheme.typography.titleMedium) },
                 isError = formState.precioError != null,
                 supportingText = formState.precioError?.let { { Text(it) } },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorScheme.primary,
-                    focusedLabelColor = colorScheme.primary
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Campo: Stock Inicial
-            OutlinedTextField(
-                value = formState.stockInicial,
-                onValueChange = { productoViewModel.onStockChange(it) },
-                label = { Text("Stock Inicial") },
-                placeholder = { Text("0") },
-                leadingIcon = { Icon(Icons.Default.Inventory, contentDescription = null) },
-                isError = formState.stockError != null,
-                supportingText = formState.stockError?.let { { Text(it) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -340,6 +323,133 @@ fun AdminAgregarProductoScreen(
                     focusedLabelColor = colorScheme.primary
                 )
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Sección de Tallas y Stock
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.Straighten,
+                            contentDescription = null,
+                            tint = colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Tallas Disponibles",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Selecciona las tallas e ingresa el stock para cada una",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+
+                    if (formState.tallasError != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = formState.tallasError!!,
+                            color = colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Grid de tallas
+                    if (tallas.isEmpty()) {
+                        Text(
+                            text = "No hay tallas disponibles",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    } else {
+                        tallas.chunked(4).forEach { rowTallas ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowTallas.forEach { talla ->
+                                    val isSelected = formState.tallasSeleccionadas.containsKey(talla.idTalla)
+                                    val tallaConStock = formState.tallasSeleccionadas[talla.idTalla]
+
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        // Chip de talla
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = { productoViewModel.onTallaToggle(talla) },
+                                            label = { Text(talla.numeroTalla) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = colorScheme.primaryContainer,
+                                                selectedLabelColor = colorScheme.onPrimaryContainer
+                                            )
+                                        )
+
+                                        // Campo de stock para talla seleccionada
+                                        if (isSelected && tallaConStock != null) {
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            OutlinedTextField(
+                                                value = tallaConStock.stock,
+                                                onValueChange = {
+                                                    productoViewModel.onStockTallaChange(talla.idTalla, it)
+                                                },
+                                                placeholder = { Text("0", style = MaterialTheme.typography.bodySmall) },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(50.dp),
+                                                textStyle = MaterialTheme.typography.bodySmall,
+                                                isError = tallaConStock.stockError != null,
+                                                singleLine = true,
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = colorScheme.primary,
+                                                    errorBorderColor = colorScheme.error
+                                                )
+                                            )
+                                            if (tallaConStock.stockError != null) {
+                                                Text(
+                                                    text = tallaConStock.stockError,
+                                                    color = colorScheme.error,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                // Rellenar espacios vacíos en la fila
+                                repeat(4 - rowTallas.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
