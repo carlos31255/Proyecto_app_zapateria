@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,35 +52,10 @@ fun AdminUsuariosScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Gestión de Usuarios") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.primaryContainer,
-                    titleContentColor = colorScheme.onPrimaryContainer,
-                    navigationIconContentColor = colorScheme.onPrimaryContainer
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showCrearDialog = true },
-                containerColor = colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, "Crear usuario")
-            }
-        }
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
         ) {
             // Barra de búsqueda
             OutlinedTextField(
@@ -220,6 +194,17 @@ fun AdminUsuariosScreen(
                     }
                 }
             }
+        }
+
+        // FloatingActionButton
+        FloatingActionButton(
+            onClick = { showCrearDialog = true },
+            containerColor = colorScheme.primary,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, "Crear usuario")
         }
     }
 

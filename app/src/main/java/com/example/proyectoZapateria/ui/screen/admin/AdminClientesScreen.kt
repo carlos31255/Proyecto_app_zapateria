@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,28 +35,10 @@ fun AdminClientesScreen(
 
     val colorScheme = MaterialTheme.colorScheme
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Gestión de Clientes") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.primaryContainer,
-                    titleContentColor = colorScheme.onPrimaryContainer,
-                    navigationIconContentColor = colorScheme.onPrimaryContainer
-                )
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
             // Barra de búsqueda
             SearchBar(
                 query = searchQuery,
@@ -158,7 +139,6 @@ fun AdminClientesScreen(
                 }
             }
         }
-    }
 }
 
 @Composable
