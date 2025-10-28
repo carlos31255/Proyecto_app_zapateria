@@ -113,47 +113,55 @@ class AuthViewModel @Inject constructor(
             try {
                 // Normalizar el input
                 val usernameInput = s.email.trim()
+                Log.d("AuthViewModel", "submitLogin: intentando login con username='$usernameInput'")
 
                 // Esperar a que la precarga de la DB termine (para evitar falsos negativos tras reinstalar)
-                val maxWaitMs = 2000L
+                val maxWaitMs = 5000L // Aumentado a 5 segundos
                 var waited = 0L
+                Log.d("AuthViewModel", "submitLogin: esperando precarga de DB...")
                 while (!AppDatabase.preloadComplete.value && waited < maxWaitMs) {
                     delay(100)
                     waited += 100
                 }
+                Log.d("AuthViewModel", "submitLogin: precarga completada o timeout (waited=${waited}ms)")
 
                 // Intentar encontrar el usuario con reintentos cortos.
                 // Esto evita un falso negativo si la precarga de la BD (seed) aún está terminando.
                 var usuarioCompleto: UsuarioConPersonaYRol? = null
-                val maxAttempts = 3
+                val maxAttempts = 5 // Aumentado a 5 intentos
                 var attempt = 0
                 while (attempt < maxAttempts && usuarioCompleto == null) {
+                    attempt++
+                    Log.d("AuthViewModel", "submitLogin: intento $attempt de $maxAttempts")
+
                     // Buscar el usuario por username (primera opción)
                     usuarioCompleto = usuarioRepository.getUsuarioByUsername(usernameInput)
+                    Log.d("AuthViewModel", "submitLogin: búsqueda por username result=${usuarioCompleto?.idPersona}")
 
                     // Si no lo encontramos por username, intentar buscar la persona por email y luego el usuario por id
                     if (usuarioCompleto == null) {
                         val persona = personaRepository.getPersonaByEmail(usernameInput)
+                        Log.d("AuthViewModel", "submitLogin: búsqueda por email result persona.id=${persona?.idPersona}")
                         if (persona != null) {
                             usuarioCompleto = usuarioRepository.getUsuarioCompletoById(persona.idPersona)
+                            Log.d("AuthViewModel", "submitLogin: búsqueda de usuario completo result=${usuarioCompleto?.idPersona}")
                         }
                     }
 
-                    if (usuarioCompleto == null) {
-                        attempt++
-                        if (attempt < maxAttempts) {
-                            // Pequeño retraso antes de reintentar (esperar a que termine la precarga)
-                            delay(250)
-                        }
+                    if (usuarioCompleto == null && attempt < maxAttempts) {
+                        // Pequeño retraso antes de reintentar (esperar a que termine la precarga)
+                        Log.d("AuthViewModel", "submitLogin: usuario no encontrado, esperando antes de reintentar...")
+                        delay(500)
                     }
                 }
 
                 if (usuarioCompleto == null) {
+                    Log.e("AuthViewModel", "submitLogin: usuario no encontrado después de $maxAttempts intentos")
                     _login.update {
                         it.copy(
                             isLoading = false,
                             success = false,
-                            errorMsg = "Usuario no encontrado. Verifica tu email"
+                            errorMsg = "Usuario no encontrado. Verifica tu email o espera a que la app termine de cargar"
                         )
                     }
                     return@launch
@@ -163,6 +171,7 @@ class AuthViewModel @Inject constructor(
 
                 // Verificar si el usuario está activo
                 if (usuarioCompleto.estado != "activo") {
+                    Log.w("AuthViewModel", "submitLogin: usuario inactivo id=${usuarioCompleto.idPersona}")
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -177,6 +186,7 @@ class AuthViewModel @Inject constructor(
                 val persona = personaRepository.getPersonaById(usuarioCompleto.idPersona)
 
                 if (persona == null) {
+                    Log.e("AuthViewModel", "submitLogin: error al cargar persona para id=${usuarioCompleto.idPersona}")
                     _login.update {
                         it.copy(
                             isLoading = false,
@@ -189,6 +199,7 @@ class AuthViewModel @Inject constructor(
 
                 // Verificar la contraseña
                 var passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
+                Log.d("AuthViewModel", "submitLogin: verificación de password inicial result=$passwordValida")
 
                 // Si falla en la primera verificación, reintentar una vez tras un pequeño delay (mitiga condiciones de carrera)
                 if (!passwordValida) {
@@ -199,8 +210,8 @@ class AuthViewModel @Inject constructor(
                             passwordValida = PasswordHasher.checkPassword(s.pass, personaRetry.passHash)
                             Log.d("AuthViewModel", "submitLogin: reintento password check result=$passwordValida for id=${usuarioCompleto.idPersona}")
                         }
-                    } catch (_: Exception) {
-                        // ignorar
+                    } catch (e: Exception) {
+                        Log.e("AuthViewModel", "submitLogin: error en reintento de password: ${e.message}")
                     }
                 }
 
@@ -216,7 +227,7 @@ class AuthViewModel @Inject constructor(
                         userRoleId = usuarioCompleto.idRol
                     )
 
-                    Log.d("AuthViewModel", "submitLogin: password válida para id=${usuarioCompleto.idPersona}")
+                    Log.d("AuthViewModel", "submitLogin: login exitoso para id=${usuarioCompleto.idPersona}")
                 } else {
                     Log.d("AuthViewModel", "submitLogin: password inválida para id=${usuarioCompleto.idPersona}")
                 }
@@ -228,12 +239,13 @@ class AuthViewModel @Inject constructor(
                         errorMsg = if (passwordValida) null else "Usuario o contraseña inválidos"
                     )
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("AuthViewModel", "submitLogin: excepción en proceso de login: ${e.message}", e)
                 _login.update {
                     it.copy(
                         isLoading = false,
                         success = false,
-                        errorMsg = "Error al iniciar sesión"
+                        errorMsg = "Error al iniciar sesión: ${e.message}"
                     )
                 }
             }

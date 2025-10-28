@@ -131,25 +131,43 @@ abstract class AppDatabase : RoomDatabase() {
                     DB_NAME
                 )
                     // Callback para ejecutar cuando la DB se crea por primera vez
-                        .addCallback(object : Callback() {
+                    .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
+                            Log.d("AppDatabase", "onCreate callback - iniciando precarga de datos")
                             // Lanzamos una corrutina en IO para insertar datos iniciales
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
+                                    Log.d("AppDatabase", "Iniciando preloadData...")
                                     preloadData(getInstance(context))
+                                    Log.d("AppDatabase", "preloadData completado exitosamente")
+                                } catch (e: Exception) {
+                                    Log.e("AppDatabase", "Error en preloadData: ${e.message}", e)
                                 } finally {
                                     // Asegurarse de que la señal se marque aunque algo falle
                                     _preloadComplete.value = true
+                                    Log.d("AppDatabase", "Precarga marcada como completa")
                                 }
+                            }
+                        }
+
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            Log.d("AppDatabase", "onOpen callback - base de datos abierta")
+                            // Si la DB ya existe, marcar precarga como completa
+                            if (!_preloadComplete.value) {
+                                _preloadComplete.value = true
                             }
                         }
                     })
                     // En entorno educativo, si cambias versión sin migraciones, destruye y recrea
                     .fallbackToDestructiveMigration()
+                    // Permitir consultas en el hilo principal solo para debugging (eliminar en producción)
+                    .allowMainThreadQueries()
                     .build()
 
                 INSTANCE = instance
+                Log.d("AppDatabase", "Instancia de base de datos creada")
                 instance
             }
         }
