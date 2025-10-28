@@ -1,14 +1,20 @@
 package com.example.proyectoZapateria.data.repository
 
+import com.example.proyectoZapateria.data.local.inventario.InventarioDao
+import com.example.proyectoZapateria.data.local.inventario.InventarioEntity
 import com.example.proyectoZapateria.data.local.marca.MarcaDao
 import com.example.proyectoZapateria.data.local.marca.MarcaEntity
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoDao
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
+import com.example.proyectoZapateria.data.local.talla.TallaDao
+import com.example.proyectoZapateria.data.local.talla.TallaEntity
 import kotlinx.coroutines.flow.Flow
 
 class ProductoRepository(
     private val modeloDao: ModeloZapatoDao,
-    private val marcaDao: MarcaDao
+    private val marcaDao: MarcaDao,
+    private val tallaDao: TallaDao,
+    private val inventarioDao: InventarioDao
 ) {
 
     // ========== MODELOS DE ZAPATOS ==========
@@ -98,6 +104,53 @@ class ProductoRepository(
 
     suspend fun existeMarcaConNombre(nombreMarca: String): Boolean {
         return marcaDao.existeMarcaConNombre(nombreMarca) > 0
+    }
+
+    // ========== TALLAS ==========
+
+    fun getAllTallas(): Flow<List<TallaEntity>> {
+        return tallaDao.getAll()
+    }
+
+    suspend fun getTallaById(idTalla: Int): TallaEntity? {
+        return tallaDao.getById(idTalla)
+    }
+
+    // ========== INVENTARIO ==========
+
+    fun getInventarioByModelo(idModelo: Int): Flow<List<InventarioEntity>> {
+        return inventarioDao.getByModelo(idModelo)
+    }
+
+    suspend fun getInventarioByModeloYTalla(idModelo: Int, idTalla: Int): InventarioEntity? {
+        return inventarioDao.getByModeloYTalla(idModelo, idTalla)
+    }
+
+    suspend fun insertInventario(inventario: InventarioEntity): Result<Long> {
+        return try {
+            val id = inventarioDao.insert(inventario)
+            Result.success(id)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateInventario(inventario: InventarioEntity): Result<Unit> {
+        return try {
+            inventarioDao.update(inventario)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteInventario(inventario: InventarioEntity): Result<Unit> {
+        return try {
+            inventarioDao.delete(inventario)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }
 

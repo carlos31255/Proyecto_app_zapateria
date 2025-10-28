@@ -199,9 +199,11 @@ object AppModule {
     @Singleton
     fun provideProductoRepository(
         modeloZapatoDao: ModeloZapatoDao,
-        marcaDao: MarcaDao
+        marcaDao: MarcaDao,
+        tallaDao: TallaDao,
+        inventarioDao: InventarioDao
     ): ProductoRepository {
-        return ProductoRepository(modeloZapatoDao, marcaDao)
+        return ProductoRepository(modeloZapatoDao, marcaDao, tallaDao, inventarioDao)
     }
 
     // Provee el TallaRepository

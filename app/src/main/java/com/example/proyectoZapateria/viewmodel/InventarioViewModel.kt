@@ -4,8 +4,10 @@ import android.content.Context
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.proyectoZapateria.data.local.inventario.InventarioEntity
 import com.example.proyectoZapateria.data.local.marca.MarcaEntity
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
+import com.example.proyectoZapateria.data.local.talla.TallaEntity
 import com.example.proyectoZapateria.data.repository.ProductoRepository
 import com.example.proyectoZapateria.utils.ImageHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,9 +26,16 @@ class InventarioViewModel @Inject constructor(
     private val _marcas = MutableStateFlow<List<MarcaEntity>>(emptyList())
     val marcas: StateFlow<List<MarcaEntity>> = _marcas
 
+    private val _tallas = MutableStateFlow<List<TallaEntity>>(emptyList())
+    val tallas: StateFlow<List<TallaEntity>> = _tallas
+
+    private val _inventarioPorModelo = MutableStateFlow<List<InventarioEntity>>(emptyList())
+    val inventarioPorModelo: StateFlow<List<InventarioEntity>> = _inventarioPorModelo
+
     init {
         cargarProductos()
         cargarMarcas()
+        cargarTallas()
     }
 
     private fun cargarProductos() {
@@ -41,6 +50,22 @@ class InventarioViewModel @Inject constructor(
         viewModelScope.launch {
             productoRepository.getAllMarcas().collect { lista ->
                 _marcas.value = lista
+            }
+        }
+    }
+
+    private fun cargarTallas() {
+        viewModelScope.launch {
+            productoRepository.getAllTallas().collect { lista ->
+                _tallas.value = lista.sortedBy { it.numeroTalla.toDoubleOrNull() ?: 0.0 }
+            }
+        }
+    }
+
+    fun cargarInventarioDeModelo(idModelo: Int) {
+        viewModelScope.launch {
+            productoRepository.getInventarioByModelo(idModelo).collect { lista ->
+                _inventarioPorModelo.value = lista
             }
         }
     }
@@ -73,6 +98,57 @@ class InventarioViewModel @Inject constructor(
                 productoRepository.updateModelo(productoActualizado)
             } catch (_: Exception) {
                 // Manejar error
+            }
+        }
+    }
+
+    fun actualizarInventario(
+        idModelo: Int,
+        inventarioPorTalla: Map<Int, Int>, // Map de idTalla a stock
+        context: Context,
+        onSuccess: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                // Para cada talla, actualizar o insertar el inventario
+                inventarioPorTalla.forEach { (idTalla, stock) ->
+                    val inventarioExistente = productoRepository.getInventarioByModeloYTalla(idModelo, idTalla)
+
+                    if (stock <= 0 && inventarioExistente != null) {
+                        // Si el stock es 0 o negativo, eliminar el registro
+                        productoRepository.deleteInventario(inventarioExistente)
+                    } else if (stock > 0) {
+                        if (inventarioExistente != null) {
+                            // Actualizar existente
+                            productoRepository.updateInventario(
+                                inventarioExistente.copy(stockActual = stock)
+                            )
+                        } else {
+                            // Insertar nuevo
+                            productoRepository.insertInventario(
+                                InventarioEntity(
+                                    idModelo = idModelo,
+                                    idTalla = idTalla,
+                                    stockActual = stock
+                                )
+                            )
+                        }
+                    }
+                }
+
+                Toast.makeText(
+                    context,
+                    "Inventario actualizado exitosamente",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                onSuccess()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    context,
+                    "Error al actualizar inventario: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }

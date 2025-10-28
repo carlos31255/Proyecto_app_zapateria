@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -23,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.proyectoZapateria.data.local.marca.MarcaEntity
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
@@ -238,23 +241,14 @@ fun AdminInventarioScreen(
         )
     }
 
-    // Diálogo de editar (solo una implementación, acepta precio Int en CLP)
+    // Diálogo de editar (completo con tallas y stock)
     if (mostrarDialogoEditar && productoSeleccionado != null) {
-        EditarProductoDialog(
+        EditarProductoCompletoDialog(
             producto = productoSeleccionado!!,
             marcas = marcas,
+            viewModel = inventarioViewModel,
+            context = context,
             onDismiss = {
-                mostrarDialogoEditar = false
-                productoSeleccionado = null
-            },
-            onConfirm = { nombre, precio, descripcion, idMarca ->
-                inventarioViewModel.actualizarProducto(
-                    productoSeleccionado!!,
-                    nombre,
-                    precio,
-                    descripcion,
-                    idMarca
-                )
                 mostrarDialogoEditar = false
                 productoSeleccionado = null
             }
@@ -394,11 +388,12 @@ fun ProductoCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditarProductoDialog(
+fun EditarProductoCompletoDialog(
     producto: ModeloZapatoEntity,
-    marcas: List<com.example.proyectoZapateria.data.local.marca.MarcaEntity>,
-    onDismiss: () -> Unit,
-    onConfirm: (nombre: String, precio: Int, descripcion: String?, idMarca: Int) -> Unit
+    marcas: List<MarcaEntity>,
+    viewModel: InventarioViewModel,
+    context: android.content.Context,
+    onDismiss: () -> Unit
 ) {
     var nombre by remember { mutableStateOf(producto.nombreModelo) }
     var precio by remember { mutableStateOf(producto.precioUnitario.toString()) }
@@ -409,141 +404,231 @@ fun EditarProductoDialog(
     var nombreError by remember { mutableStateOf<String?>(null) }
     var precioError by remember { mutableStateOf<String?>(null) }
 
+    // Cargar inventario y tallas
+    val tallas by viewModel.tallas.collectAsStateWithLifecycle()
+    val inventario by viewModel.inventarioPorModelo.collectAsStateWithLifecycle()
+
+    LaunchedEffect(producto.idModelo) {
+        viewModel.cargarInventarioDeModelo(producto.idModelo)
+    }
+
+    // Map de idTalla a stock actual (editable)
+    val stockPorTalla = remember { mutableStateMapOf<Int, String>() }
+
+    // Inicializar con el inventario actual
+    LaunchedEffect(inventario) {
+        stockPorTalla.clear()
+        inventario.forEach { inv ->
+            stockPorTalla[inv.idTalla] = inv.stockActual.toString()
+        }
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight(0.9f)
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
+                    .fillMaxSize()
                     .padding(24.dp)
             ) {
-                Text(
-                    text = "Editar Producto",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                item {
+                    Text(
+                        text = "Editar Producto",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Campo nombre
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = {
-                        nombre = it
-                        nombreError = if (it.isBlank()) "El nombre es requerido" else null
-                    },
-                    label = { Text("Nombre del modelo") },
-                    isError = nombreError != null,
-                    supportingText = nombreError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Dropdown marca
-                ExposedDropdownMenuBox(
-                    expanded = expandedMarcas,
-                    onExpandedChange = { expandedMarcas = it }
-                ) {
+                item {
+                    // Campo nombre
                     OutlinedTextField(
-                        value = marcas.find { it.idMarca == idMarcaSeleccionada }?.nombreMarca ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Marca") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMarcas) },
+                        value = nombre,
+                        onValueChange = {
+                            nombre = it
+                            nombreError = if (it.isBlank()) "El nombre es requerido" else null
+                        },
+                        label = { Text("Nombre del modelo") },
+                        isError = nombreError != null,
+                        supportingText = nombreError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                item {
+                    // Dropdown marca
+                    ExposedDropdownMenuBox(
+                        expanded = expandedMarcas,
+                        onExpandedChange = { expandedMarcas = it }
+                    ) {
+                        OutlinedTextField(
+                            value = marcas.find { it.idMarca == idMarcaSeleccionada }?.nombreMarca ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Marca") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMarcas) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expandedMarcas,
+                            onDismissRequest = { expandedMarcas = false }
+                        ) {
+                            marcas.forEach { marca ->
+                                DropdownMenuItem(
+                                    text = { Text(marca.nombreMarca) },
+                                    onClick = {
+                                        idMarcaSeleccionada = marca.idMarca
+                                        expandedMarcas = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                item {
+                    // Campo precio
+                    OutlinedTextField(
+                        value = precio,
+                        onValueChange = {
+                            precio = it.filter { char -> char.isDigit() }
+                            precioError = when {
+                                precio.isBlank() -> "El precio es requerido"
+                                precio.toIntOrNull() == null -> "Precio inválido"
+                                precio.toInt() <= 0 -> "El precio debe ser mayor a 0"
+                                else -> null
+                            }
+                        },
+                        label = { Text("Precio") },
+                        leadingIcon = { Text("$") },
+                        isError = precioError != null,
+                        supportingText = precioError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                item {
+                    // Campo descripción
+                    OutlinedTextField(
+                        value = descripcion,
+                        onValueChange = { descripcion = it },
+                        label = { Text("Descripción (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 3
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                item {
+                    // Título de inventario
+                    Text(
+                        text = "Gestión de Stock por Talla",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Ingresa el stock disponible para cada talla. Deja en 0 para no tener esa talla.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                items(tallas, key = { it.idTalla }) { talla ->
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor()
-                    )
-
-                    ExposedDropdownMenu(
-                        expanded = expandedMarcas,
-                        onDismissRequest = { expandedMarcas = false }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        marcas.forEach { marca ->
-                            DropdownMenuItem(
-                                text = { Text(marca.nombreMarca) },
-                                onClick = {
-                                    idMarcaSeleccionada = marca.idMarca
-                                    expandedMarcas = false
-                                }
+                        Text(
+                            text = "Talla ${talla.numeroTalla}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        OutlinedTextField(
+                            value = stockPorTalla[talla.idTalla] ?: "0",
+                            onValueChange = { newValue ->
+                                val filtered = newValue.filter { it.isDigit() }
+                                stockPorTalla[talla.idTalla] = filtered
+                            },
+                            label = { Text("Stock") },
+                            modifier = Modifier.width(120.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number
                             )
-                        }
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // Campo precio
-                OutlinedTextField(
-                    value = precio,
-                    onValueChange = {
-                        // Mantener solo dígitos (CLP)
-                        precio = it.filter { char -> char.isDigit() }
-                        precioError = when {
-                            precio.isBlank() -> "El precio es requerido"
-                            precio.toIntOrNull() == null -> "Precio inválido"
-                            precio.toInt() <= 0 -> "El precio debe ser mayor a 0"
-                            else -> null
+                    // Botones
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancelar")
                         }
-                    },
-                    label = { Text("Precio") },
-                    leadingIcon = { Text("$") },
-                    isError = precioError != null,
-                    supportingText = precioError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                if (nombre.isNotBlank() &&
+                                    precio.toIntOrNull() != null &&
+                                    precio.toInt() > 0) {
 
-                // Campo descripción
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción (opcional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    maxLines = 3
-                )
+                                    // Actualizar información del producto
+                                    viewModel.actualizarProducto(
+                                        producto,
+                                        nombre.trim(),
+                                        precio.toInt(),
+                                        descripcion.trim().ifBlank { null },
+                                        idMarcaSeleccionada
+                                    )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                                    // Actualizar inventario
+                                    val inventarioMap = stockPorTalla.mapValues { (_, stock) ->
+                                        stock.toIntOrNull() ?: 0
+                                    }
 
-                // Botones
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancelar")
-                    }
-
-                    Button(
-                        onClick = {
-                            if (nombre.isNotBlank() &&
-                                precio.toIntOrNull() != null &&
-                                precio.toInt() > 0) {
-                                onConfirm(
-                                    nombre.trim(),
-                                    precio.toInt(),
-                                    descripcion.trim().ifBlank { null },
-                                    idMarcaSeleccionada
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = nombre.isNotBlank() &&
-                                 precio.toIntOrNull() != null &&
-                                 precio.toInt() > 0
-                    ) {
-                        Text("Guardar")
+                                    viewModel.actualizarInventario(
+                                        producto.idModelo,
+                                        inventarioMap,
+                                        context,
+                                        onSuccess = { onDismiss() }
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = nombre.isNotBlank() &&
+                                     precio.toIntOrNull() != null &&
+                                     precio.toInt() > 0
+                        ) {
+                            Text("Guardar")
+                        }
                     }
                 }
             }
