@@ -208,7 +208,7 @@ abstract class AppDatabase : RoomDatabase() {
                     calle = null,
                     numeroPuerta = null,
                     username = "admin@zapateria.cl",
-                    passHash = PasswordHasher.hashPassword("admin123!"),
+                        passHash = PasswordHasher.hashPassword("admin123!"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 ),

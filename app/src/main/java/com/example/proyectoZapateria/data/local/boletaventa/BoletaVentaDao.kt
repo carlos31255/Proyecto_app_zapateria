@@ -61,6 +61,32 @@ interface BoletaVentaDao {
         ORDER BY b.fecha DESC
     """)
     fun getAllBoletasConInfo(): Flow<List<BoletaVentaConInfo>>
+
+    // Obtener boletas por rango de fechas para reportes
+    @Query("""
+        SELECT 
+            b.id_boleta,
+            b.numero_boleta,
+            b.fecha,
+            b.monto_total,
+            b.estado,
+            p_cliente.nombre as nombre_cliente,
+            p_cliente.apellido as apellido_cliente,
+            p_vendedor.nombre as nombre_vendedor,
+            p_vendedor.apellido as apellido_vendedor
+        FROM boletaventa b
+        INNER JOIN cliente c ON b.id_cliente = c.id_persona
+        INNER JOIN persona p_cliente ON c.id_persona = p_cliente.id_persona
+        LEFT JOIN usuario u ON b.id_vendedor = u.id_persona
+        LEFT JOIN persona p_vendedor ON u.id_persona = p_vendedor.id_persona
+        WHERE b.fecha >= :fechaInicio AND b.fecha < :fechaFin
+        ORDER BY b.fecha DESC
+    """)
+    suspend fun getBoletasByRangoFechas(fechaInicio: Long, fechaFin: Long): List<BoletaVentaConInfo>
+
+    // Eliminar boleta por ID (para cancelar)
+    @Query("DELETE FROM boletaventa WHERE id_boleta = :id")
+    suspend fun deleteSync(id: Int)
 }
 
 data class BoletaVentaConInfo(

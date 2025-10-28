@@ -11,5 +11,8 @@
 
     <!-- Directorio externo -->
     <external-files-path name="external_files" path="." />
+
+    <!-- Directorio de descargas para reportes -->
+    <external-path name="downloads" path="Download/" />
 </paths>
 
