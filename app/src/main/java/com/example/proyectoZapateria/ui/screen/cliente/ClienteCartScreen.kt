@@ -1,34 +1,43 @@
 package com.example.proyectoZapateria.ui.screen.cliente
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
+import com.example.proyectoZapateria.navigation.Route
+import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.cliente.ClienteCartViewModel
 import java.text.NumberFormat
 import java.util.Locale
-import com.example.proyectoZapateria.navigation.Route
 
 @Composable
 fun ClienteCartScreen(
     navController: NavHostController,
     viewModel: ClienteCartViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -83,28 +92,83 @@ fun ClienteCartScreen(
                         horizontalArrangement = Arrangement.SpaceBetween) {
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Imagen si existe, fallback a recurso local
-                            if (modelo?.imagenUrl != null) {
-                                // En este proyecto no cargamos imágenes remotas por defecto; usar placeholder
-                                Image(
-                                    painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                                    contentDescription = modelo.nombreModelo,
-                                    modifier = Modifier.size(64.dp),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                                    contentDescription = modelo?.nombreModelo ?: "Producto",
-                                    modifier = Modifier.size(64.dp),
-                                    contentScale = ContentScale.Crop
-                                )
+                            // Imagen del producto
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (modelo?.imagenUrl != null) {
+                                    val imageFile = ImageHelper.getFileFromPath(context, modelo.imagenUrl)
+                                    if (imageFile.exists()) {
+                                        Image(
+                                            painter = rememberAsyncImagePainter(imageFile),
+                                            contentDescription = "Imagen de ${modelo.nombreModelo}",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        // Fallback: Nombre del producto
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(4.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Image,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp),
+                                                tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                            Text(
+                                                text = modelo.nombreModelo,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                textAlign = TextAlign.Center,
+                                                maxLines = 2,
+                                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f,
+                                                color = colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    // Fallback: Nombre del producto sin imagen
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Image,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                            tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                        Text(
+                                            text = modelo?.nombreModelo ?: "Producto",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            textAlign = TextAlign.Center,
+                                            maxLines = 2,
+                                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f,
+                                            color = colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Column {
-                                Text(text = modelo?.nombreModelo ?: "#${itemUi.cartItem.idModelo}", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    text = modelo?.nombreModelo ?: "#${itemUi.cartItem.idModelo}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 Text(text = "Talla: ${itemUi.cartItem.talla}", style = MaterialTheme.typography.bodySmall)
                                 Text(text = "Precio: ${clpFormatter.format((modelo?.precioUnitario ?: itemUi.cartItem.precioUnitario).toDouble())}", style = MaterialTheme.typography.bodySmall)
                             }
