@@ -242,6 +242,37 @@ fun CrearUsuarioDialog(
                     }
                 }
 
+                // Campos específicos para Transportista (idRol = 3)
+                if (state.rolSeleccionado?.idRol == 3) {
+                    // Licencia
+                    OutlinedTextField(
+                        value = state.licencia,
+                        onValueChange = { viewModel.actualizarLicencia(it) },
+                        label = { Text("Licencia *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = state.licenciaError != null,
+                        supportingText = state.licenciaError?.let { { Text(it) } },
+                        leadingIcon = { Icon(Icons.Default.Badge, null) },
+                        enabled = !state.isLoading,
+                        singleLine = true,
+                        placeholder = { Text("Ej: Clase B") }
+                    )
+
+                    // Vehículo
+                    OutlinedTextField(
+                        value = state.vehiculo,
+                        onValueChange = { viewModel.actualizarVehiculo(it) },
+                        label = { Text("Vehículo *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = state.vehiculoError != null,
+                        supportingText = state.vehiculoError?.let { { Text(it) } },
+                        leadingIcon = { Icon(Icons.Default.DirectionsCar, null) },
+                        enabled = !state.isLoading,
+                        singleLine = true,
+                        placeholder = { Text("Ej: Camioneta Toyota") }
+                    )
+                }
+
                 Text(
                     text = "* Campos obligatorios",
                     style = MaterialTheme.typography.bodySmall,

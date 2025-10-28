@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.local.cliente.ClienteEntity
 import com.example.proyectoZapateria.data.local.persona.PersonaEntity
 import com.example.proyectoZapateria.data.local.rol.RolEntity
+import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
 import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
 import com.example.proyectoZapateria.data.repository.PersonaRepository
+import com.example.proyectoZapateria.data.repository.TransportistaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
 import com.example.proyectoZapateria.utils.PasswordHasher
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,6 +32,10 @@ data class CrearUsuarioState(
     val confirmPassword: String = "",
     val rolSeleccionado: RolEntity? = null,
 
+    // Campos específicos para transportista
+    val licencia: String = "",
+    val vehiculo: String = "",
+
     val nombreError: String? = null,
     val apellidoError: String? = null,
     val rutError: String? = null,
@@ -40,6 +45,8 @@ data class CrearUsuarioState(
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
     val rolError: String? = null,
+    val licenciaError: String? = null,
+    val vehiculoError: String? = null,
 
     val isLoading: Boolean = false,
     val success: Boolean = false,
@@ -51,7 +58,8 @@ class UsuarioViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
     private val personaRepository: PersonaRepository,
     private val rolRepository: com.example.proyectoZapateria.data.repository.RolRepository,
-    private val clienteRepository: com.example.proyectoZapateria.data.repository.ClienteRepository
+    private val clienteRepository: com.example.proyectoZapateria.data.repository.ClienteRepository,
+    private val transportistaRepository: TransportistaRepository
 ) : ViewModel() {
 
     // Lista de todos los usuarios
@@ -198,6 +206,20 @@ class UsuarioViewModel @Inject constructor(
         )
     }
 
+    fun actualizarLicencia(licencia: String) {
+        _crearUsuarioState.value = _crearUsuarioState.value.copy(
+            licencia = licencia,
+            licenciaError = null
+        )
+    }
+
+    fun actualizarVehiculo(vehiculo: String) {
+        _crearUsuarioState.value = _crearUsuarioState.value.copy(
+            vehiculo = vehiculo,
+            vehiculoError = null
+        )
+    }
+
     fun crearUsuario() {
         viewModelScope.launch {
             val state = _crearUsuarioState.value
@@ -268,6 +290,18 @@ class UsuarioViewModel @Inject constructor(
                 hayErrores = true
             }
 
+            // Validar campos específicos para Transportista (idRol = 3)
+            if (state.rolSeleccionado?.idRol == 3) {
+                if (state.licencia.isBlank()) {
+                    updatedState = updatedState.copy(licenciaError = "La licencia es requerida para transportistas")
+                    hayErrores = true
+                }
+                if (state.vehiculo.isBlank()) {
+                    updatedState = updatedState.copy(vehiculoError = "El vehículo es requerido para transportistas")
+                    hayErrores = true
+                }
+            }
+
             // Actualizar estado con todos los errores
             _crearUsuarioState.value = updatedState
 
@@ -304,12 +338,22 @@ class UsuarioViewModel @Inject constructor(
                 usuarioRepository.insert(usuario)
 
                 // Si el rol es Cliente (idRol = 4), crear también el ClienteEntity
-                if (state.rolSeleccionado!!.idRol == 4) {
+                if (state.rolSeleccionado.idRol == 4) {
                     val cliente = ClienteEntity(
                         idPersona = personaId.toInt(),
                         categoria = "regular" // Categoría por defecto para nuevos clientes
                     )
                     clienteRepository.insert(cliente)
+                }
+
+                // Si el rol es Transportista (idRol = 3), crear también el TransportistaEntity
+                if (state.rolSeleccionado.idRol == 3) {
+                    val transportista = TransportistaEntity(
+                        idPersona = personaId.toInt(),
+                        licencia = state.licencia.ifBlank { null },
+                        vehiculo = state.vehiculo.ifBlank { null }
+                    )
+                    transportistaRepository.insertTransportista(transportista)
                 }
 
                 _successMessage.value = "Usuario creado exitosamente"
