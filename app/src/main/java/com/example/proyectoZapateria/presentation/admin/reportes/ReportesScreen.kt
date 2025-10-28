@@ -1,8 +1,13 @@
 package com.example.proyectoZapateria.presentation.admin.reportes
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,7 +26,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectoZapateria.domain.model.DetalleVentaReporte
 import com.example.proyectoZapateria.domain.model.ReporteVentas
 import java.io.File
-import java.io.FileWriter
+import java.io.OutputStreamWriter
+import java.nio.charset.StandardCharsets
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -522,67 +528,211 @@ private fun descargarReporte(
             "reporte_$anio.txt"
         }
 
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val file = File(downloadsDir, fileName)
+        // Usar MediaStore API para Android 10+ (API 29+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            descargarConMediaStore(context, reporte, fileName, anio, mes, viewModel)
+        } else {
+            // Fallback para Android 9 y anteriores
+            descargarTradicional(context, reporte, fileName, anio, mes, viewModel)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(
+            context,
+            "Error al descargar reporte: ${e.message}",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+}
 
-        val locale = java.util.Locale.Builder().setLanguage("es").setRegion("CL").build()
-        val numberFormat = NumberFormat.getCurrencyInstance(locale)
-        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+// MediaStore API - Android 10+ (API 29+)
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
+private fun descargarConMediaStore(
+    context: Context,
+    reporte: ReporteVentas,
+    fileName: String,
+    anio: Int,
+    mes: Int?,
+    viewModel: ReportesViewModel
+) {
+    try {
+        // Configurar metadatos del archivo
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+            put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            put(MediaStore.Downloads.IS_PENDING, 1) // Marca como pendiente mientras se escribe
+        }
 
-        FileWriter(file).use { writer ->
-            writer.append("===========================================\n")
-            writer.append("     REPORTE DE VENTAS - ZAPATERÍA\n")
-            writer.append("===========================================\n\n")
+        // Insertar archivo en MediaStore
+        val resolver = context.contentResolver
+        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
 
-            if (mes != null) {
-                writer.append("Período: ${viewModel.obtenerNombreMes(mes)} $anio\n\n")
-            } else {
-                writer.append("Período: Año $anio\n\n")
-            }
-
-            writer.append("-------------------------------------------\n")
-            writer.append("RESUMEN\n")
-            writer.append("-------------------------------------------\n\n")
-            writer.append("Ventas Realizadas:    ${reporte.numeroVentasRealizadas}\n")
-            writer.append("Ventas Canceladas:    ${reporte.numeroVentasCanceladas}\n")
-            writer.append("Ingresos Totales:     ${numberFormat.format(reporte.ingresosTotal)}\n\n")
-
-            if (reporte.detallesVentas.isNotEmpty()) {
-                writer.append("-------------------------------------------\n")
-                writer.append("DETALLE DE VENTAS\n")
-                writer.append("-------------------------------------------\n\n")
-
-                reporte.detallesVentas.forEach { detalle ->
-                    writer.append("Boleta: ${detalle.numeroBoleta}\n")
-                    writer.append("Estado: ${detalle.estado.uppercase()}\n")
-                    writer.append("Cliente: ${detalle.nombreCliente}\n")
-                    writer.append("Fecha: ${dateFormat.format(Date(detalle.fecha))}\n")
-                    writer.append("Monto: ${numberFormat.format(detalle.montoTotal)}\n")
-                    writer.append("\n")
+        uri?.let { fileUri ->
+            // Escribir contenido del reporte con encoding UTF-8
+            resolver.openOutputStream(fileUri)?.use { outputStream ->
+                OutputStreamWriter(outputStream, StandardCharsets.UTF_8).use { writer ->
+                    escribirContenidoReporte(writer, reporte, anio, mes, viewModel)
                 }
             }
 
-            writer.append("===========================================\n")
-            writer.append("Reporte generado el ${dateFormat.format(Date())}\n")
-            writer.append("===========================================\n")
+            // Marcar archivo como completado
+            contentValues.clear()
+            contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
+            resolver.update(fileUri, contentValues, null, null)
+
+            // Mostrar mensaje de éxito
+            Toast.makeText(
+                context,
+                "Reporte descargado en Downloads: $fileName",
+                Toast.LENGTH_LONG
+            ).show()
+
+            // Abrir el archivo
+            abrirArchivo(context, fileUri)
+        } ?: run {
+            Toast.makeText(
+                context,
+                "Error al crear el archivo de reporte",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(
+            context,
+            "Error al descargar: ${e.message}",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+}
+
+// Método tradicional - Android 9 y anteriores
+private fun descargarTradicional(
+    context: Context,
+    reporte: ReporteVentas,
+    fileName: String,
+    anio: Int,
+    mes: Int?,
+    viewModel: ReportesViewModel
+) {
+    try {
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+        // Crear directorio si no existe
+        if (!downloadsDir.exists()) {
+            downloadsDir.mkdirs()
         }
 
-        // Abrir el archivo descargado
+        val file = File(downloadsDir, fileName)
+
+        // Usar OutputStreamWriter con UTF-8 en lugar de FileWriter
+        file.outputStream().use { outputStream ->
+            OutputStreamWriter(outputStream, StandardCharsets.UTF_8).use { writer ->
+                escribirContenidoReporte(writer, reporte, anio, mes, viewModel)
+            }
+        }
+
+        // Obtener URI con FileProvider
         val uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
             file
         )
 
+        Toast.makeText(
+            context,
+            "Reporte descargado en Downloads: $fileName",
+            Toast.LENGTH_LONG
+        ).show()
+
+        // Abrir el archivo
+        abrirArchivo(context, uri)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(
+            context,
+            "Error al descargar: ${e.message}",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+}
+
+// Función auxiliar para escribir el contenido del reporte
+private fun escribirContenidoReporte(
+    writer: java.io.Writer,
+    reporte: ReporteVentas,
+    anio: Int,
+    mes: Int?,
+    viewModel: ReportesViewModel
+) {
+    val locale = java.util.Locale.Builder().setLanguage("es").setRegion("CL").build()
+    val numberFormat = NumberFormat.getCurrencyInstance(locale)
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+    writer.write("===========================================\n")
+    writer.write("     REPORTE DE VENTAS - ZAPATERIA\n")
+    writer.write("===========================================\n\n")
+
+    if (mes != null) {
+        writer.write("Periodo: ${viewModel.obtenerNombreMes(mes)} $anio\n\n")
+    } else {
+        writer.write("Periodo: Año $anio\n\n")
+    }
+
+    writer.write("-------------------------------------------\n")
+    writer.write("RESUMEN\n")
+    writer.write("-------------------------------------------\n\n")
+    writer.write("Ventas Realizadas:    ${reporte.numeroVentasRealizadas}\n")
+    writer.write("Ventas Canceladas:    ${reporte.numeroVentasCanceladas}\n")
+    writer.write("Ingresos Totales:     ${numberFormat.format(reporte.ingresosTotal)}\n\n")
+
+    if (reporte.detallesVentas.isNotEmpty()) {
+        writer.write("-------------------------------------------\n")
+        writer.write("DETALLE DE VENTAS\n")
+        writer.write("-------------------------------------------\n\n")
+
+        reporte.detallesVentas.forEach { detalle ->
+            writer.write("Boleta: ${detalle.numeroBoleta}\n")
+            writer.write("Estado: ${detalle.estado.uppercase()}\n")
+            writer.write("Cliente: ${detalle.nombreCliente}\n")
+            writer.write("Fecha: ${dateFormat.format(Date(detalle.fecha))}\n")
+            writer.write("Monto: ${numberFormat.format(detalle.montoTotal)}\n\n")
+        }
+    }
+
+    writer.write("===========================================\n")
+    writer.write("Reporte generado el ${dateFormat.format(Date())}\n")
+    writer.write("===========================================\n")
+    writer.flush()
+}
+
+// Función para abrir el archivo descargado
+private fun abrirArchivo(context: Context, uri: Uri) {
+    try {
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "text/plain")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
-        context.startActivity(Intent.createChooser(intent, "Abrir reporte"))
-
+        // Verificar si hay una aplicación que pueda abrir el archivo
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(Intent.createChooser(intent, "Abrir reporte"))
+        } else {
+            Toast.makeText(
+                context,
+                "No hay aplicacion para abrir archivos de texto",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     } catch (e: Exception) {
         e.printStackTrace()
+        Toast.makeText(
+            context,
+            "No se pudo abrir el archivo",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
 
