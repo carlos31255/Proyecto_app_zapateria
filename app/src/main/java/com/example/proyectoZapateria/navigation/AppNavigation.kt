@@ -34,6 +34,8 @@ import com.example.proyectoZapateria.ui.screen.admin.AdminInventarioScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminClientesScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminUsuariosScreen
 import com.example.proyectoZapateria.ui.screen.admin.AdminPerfilScreen
+import com.example.proyectoZapateria.ui.screen.admin.AdminVentasScreen
+import com.example.proyectoZapateria.ui.screen.admin.VentaDetalleScreen
 import com.example.proyectoZapateria.ui.screen.admin.ClienteDetalleScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteCatalogoScreen
@@ -46,6 +48,7 @@ import com.example.proyectoZapateria.ui.components.AuthenticatedDrawerHeader
 import com.example.proyectoZapateria.ui.components.PublicDrawerHeader
 import com.example.proyectoZapateria.ui.screen.transportista.transportistaDrawerItems
 import com.example.proyectoZapateria.ui.screen.cliente.clienteDrawerItems
+import com.example.proyectoZapateria.ui.screen.admin.adminDrawerItems
 import com.example.proyectoZapateria.ui.screen.cliente.ClientePerfilScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClientePedidosScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteCartScreen
@@ -165,7 +168,101 @@ fun AppNavGraph(
 
             // Decidimos qué menú mostrar
             when (currentUser?.nombreRol) {
-                // --- CASO 1: CLIENTE ---
+                // --- CASO 1: ADMINISTRADOR ---
+                "Administrador" -> {
+                    AppDrawer(
+                        currentRoute = routeString,
+                        items = adminDrawerItems(
+                            onAgregarProducto = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminAgregarProducto.path)
+                            },
+                            onVentas = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminVentas.path)
+                            },
+                            onClientes = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminClientes.path)
+                            },
+                            onInventario = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminInventario.path)
+                            },
+                            onUsuarios = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminUsuarios.path)
+                            },
+                            onReportes = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminReportes.path)
+                            },
+                            onPerfil = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminPerfil.path)
+                            },
+                            onLogout = {
+                                scope.launch { drawerState.close() }
+                                authViewModel.logout()
+                                navController.navigate(Route.Login.path) { popUpTo(0) { inclusive = true } }
+                            }
+                        ),
+                        header = {
+                            AuthenticatedDrawerHeader(
+                                username = currentUser?.nombre ?: "Usuario",
+                                role = currentUser?.nombreRol ?: "Administrador"
+                            )
+                        }
+                    )
+                }
+                // --- CASO 2: VENDEDOR (usa el mismo drawer que admin) ---
+                "Vendedor" -> {
+                    AppDrawer(
+                        currentRoute = routeString,
+                        items = adminDrawerItems(
+                            onAgregarProducto = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminAgregarProducto.path)
+                            },
+                            onVentas = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminVentas.path)
+                            },
+                            onClientes = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminClientes.path)
+                            },
+                            onInventario = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminInventario.path)
+                            },
+                            onUsuarios = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminUsuarios.path)
+                            },
+                            onReportes = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminReportes.path)
+                            },
+                            onPerfil = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate(Route.AdminPerfil.path)
+                            },
+                            onLogout = {
+                                scope.launch { drawerState.close() }
+                                authViewModel.logout()
+                                navController.navigate(Route.Login.path) { popUpTo(0) { inclusive = true } }
+                            }
+                        ),
+                        header = {
+                            AuthenticatedDrawerHeader(
+                                username = currentUser?.nombre ?: "Usuario",
+                                role = currentUser?.nombreRol ?: "Vendedor"
+                            )
+                        }
+                    )
+                }
+                // --- CASO 3: CLIENTE ---
                 "Cliente" -> {
                     AppDrawer(
                         currentRoute = routeString,
@@ -200,7 +297,7 @@ fun AppNavGraph(
                         }
                     )
                 }
-                // --- CASO 2: TRANSPORTISTA ---
+                // --- CASO 4: TRANSPORTISTA ---
                 "Transportista" -> {
                      AppDrawer(
                          currentRoute = routeString,
@@ -352,6 +449,22 @@ fun AppNavGraph(
 
                 composable(Route.AdminPerfil.path) {
                     AdminPerfilScreen(
+                        navController = navController
+                    )
+                }
+
+                composable(Route.AdminVentas.path) {
+                    AdminVentasScreen(
+                        navController = navController
+                    )
+                }
+
+                composable(
+                    route = Route.VentaDetalle.path,
+                    arguments = listOf(navArgument("idBoleta") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val idBoleta = backStackEntry.arguments?.getInt("idBoleta") ?: 0
+                    VentaDetalleScreen(
                         navController = navController
                     )
                 }

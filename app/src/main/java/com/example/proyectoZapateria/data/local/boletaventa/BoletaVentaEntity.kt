@@ -46,7 +46,9 @@ data class BoletaVentaEntity(
     @ColumnInfo(name = "id_cliente")
     val idCliente: Int,
 
-
     @ColumnInfo(name = "monto_total")
-    val montoTotal: Int
+    val montoTotal: Int,
+
+    @ColumnInfo(name = "estado")
+    val estado: String = "COMPLETADA" // COMPLETADA, CANCELADA
 )
