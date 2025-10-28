@@ -1,5 +1,7 @@
 package com.example.proyectoZapateria.ui.screen.transportista
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
@@ -16,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -218,6 +222,7 @@ fun EntregaCard(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
@@ -228,62 +233,104 @@ fun EntregaCard(
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.LocalShipping,
-                contentDescription = "Entrega",
-                tint = colorScheme.primary,
-                modifier = Modifier.size(40.dp)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = entrega.getNumeroOrdenFormateado(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = Icons.Default.LocalShipping,
+                    contentDescription = "Entrega",
+                    tint = colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = entrega.clienteNombre,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = entrega.getDireccionCompleta(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = entrega.getNumeroOrdenFormateado(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = entrega.clienteNombre,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = entrega.getDireccionCompleta(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+
+                // Estado
+                Surface(
+                    color = if (entrega.estadoEntrega == "pendiente")
+                        colorScheme.secondaryContainer
+                    else
+                        colorScheme.tertiaryContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = entrega.estadoEntrega.replaceFirstChar { it.titlecase() },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (entrega.estadoEntrega == "pendiente")
+                            colorScheme.onSecondaryContainer
+                        else
+                            colorScheme.onTertiaryContainer,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
             }
 
-            // Estado
-            Surface(
-                color = if (entrega.estadoEntrega == "pendiente")
-                    colorScheme.secondaryContainer
-                else
-                    colorScheme.tertiaryContainer,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = entrega.estadoEntrega.replaceFirstChar { it.titlecase() },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (entrega.estadoEntrega == "pendiente")
-                        colorScheme.onSecondaryContainer
-                    else
-                        colorScheme.onTertiaryContainer,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            // Botón para abrir Google Maps
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = {
+                    // Construir la dirección completa
+                    val direccion = entrega.getDireccionCompleta()
+
+                    // Crear intent para abrir Google Maps
+                    val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(direccion)}")
+                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                    mapIntent.setPackage("com.google.android.apps.maps")
+
+                    // Verificar si Google Maps está instalado
+                    if (mapIntent.resolveActivity(context.packageManager) != null) {
+                        context.startActivity(mapIntent)
+                    } else {
+                        // Si no está instalado, abrir en el navegador
+                        val browserIntent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(direccion)}")
+                        )
+                        context.startActivity(browserIntent)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = colorScheme.primary
                 )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Ver ubicación",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Ver ubicación en Maps")
             }
         }
     }

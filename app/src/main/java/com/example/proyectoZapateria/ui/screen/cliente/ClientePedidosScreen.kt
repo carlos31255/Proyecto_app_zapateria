@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.ui.screen.cliente
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,6 +19,7 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -54,40 +57,71 @@ fun ClientePedidosScreen(
     }
 
     // Contenedor principal sin usar Scaffold (hay un global en la app)
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(horizontal = 16.dp, vertical = 12.dp)) {
+    Column(modifier = Modifier.fillMaxSize()) {
 
-        // Header con acción de refrescar
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Mis pedidos",
-                style = MaterialTheme.typography.titleMedium,
-                color = colorScheme.onBackground,
-                modifier = Modifier.weight(1f)
-            )
+        // Header con diseño
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colorScheme.primaryContainer)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "Mis Pedidos",
+                            color = colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${uiState.pedidos.size} pedidos",
+                            color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
 
-            IconButton(onClick = { viewModel.loadPedidos() }) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = "Refrescar",
-                    tint = colorScheme.primary
-                )
+                IconButton(onClick = { viewModel.loadPedidos() }) {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Refrescar",
+                        tint = colorScheme.onPrimaryContainer
+                    )
+                }
             }
         }
 
         // Lista de pedidos
-        if (uiState.pedidos.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No tienes pedidos aún")
-            }
-            return
-        }
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp)) {
 
-        LazyColumn(modifier = Modifier
-            .fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (uiState.pedidos.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No tienes pedidos aún")
+                }
+                return
+            }
+
+            LazyColumn(modifier = Modifier
+                .fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(uiState.pedidos) { boleta ->
                 Card(
                     modifier = Modifier
@@ -134,6 +168,7 @@ fun ClientePedidosScreen(
                     }
                 }
             }
+            } // Cierre de LazyColumn
         }
     }
 }

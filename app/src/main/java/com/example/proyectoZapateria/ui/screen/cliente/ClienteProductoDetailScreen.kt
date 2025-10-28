@@ -1,9 +1,11 @@
 package com.example.proyectoZapateria.ui.screen.cliente
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -12,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,14 +53,51 @@ fun ClienteProductoDetailScreen(
 
     // No usar Scaffold local — el scaffold global maneja la TopAppBar y paddings
     val context = LocalContext.current
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)) {
+    val colorScheme = MaterialTheme.colorScheme
 
-        Column(modifier = Modifier
-            .fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header con diseño
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colorScheme.primaryContainer)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { navController?.navigateUp() }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = colorScheme.onPrimaryContainer
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Detalle del Producto",
+                        color = colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = modelo?.nombreModelo ?: "Cargando...",
+                        color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
 
-            if (modelo == null) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)) {
+
+            Column(modifier = Modifier
+                .fillMaxSize()) {
+
+                if (modelo == null) {
                 Text("Producto no encontrado")
                 return@Column
             }
@@ -159,6 +199,7 @@ fun ClienteProductoDetailScreen(
                     }
                 }
             }
-        }
-    }
+            } // Cierre de Column interno
+        } // Cierre de Box
+    } // Cierre de Column principal
 }

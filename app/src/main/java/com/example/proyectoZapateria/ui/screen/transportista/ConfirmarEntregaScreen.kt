@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -184,19 +183,24 @@ fun ConfirmarEntregaScreen(
                             item {
                                 OutlinedButton(
                                     onClick = {
+                                        // Construir la dirección completa
                                         val direccion = uiState.entrega!!.getDireccionCompleta()
-                                        val gmmIntentUri = direccion.toUri()
+
+                                        // Crear intent para abrir Google Maps
+                                        val gmmIntentUri = android.net.Uri.parse("geo:0,0?q=${android.net.Uri.encode(direccion)}")
                                         val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                                         mapIntent.setPackage("com.google.android.apps.maps")
-                                        try {
+
+                                        // Verificar si Google Maps está instalado
+                                        if (mapIntent.resolveActivity(context.packageManager) != null) {
                                             context.startActivity(mapIntent)
-                                        } catch (e: Exception) {
-                                            // Mostrar mensaje específico si hay info
-                                            Toast.makeText(
-                                                context,
-                                                e.message ?: "Google Maps no está instalado",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                        } else {
+                                            // Si no está instalado, abrir en el navegador
+                                            val browserIntent = Intent(
+                                                Intent.ACTION_VIEW,
+                                                android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(direccion)}")
+                                            )
+                                            context.startActivity(browserIntent)
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth()

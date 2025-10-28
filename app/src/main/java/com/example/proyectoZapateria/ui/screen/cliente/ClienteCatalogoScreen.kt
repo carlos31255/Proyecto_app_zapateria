@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,26 +42,62 @@ fun ClienteCatalogoScreen(
 
     val clpFormatter = remember { NumberFormat.getCurrencyInstance(java.util.Locale.forLanguageTag("es-CL")) }
 
-    // No usar Scaffold local — el scaffold global maneja la TopAppBar y paddings
-    if (modelos.isEmpty()) {
-        Box(modifier = Modifier
-            .fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No hay productos disponibles")
-        }
-    } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header con diseño
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxWidth()
+                .background(colorScheme.primaryContainer)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            items(modelos) { modelo ->
-                ClienteProductoCard(modelo = modelo, onClick = {
-                    val rutaDetalle = Route.ClienteProductoDetail.path.replace("{idModelo}", modelo.idModelo.toString())
-                    navController.navigate(rutaDetalle)
-                }, colorScheme = colorScheme, context = context, priceFormatter = clpFormatter)
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { navController.navigateUp() }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = colorScheme.onPrimaryContainer
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Catálogo",
+                        color = colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${modelos.size} productos disponibles",
+                        color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+
+        // No usar Scaffold local — el scaffold global maneja la TopAppBar y paddings
+        if (modelos.isEmpty()) {
+            Box(modifier = Modifier
+                .fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No hay productos disponibles")
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(modelos) { modelo ->
+                    ClienteProductoCard(modelo = modelo, onClick = {
+                        val rutaDetalle = Route.ClienteProductoDetail.path.replace("{idModelo}", modelo.idModelo.toString())
+                        navController.navigate(rutaDetalle)
+                    }, colorScheme = colorScheme, context = context, priceFormatter = clpFormatter)
+                }
             }
         }
     }
