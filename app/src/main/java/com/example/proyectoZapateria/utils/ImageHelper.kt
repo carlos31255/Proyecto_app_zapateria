@@ -124,5 +124,15 @@ object ImageHelper {
 
         return deletedCount
     }
+
+    /**
+     * Obtiene el ID de un recurso drawable por su nombre
+     * Retorna null si no existe
+     */
+    fun getDrawableResourceId(context: Context, imageName: String?): Int? {
+        if (imageName.isNullOrBlank()) return null
+        val resourceId = context.resources.getIdentifier(imageName, "drawable", context.packageName)
+        return if (resourceId != 0) resourceId else null
+    }
 }
 

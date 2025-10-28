@@ -26,7 +26,6 @@ import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.cliente.ClienteCatalogoViewModel
 import java.text.NumberFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,17 +86,29 @@ fun ClienteProductoCard(
                 .fillMaxWidth()
                 .background(colorScheme.surfaceVariant)) {
                 if (modelo.imagenUrl != null) {
-                    val imageFile = ImageHelper.getFileFromPath(context, modelo.imagenUrl)
-                    if (imageFile.exists()) {
+                    // Primero intentar cargar desde drawable
+                    val drawableId = ImageHelper.getDrawableResourceId(context, modelo.imagenUrl)
+                    if (drawableId != null) {
                         Image(
-                            painter = rememberAsyncImagePainter(imageFile),
-                            contentDescription = "Imagen",
+                            painter = androidx.compose.ui.res.painterResource(id = drawableId),
+                            contentDescription = "Imagen del producto",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        Icon(Icons.Default.Image, contentDescription = null,
-                            modifier = Modifier.size(48.dp).align(Alignment.Center), tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                        // Si no está en drawable, buscar en archivos
+                        val imageFile = ImageHelper.getFileFromPath(context, modelo.imagenUrl)
+                        if (imageFile.exists()) {
+                            Image(
+                                painter = rememberAsyncImagePainter(imageFile),
+                                contentDescription = "Imagen del producto",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(Icons.Default.Image, contentDescription = null,
+                                modifier = Modifier.size(48.dp).align(Alignment.Center), tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                        }
                     }
                 } else {
                     Icon(Icons.Default.Image, contentDescription = null,

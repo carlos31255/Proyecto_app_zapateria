@@ -673,10 +673,10 @@ abstract class AppDatabase : RoomDatabase() {
                 // Precargar modelos para la marca propia
                 val modeloDao = database.modeloZapatoDao()
                 val modelosApp = listOf(
-                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Classic", descripcion = "Zapatillas clásicas cómodas", precioUnitario = 39990, imagenUrl = null, estado = "activo"),
-                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Runner", descripcion = "Runner ligero para entrenamiento", precioUnitario = 49990, imagenUrl = null, estado = "activo"),
-                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Urban", descripcion = "Casual urbano con diseño moderno", precioUnitario = 45990, imagenUrl = null, estado = "activo"),
-                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Kids", descripcion = "Zapatillas para niños", precioUnitario = 29990, imagenUrl = null, estado = "activo")
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Classic", descripcion = "Zapatillas clásicas cómodas", precioUnitario = 39990, imagenUrl = "classic", estado = "activo"),
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Runner", descripcion = "Runner ligero para entrenamiento", precioUnitario = 49990, imagenUrl = "runner", estado = "activo"),
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Urban", descripcion = "Casual urbano con diseño moderno", precioUnitario = 45990, imagenUrl = "urban", estado = "activo"),
+                    ModeloZapatoEntity(idModelo = 0, idMarca = appMarcaId, nombreModelo = "StepStyle Kids", descripcion = "Zapatillas para niños", precioUnitario = 29990, imagenUrl = "kids", estado = "activo")
                 )
 
                 modelosApp.forEach { modelo ->

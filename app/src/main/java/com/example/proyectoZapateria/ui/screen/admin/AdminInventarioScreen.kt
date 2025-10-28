@@ -286,23 +286,35 @@ fun ProductoCard(
                     .background(colorScheme.surfaceVariant)
             ) {
                 if (producto.imagenUrl != null) {
-                    val imageFile = ImageHelper.getFileFromPath(context, producto.imagenUrl)
-                    if (imageFile.exists()) {
+                    // Primero intentar cargar desde drawable
+                    val drawableId = ImageHelper.getDrawableResourceId(context, producto.imagenUrl)
+                    if (drawableId != null) {
                         Image(
-                            painter = rememberAsyncImagePainter(imageFile),
+                            painter = androidx.compose.ui.res.painterResource(id = drawableId),
                             contentDescription = "Imagen de ${producto.nombreModelo}",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        Icon(
-                            Icons.Default.Image,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .align(Alignment.Center),
-                            tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                        )
+                        // Si no está en drawable, buscar en archivos
+                        val imageFile = ImageHelper.getFileFromPath(context, producto.imagenUrl)
+                        if (imageFile.exists()) {
+                            Image(
+                                painter = rememberAsyncImagePainter(imageFile),
+                                contentDescription = "Imagen de ${producto.imagenUrl}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Image,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .align(Alignment.Center),
+                                tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            )
+                        }
                     }
                 } else {
                     Icon(

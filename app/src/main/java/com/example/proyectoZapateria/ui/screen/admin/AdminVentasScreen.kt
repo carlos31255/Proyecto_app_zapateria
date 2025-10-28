@@ -25,6 +25,8 @@ import com.example.proyectoZapateria.viewmodel.admin.VentasViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.Calendar
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,8 +113,17 @@ fun AdminVentasScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (fechaFiltro != null) {
-                                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                    .format(Date(fechaFiltro!!))
+                                // Usar Calendar para formatear correctamente en zona horaria local
+                                val calendar = Calendar.getInstance().apply {
+                                    timeInMillis = fechaFiltro!!
+                                }
+                                String.format(
+                                    Locale.getDefault(),
+                                    "%02d/%02d/%04d",
+                                    calendar.get(Calendar.DAY_OF_MONTH),
+                                    calendar.get(Calendar.MONTH) + 1,
+                                    calendar.get(Calendar.YEAR)
+                                )
                             } else {
                                 "Filtrar por fecha"
                             }
@@ -260,8 +271,28 @@ fun AdminVentasScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            viewModel.actualizarFechaFiltro(it)
+                        datePickerState.selectedDateMillis?.let { utcMillis ->
+                            // Extraer año, mes y día del DatePicker (está en UTC)
+                            val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                                timeInMillis = utcMillis
+                            }
+
+                            val year = utcCalendar.get(Calendar.YEAR)
+                            val month = utcCalendar.get(Calendar.MONTH)
+                            val day = utcCalendar.get(Calendar.DAY_OF_MONTH)
+
+                            // Crear una nueva fecha con esos valores en zona horaria local
+                            val localCalendar = Calendar.getInstance().apply {
+                                set(Calendar.YEAR, year)
+                                set(Calendar.MONTH, month)
+                                set(Calendar.DAY_OF_MONTH, day)
+                                set(Calendar.HOUR_OF_DAY, 0)
+                                set(Calendar.MINUTE, 0)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }
+
+                            viewModel.actualizarFechaFiltro(localCalendar.timeInMillis)
                         }
                         showDatePicker = false
                     }

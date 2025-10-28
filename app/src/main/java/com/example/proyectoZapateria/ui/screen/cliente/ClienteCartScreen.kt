@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -42,6 +44,29 @@ fun ClienteCartScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val clpFormatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CL"))
+
+    // Detectar cuando se completa el checkout con éxito para mostrar Toast y navegar
+    LaunchedEffect(uiState.shouldNavigateToHome) {
+        if (uiState.shouldNavigateToHome) {
+            // Mostrar Toast de éxito
+            Toast.makeText(context, "Compra finalizada correctamente", Toast.LENGTH_LONG).show()
+
+            // Resetear la bandera
+            viewModel.resetNavigationFlag()
+
+            // Navegar al home del cliente
+            navController.navigate(Route.ClienteHome.path) {
+                popUpTo(Route.ClienteCart.path) { inclusive = true }
+            }
+        }
+    }
+
+    // Mostrar Toast de error cuando falla
+    LaunchedEffect(uiState.error) {
+        if (uiState.error != null && !uiState.isLoading) {
+            Toast.makeText(context, "Compra fallida", Toast.LENGTH_LONG).show()
+        }
+    }
 
     when {
         uiState.isLoading -> {
@@ -101,37 +126,49 @@ fun ClienteCartScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (modelo?.imagenUrl != null) {
-                                    val imageFile = ImageHelper.getFileFromPath(context, modelo.imagenUrl)
-                                    if (imageFile.exists()) {
+                                    // Primero intentar cargar desde drawable
+                                    val drawableId = ImageHelper.getDrawableResourceId(context, modelo.imagenUrl)
+                                    if (drawableId != null) {
                                         Image(
-                                            painter = rememberAsyncImagePainter(imageFile),
+                                            painter = androidx.compose.ui.res.painterResource(id = drawableId),
                                             contentDescription = "Imagen de ${modelo.nombreModelo}",
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Crop
                                         )
                                     } else {
-                                        // Fallback: Nombre del producto
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(4.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Image,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(24.dp),
-                                                tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        // Si no está en drawable, buscar en archivos
+                                        val imageFile = ImageHelper.getFileFromPath(context, modelo.imagenUrl)
+                                        if (imageFile.exists()) {
+                                            Image(
+                                                painter = rememberAsyncImagePainter(imageFile),
+                                                contentDescription = "Imagen de ${modelo.nombreModelo}",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
                                             )
-                                            Text(
-                                                text = modelo.nombreModelo,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                textAlign = TextAlign.Center,
-                                                maxLines = 2,
-                                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f,
-                                                color = colorScheme.onSurfaceVariant
-                                            )
+                                        } else {
+                                            // Fallback: Nombre del producto
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .padding(4.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Image,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp),
+                                                    tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                                Text(
+                                                    text = modelo.nombreModelo,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    textAlign = TextAlign.Center,
+                                                    maxLines = 2,
+                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f,
+                                                    color = colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
                                     }
                                 } else {

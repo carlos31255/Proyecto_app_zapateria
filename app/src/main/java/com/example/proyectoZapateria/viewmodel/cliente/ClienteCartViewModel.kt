@@ -54,7 +54,9 @@ class ClienteCartViewModel @Inject constructor(
         val total: Int = 0,
         val error: String? = null,
         val isCheckingOut: Boolean = false,
-        val checkoutMessage: String? = null
+        val checkoutMessage: String? = null,
+        val checkoutSuccess: Boolean = false,
+        val shouldNavigateToHome: Boolean = false
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -281,7 +283,13 @@ class ClienteCartViewModel @Inject constructor(
                         diagnostics.append("Inventario id=${inv.idInventario} for modelo=${ci.idModelo} talla=${ci.talla} exists: ${invCheck != null}\n")
                     }
 
-                    _uiState.value = _uiState.value.copy(isCheckingOut = false, checkoutMessage = null, error = diagnostics.toString())
+                    _uiState.value = _uiState.value.copy(
+                        isCheckingOut = false,
+                        checkoutMessage = null,
+                        error = "Compra fallida: ${diagnostics}",
+                        checkoutSuccess = false,
+                        shouldNavigateToHome = false
+                    )
                     return@launch
                 }
 
@@ -291,11 +299,27 @@ class ClienteCartViewModel @Inject constructor(
                 // Refrescar vista
                 loadCart()
 
-                _uiState.value = _uiState.value.copy(isCheckingOut = false, checkoutMessage = "Compra realizada: $numeroBoleta", error = null)
+                _uiState.value = _uiState.value.copy(
+                    isCheckingOut = false,
+                    checkoutMessage = "Compra finalizada correctamente",
+                    checkoutSuccess = true,
+                    shouldNavigateToHome = true,
+                    error = null
+                )
 
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isCheckingOut = false, checkoutMessage = null, error = e.message ?: "Error en checkout")
+                _uiState.value = _uiState.value.copy(
+                    isCheckingOut = false,
+                    checkoutMessage = null,
+                    error = "Compra fallida: ${e.message}",
+                    checkoutSuccess = false,
+                    shouldNavigateToHome = false
+                )
             }
         }
+    }
+
+    fun resetNavigationFlag() {
+        _uiState.value = _uiState.value.copy(shouldNavigateToHome = false)
     }
 }
