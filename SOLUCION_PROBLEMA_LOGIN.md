@@ -81,9 +81,6 @@ Una vez que veas en Logcat que la precarga terminó, intenta hacer login con:
 - Email: `admin@zapateria.cl`
 - Contraseña: `admin123!`
 
-**Vendedor:**
-- Email: `vend@zapa.cl`
-- Contraseña: `vend123!`
 
 **Transportista:**
 - Email: `tra@zapa.cl`
@@ -156,7 +153,6 @@ O desde Android Studio:
 | Rol | Email | Contraseña |
 |-----|-------|-----------|
 | Administrador | admin@zapateria.cl | admin123! |
-| Vendedor | vend@zapa.cl | vend123! |
 | Transportista | tra@zapa.cl | tra123! |
 | Cliente | cli@zapa.cl | cli123! |
 | Cliente 2 | pedro.ramirez@email.cl | pedro123 |
