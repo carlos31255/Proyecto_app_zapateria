@@ -295,8 +295,9 @@ private fun RegisterScreen(
                 // Campo CALLE
                 OutlinedTextField(
                     value = calle,
-                    onValueChange = onCalleChange,
+                    onValueChange = { if (it.length <= 80) onCalleChange(it) },
                     label = { Text("Calle") },
+                    placeholder = { Text("Ej: Av. Libertador Bernardo O'Higgins") },
                     singleLine = true,
                     isError = calleError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
@@ -309,7 +310,13 @@ private fun RegisterScreen(
                         focusedLabelColor = colorScheme.primary,
                         unfocusedLabelColor = colorScheme.onSurfaceVariant
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = {
+                        Text(
+                            text = "${calle.length}/80",
+                            color = if (calle.length >= 80) colorScheme.error else colorScheme.onSurfaceVariant
+                        )
+                    }
                 )
                 if (calleError != null) {
                     Text(calleError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
@@ -320,8 +327,9 @@ private fun RegisterScreen(
                 // Campo NÚMERO PUERTA
                 OutlinedTextField(
                     value = numeroPuerta,
-                    onValueChange = onNumeroPuertaChange,
+                    onValueChange = { if (it.length <= 15) onNumeroPuertaChange(it) },
                     label = { Text("N° puerta") },
+                    placeholder = { Text("Ej: 1234, 123-A, Depto 5B") },
                     singleLine = true,
                     isError = numeroPuertaError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
@@ -334,7 +342,13 @@ private fun RegisterScreen(
                         focusedLabelColor = colorScheme.primary,
                         unfocusedLabelColor = colorScheme.onSurfaceVariant
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = {
+                        Text(
+                            text = "${numeroPuerta.length}/15",
+                            color = if (numeroPuerta.length >= 15) colorScheme.error else colorScheme.onSurfaceVariant
+                        )
+                    }
                 )
                 if (numeroPuertaError != null) {
                     Text(numeroPuertaError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)

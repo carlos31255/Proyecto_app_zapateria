@@ -115,7 +115,7 @@ fun AdminVentasScreen(
                     value = searchQuery,
                     onValueChange = { viewModel.actualizarBusqueda(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar por cliente, vendedor o número...") },
+                    placeholder = { Text("Buscar por cliente o número...") },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = "Buscar")
                     },
@@ -352,7 +352,7 @@ fun VentaCard(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CL"))
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
     Card(
@@ -434,11 +434,7 @@ fun VentaCard(
                         color = colorScheme.onSurface
                     )
                     Text(
-                        text = if (venta.nombre_vendedor != null && venta.apellido_vendedor != null) {
-                            "Vendedor: ${venta.nombre_vendedor} ${venta.apellido_vendedor}"
-                        } else {
-                            "Venta online"
-                        },
+                        text = "Venta online",
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant
                     )

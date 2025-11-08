@@ -26,7 +26,7 @@ interface RolDao {
     @Query("SELECT * FROM rol ORDER BY nombre_rol ASC")
     fun getAll(): Flow<List<RolEntity>>
 
-    // Buscar rol por nombre exacto (ej: "vendedor", "administrador")
+    // Buscar rol por nombre exacto (ej: "administrador", "cliente")
     @Query("SELECT * FROM rol WHERE nombre_rol = :nombre")
     suspend fun getByNombre(nombre: String): RolEntity?
 

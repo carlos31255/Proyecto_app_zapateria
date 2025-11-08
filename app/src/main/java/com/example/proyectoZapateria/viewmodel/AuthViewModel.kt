@@ -9,6 +9,7 @@ import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.ClienteRepository
 import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
 import com.example.proyectoZapateria.domain.validation.validateConfirm
@@ -67,7 +68,8 @@ class AuthViewModel @Inject constructor(
     private val personaRepository: PersonaRepository,
     private val usuarioRepository: UsuarioRepository,
     private val authRepository: AuthRepository,
-    private val sessionPreferences: SessionPreferences
+    private val sessionPreferences: SessionPreferences,
+    private val clienteRepository: ClienteRepository
 ) : ViewModel() {
 
     init {
@@ -389,6 +391,19 @@ class AuthViewModel @Inject constructor(
                         )
                     }
                     return@launch
+                }
+
+                // Crear entidad Cliente automáticamente con categoría "Regular"
+                try {
+                    val nuevoCliente = com.example.proyectoZapateria.data.local.cliente.ClienteEntity(
+                        idPersona = idPersona,
+                        categoria = "Regular"  // Todos los usuarios nuevos empiezan como "Regular"
+                    )
+                    clienteRepository.insert(nuevoCliente)
+                    Log.d("AuthViewModel", "submitRegister: Cliente creado con categoría Regular para idPersona=$idPersona")
+                } catch (e: Exception) {
+                    Log.e("AuthViewModel", "submitRegister: Error al crear cliente: ${e.message}", e)
+                    // No bloqueamos el registro por este error, pero lo registramos
                 }
 
                 _register.update {

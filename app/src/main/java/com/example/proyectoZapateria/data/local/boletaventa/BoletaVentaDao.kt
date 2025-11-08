@@ -33,15 +33,12 @@ interface BoletaVentaDao {
     @Query("SELECT * FROM boletaventa WHERE id_cliente = :idCliente")
     fun getByCliente(idCliente: Int): Flow<List<BoletaVentaEntity>>
 
-    // Obtener boletas realizadas por un vendedor específico
-    @Query("SELECT * FROM boletaventa WHERE id_vendedor = :idVendedor")
-    fun getByVendedor(idVendedor: Int): Flow<List<BoletaVentaEntity>>
 
     // Cancelar una boleta (actualizar estado)
     @Query("UPDATE boletaventa SET estado = 'CANCELADA' WHERE id_boleta = :idBoleta")
     suspend fun cancelarBoleta(idBoleta: Int)
 
-    // Obtener todas las boletas con información del cliente y vendedor
+    // Obtener todas las boletas con información del cliente
     @Query("""
         SELECT 
             b.id_boleta,
@@ -50,14 +47,10 @@ interface BoletaVentaDao {
             b.monto_total,
             b.estado,
             p_cliente.nombre as nombre_cliente,
-            p_cliente.apellido as apellido_cliente,
-            p_vendedor.nombre as nombre_vendedor,
-            p_vendedor.apellido as apellido_vendedor
+            p_cliente.apellido as apellido_cliente
         FROM boletaventa b
         INNER JOIN cliente c ON b.id_cliente = c.id_persona
         INNER JOIN persona p_cliente ON c.id_persona = p_cliente.id_persona
-        LEFT JOIN usuario u ON b.id_vendedor = u.id_persona
-        LEFT JOIN persona p_vendedor ON u.id_persona = p_vendedor.id_persona
         ORDER BY b.fecha DESC
     """)
     fun getAllBoletasConInfo(): Flow<List<BoletaVentaConInfo>>
@@ -71,14 +64,10 @@ interface BoletaVentaDao {
             b.monto_total,
             b.estado,
             p_cliente.nombre as nombre_cliente,
-            p_cliente.apellido as apellido_cliente,
-            p_vendedor.nombre as nombre_vendedor,
-            p_vendedor.apellido as apellido_vendedor
+            p_cliente.apellido as apellido_cliente
         FROM boletaventa b
         INNER JOIN cliente c ON b.id_cliente = c.id_persona
         INNER JOIN persona p_cliente ON c.id_persona = p_cliente.id_persona
-        LEFT JOIN usuario u ON b.id_vendedor = u.id_persona
-        LEFT JOIN persona p_vendedor ON u.id_persona = p_vendedor.id_persona
         WHERE b.fecha >= :fechaInicio AND b.fecha < :fechaFin
         ORDER BY b.fecha DESC
     """)
@@ -96,7 +85,5 @@ data class BoletaVentaConInfo(
     val monto_total: Int,
     val estado: String,
     val nombre_cliente: String,
-    val apellido_cliente: String,
-    val nombre_vendedor: String?,
-    val apellido_vendedor: String?
+    val apellido_cliente: String
 )

@@ -13,6 +13,8 @@ import com.example.proyectoZapateria.domain.validation.validateEmail
 import com.example.proyectoZapateria.domain.validation.validateProfileEmail
 import com.example.proyectoZapateria.domain.validation.validateProfileName
 import com.example.proyectoZapateria.domain.validation.validateProfilePhone
+import com.example.proyectoZapateria.domain.validation.validateProfileStreet
+import com.example.proyectoZapateria.domain.validation.validateProfileHouseNumber
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -175,6 +177,19 @@ class ClientePerfilViewModel @Inject constructor(
                 val telefonoVal = _editTelefono.value.trim()
                 val telErr = validateProfilePhone(telefonoVal)
                 if (telErr != null) { onResult(false, telErr); return@launch }
+
+                // Validar dirección
+                val calleVal = _editCalle.value.trim()
+                if (calleVal.isNotBlank()) {
+                    val calleErr = validateProfileStreet(calleVal)
+                    if (calleErr != null) { onResult(false, calleErr); return@launch }
+                }
+
+                val numeroPuertaVal = _editNumeroPuerta.value.trim()
+                if (numeroPuertaVal.isNotBlank()) {
+                    val numeroPuertaErr = validateProfileHouseNumber(numeroPuertaVal)
+                    if (numeroPuertaErr != null) { onResult(false, numeroPuertaErr); return@launch }
+                }
 
                 val res = personaRepository.updatePersona(actualizado)
                 if (res.isSuccess) {

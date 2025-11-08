@@ -77,7 +77,6 @@ fun AppNavGraph(
                 // Redireccionar al home correspondiente según el rol
                 val destination = when(currentUser?.idRol) {
                     1 -> Route.AdminHome.path
-                    2 -> Route.AdminHome.path // Vendedor redirige al admin por ahora
                     3 -> Route.TransportistaHome.path
                     4 -> Route.ClienteHome.path
                     else -> Route.Home.path
@@ -97,7 +96,6 @@ fun AppNavGraph(
         if (currentUser != null) {
             val destination = when(currentUser?.idRol) {
                 1 -> Route.AdminHome.path
-                2 -> Route.AdminHome.path // Vendedor redirige al admin por ahora
                 3 -> Route.TransportistaHome.path
                 4 -> Route.ClienteHome.path
                 else -> Route.Home.path
@@ -147,7 +145,6 @@ fun AppNavGraph(
     val redirectByRole: (String) -> Unit = { role ->
         val destination = when (role) {
             "Administrador" -> Route.AdminHome.path
-            "Vendedor" -> Route.AdminHome.path // mantener consistente: vendor->admin
             "Transportista" -> Route.TransportistaHome.path
             "Cliente" -> Route.ClienteHome.path
             else -> Route.Home.path
@@ -215,54 +212,7 @@ fun AppNavGraph(
                         }
                     )
                 }
-                // --- CASO 2: VENDEDOR (usa el mismo drawer que admin) ---
-                "Vendedor" -> {
-                    AppDrawer(
-                        currentRoute = routeString,
-                        items = adminDrawerItems(
-                            onAgregarProducto = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Route.AdminAgregarProducto.path)
-                            },
-                            onVentas = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Route.AdminVentas.path)
-                            },
-                            onClientes = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Route.AdminClientes.path)
-                            },
-                            onInventario = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Route.AdminInventario.path)
-                            },
-                            onUsuarios = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Route.AdminUsuarios.path)
-                            },
-                            onReportes = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Route.AdminReportes.path)
-                            },
-                            onPerfil = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Route.AdminPerfil.path)
-                            },
-                            onLogout = {
-                                scope.launch { drawerState.close() }
-                                authViewModel.logout()
-                                navController.navigate(Route.Login.path) { popUpTo(0) { inclusive = true } }
-                            }
-                        ),
-                        header = {
-                            AuthenticatedDrawerHeader(
-                                username = currentUser?.nombre ?: "Usuario",
-                                role = currentUser?.nombreRol ?: "Vendedor"
-                            )
-                        }
-                    )
-                }
-                // --- CASO 3: CLIENTE ---
+                // --- CASO 2: CLIENTE ---
                 "Cliente" -> {
                     AppDrawer(
                         currentRoute = routeString,

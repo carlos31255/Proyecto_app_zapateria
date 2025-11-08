@@ -171,8 +171,24 @@ fun ClientePerfilScreen(
                 OutlinedTextField(value = editApellido, onValueChange = { new -> viewModel.updateEditField(apellido = new) }, label = { Text("Apellido") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = editEmail, onValueChange = { new -> viewModel.updateEditField(email = new) }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(value = editTelefono, onValueChange = { new -> viewModel.updateEditField(telefono = new) }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(value = editCalle, onValueChange = { new -> viewModel.updateEditField(calle = new) }, label = { Text("Calle") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = editNumeroPuerta, onValueChange = { new -> viewModel.updateEditField(numeroPuerta = new) }, label = { Text("Número puerta") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(
+                    value = editCalle,
+                    onValueChange = { new -> if (new.length <= 80) viewModel.updateEditField(calle = new) },
+                    label = { Text("Calle") },
+                    placeholder = { Text("Ej: Av. Libertador Bernardo O'Higgins") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    supportingText = { Text("${editCalle.length}/80") }
+                )
+                OutlinedTextField(
+                    value = editNumeroPuerta,
+                    onValueChange = { new -> if (new.length <= 15) viewModel.updateEditField(numeroPuerta = new) },
+                    label = { Text("Número puerta") },
+                    placeholder = { Text("Ej: 1234, 123-A, Depto 5B") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    supportingText = { Text("${editNumeroPuerta.length}/15") }
+                )
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {

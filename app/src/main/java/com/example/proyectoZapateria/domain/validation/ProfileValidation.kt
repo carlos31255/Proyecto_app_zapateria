@@ -34,3 +34,23 @@ fun validateProfilePhone(phone: String): String? {
     if (normalized.length > 15) return "Número de teléfono demasiado largo"
     return null
 }
+
+// Validación de calle para perfil (basada en direcciones reales chilenas)
+fun validateProfileStreet(calle: String): String? {
+    val trimmed = calle.trim()
+    if (trimmed.isEmpty()) return "La calle es obligatoria"
+    if (trimmed.length < 3) return "Nombre de calle demasiado corto"
+    if (trimmed.length > 80) return "Máximo 80 caracteres"
+    if (!trimmed.any { it.isLetter() }) return "Debe contener al menos letras"
+    return null
+}
+
+// Validación de número de puerta para perfil (permite formatos como "123", "123-A", "Depto 5B")
+fun validateProfileHouseNumber(numero: String): String? {
+    val trimmed = numero.trim()
+    if (trimmed.isEmpty()) return "El número de puerta es obligatorio"
+    if (trimmed.length > 15) return "Máximo 15 caracteres"
+    if (!trimmed.any { it.isLetterOrDigit() }) return "Formato inválido"
+    return null
+}
+

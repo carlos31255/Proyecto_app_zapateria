@@ -187,19 +187,11 @@ fun VentaDetalleScreen(
                                         fontWeight = FontWeight.Medium,
                                         color = colorScheme.onSurface
                                     )
-                                    if (uiState.nombreVendedor != null) {
-                                        Text(
-                                            text = "Vendedor: ${uiState.nombreVendedor} ${uiState.apellidoVendedor}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = colorScheme.onSurfaceVariant
-                                        )
-                                    } else {
-                                        Text(
-                                            text = "Venta online",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                    Text(
+                                        text = "Venta online",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
 

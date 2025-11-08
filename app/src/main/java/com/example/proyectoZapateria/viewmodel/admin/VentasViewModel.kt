@@ -78,13 +78,7 @@ class VentasViewModel @Inject constructor(
                 true
             } else {
                 val nombreCompleto = "${venta.nombre_cliente} ${venta.apellido_cliente}".lowercase()
-                val vendedor = if (venta.nombre_vendedor != null && venta.apellido_vendedor != null) {
-                    "${venta.nombre_vendedor} ${venta.apellido_vendedor}".lowercase()
-                } else {
-                    "sin vendedor"
-                }
                 nombreCompleto.contains(query) ||
-                        vendedor.contains(query) ||
                         venta.numero_boleta.lowercase().contains(query) ||
                         venta.estado.lowercase().contains(query)
             }

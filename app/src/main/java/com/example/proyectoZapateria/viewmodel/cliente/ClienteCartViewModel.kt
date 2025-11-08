@@ -16,6 +16,7 @@ import com.example.proyectoZapateria.data.repository.DetalleBoletaRepository
 import com.example.proyectoZapateria.data.repository.InventarioRepository
 import com.example.proyectoZapateria.data.repository.TallaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
+import com.example.proyectoZapateria.data.repository.EntregaRepository
 import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
 import com.example.proyectoZapateria.data.local.database.AppDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +41,8 @@ class ClienteCartViewModel @Inject constructor(
     private val clienteRepository: ClienteRepository,
     private val appDatabase: AppDatabase,
     private val personaRepository: PersonaRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val entregaRepository: EntregaRepository
 ) : ViewModel() {
 
     data class CartItemUi(
@@ -216,18 +218,13 @@ class ClienteCartViewModel @Inject constructor(
                 // Generar numero de boleta único (timestamp)
                 val numeroBoleta = "B-${System.currentTimeMillis()}"
 
-                // Asignar vendedor automáticamente: preferir primer usuario con rol Vendedor (2), si no existe usar Admin (1)
-                var idVendedorFinal: Int?
+                // Obtener ID del admin para asignar como responsable de la venta
+                var idAdminFinal: Int? = null
                 try {
-                    val vendedores = usuarioRepository.getUsuariosByRol(2).first()
-                    idVendedorFinal = vendedores.firstOrNull()?.idPersona
-                    if (idVendedorFinal == null) {
-                        val admins = usuarioRepository.getUsuariosByRol(1).first()
-                        idVendedorFinal = admins.firstOrNull()?.idPersona
-                    }
+                    val admins = usuarioRepository.getUsuariosByRol(1).first()
+                    idAdminFinal = admins.firstOrNull()?.idPersona
                 } catch (_: Exception) {
-                    // Si algo falla al consultar, dejamos idVendedorFinal en null
-                    idVendedorFinal = null
+                    // Si algo falla al consultar, dejamos idAdminFinal en null
                 }
 
                 try {
@@ -242,7 +239,7 @@ class ClienteCartViewModel @Inject constructor(
                         val boleta = BoletaVentaEntity(
                             idBoleta = 0,
                             numeroBoleta = numeroBoleta,
-                            idVendedor = idVendedorFinal,
+                            idVendedor = idAdminFinal,
                             idCliente = idCliente,
                             montoTotal = montoTotal,
                             fecha = System.currentTimeMillis()
@@ -269,6 +266,32 @@ class ClienteCartViewModel @Inject constructor(
                             val actualizado = inv.copy(stockActual = inv.stockActual - ci.cantidad)
                             inventarioRepository.updateInventario(actualizado)
                         }
+
+                        // Crear entrega automáticamente
+                        // Obtener el primer transportista disponible (activo)
+                        val transportistas = usuarioRepository.getUsuariosByRol(3).first() // Rol 3 = Transportista
+                        val idTransportista = transportistas.firstOrNull()?.idPersona
+
+                        // Obtener los datos de la persona cliente para la dirección de entrega
+                        val personaCliente = personaRepository.getPersonaById(idCliente)
+                        val direccionEntrega = if (personaCliente != null) {
+                            "${personaCliente.calle} ${personaCliente.numeroPuerta}"
+                        } else {
+                            "Dirección no disponible"
+                        }
+
+                        val nuevaEntrega = com.example.proyectoZapateria.data.local.entrega.EntregaEntity(
+                            idEntrega = 0,
+                            idBoleta = idBoletaInt,
+                            idTransportista = idTransportista, // Se asigna al primer transportista o null si no hay
+                            estadoEntrega = "pendiente",
+                            fechaAsignacion = System.currentTimeMillis(),
+                            fechaEntrega = null,
+                            observacion = "Entregar en: $direccionEntrega"
+                        )
+
+                        entregaRepository.insertEntrega(nuevaEntrega)
+                        android.util.Log.d("ClienteCartViewModel", "checkout: Entrega creada automáticamente para boleta $idBoletaInt, transportista=$idTransportista")
                     }
                 } catch (sqle: SQLiteConstraintException) {
                     // Diagnóstico: comprobar existencia de tablas padre para cada FK

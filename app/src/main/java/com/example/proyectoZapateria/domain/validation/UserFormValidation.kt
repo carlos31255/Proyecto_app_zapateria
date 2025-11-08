@@ -43,16 +43,21 @@ fun validateConfirm(pass: String, confirm: String): String? {
     return if (pass != confirm) "Las contraseñas no coinciden" else null //deben ser iguales
 }
 
-// validar que la calle no esté vacía
+// validar que la calle no esté vacía y tenga un límite de caracteres realista
 fun validateStreet(calle: String): String? {
     if (calle.isBlank()) return "La calle es obligatoria"
     if (calle.length < 3) return "Nombre de calle demasiado corto"
+    if (calle.length > 80) return "Máximo 80 caracteres"
+    // Validar que contenga al menos letras
+    if (!calle.any { it.isLetter() }) return "Debe contener al menos letras"
     return null
 }
 
-// validar que el número de puerta no esté vacío y sea razonablemente corto
+// validar que el número de puerta no esté vacío y tenga formato válido
 fun validateHouseNumber(numero: String): String? {
     if (numero.isBlank()) return "El número de puerta es obligatorio"
-    if (numero.length > 10) return "Número de puerta inválido"
+    if (numero.length > 15) return "Máximo 15 caracteres"
+    // Validar que contenga al menos un número o letra (permite formatos como "123", "123-A", "Depto 5B")
+    if (!numero.any { it.isLetterOrDigit() }) return "Formato inválido"
     return null
 }

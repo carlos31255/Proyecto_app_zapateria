@@ -9,6 +9,11 @@ import javax.inject.Inject
 class EntregaRepository @Inject constructor (
     private val entregaDao: EntregaDao
 ){
+    // Insertar una nueva entrega
+    suspend fun insertEntrega(entrega: EntregaEntity): Long {
+        return entregaDao.insert(entrega)
+    }
+
     // Flow que obtiene todas las entregas con detalles
     fun getEntregasPorTransportista(transportistaId: Int): Flow<List<EntregaConDetalles>> {
         return entregaDao.getEntregasConDetalles(transportistaId)

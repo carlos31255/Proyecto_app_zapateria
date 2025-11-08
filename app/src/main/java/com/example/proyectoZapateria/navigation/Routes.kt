@@ -9,13 +9,6 @@ sealed class Route(val path: String) {
     data object Login : Route("login")
     data object Register : Route("register")
 
-    // Rutas del Vendedor
-    @Suppress("unused")
-    data object VendedorHome : Route("vendedor/home")
-    data object VendedorVentas : Route("vendedor/ventas")
-    data object VendedorClientes : Route("vendedor/clientes")
-    data object VendedorInventario : Route("vendedor/inventario")
-    data object VendedorPerfil : Route("vendedor/perfil")
 
     // Rutas del Administrador
     data object AdminHome : Route("admin/home")

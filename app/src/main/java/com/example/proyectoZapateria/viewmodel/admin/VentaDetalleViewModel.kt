@@ -19,8 +19,6 @@ data class VentaDetalleUiState(
     val detalles: List<ProductoDetalle> = emptyList(),
     val nombreCliente: String = "",
     val apellidoCliente: String = "",
-    val nombreVendedor: String? = null,
-    val apellidoVendedor: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -60,7 +58,7 @@ class VentaDetalleViewModel @Inject constructor(
 
                 // Obtener los detalles con información del producto
                 detalleBoletaDao.getProductosDeBoleta(idBoleta).collect { detalles ->
-                    // Obtener información del cliente y vendedor desde la consulta con info
+                    // Obtener información del cliente desde la consulta con info
                     val ventaConInfo = boletaVentaDao.getAllBoletasConInfo()
                     ventaConInfo.collect { ventas ->
                         val info = ventas.find { it.id_boleta == idBoleta }
@@ -69,8 +67,6 @@ class VentaDetalleViewModel @Inject constructor(
                             detalles = detalles,
                             nombreCliente = info?.nombre_cliente ?: "",
                             apellidoCliente = info?.apellido_cliente ?: "",
-                            nombreVendedor = info?.nombre_vendedor,
-                            apellidoVendedor = info?.apellido_vendedor,
                             isLoading = false,
                             error = null
                         )
