@@ -39,7 +39,6 @@ fun LoginScreenVm(
             // Mapear el ID del rol a su nombre
             val nombreRol = when(usuarioConRol.idRol) {
                 1 -> "Administrador"
-                2 -> "Vendedor"
                 3 -> "Transportista"
                 4 -> "Cliente"
                 else -> "Usuario"

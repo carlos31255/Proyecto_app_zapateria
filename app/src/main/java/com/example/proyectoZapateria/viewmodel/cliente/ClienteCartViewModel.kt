@@ -53,7 +53,7 @@ class ClienteCartViewModel @Inject constructor(
     data class UiState(
         val isLoading: Boolean = true,
         val items: List<CartItemUi> = emptyList(),
-        val total: Int = 0,
+        val total: Long = 0L, // Cambiado a Long para evitar desbordamiento
         val error: String? = null,
         val isCheckingOut: Boolean = false,
         val checkoutMessage: String? = null,
@@ -88,9 +88,13 @@ class ClienteCartViewModel @Inject constructor(
                     CartItemUi(cartItem = cartItem, modelo = modelo)
                 }
 
-                val total = enriched.sumOf { (it.modelo?.precioUnitario ?: it.cartItem.precioUnitario) * it.cartItem.cantidad }
+                // Calcular total usando el precio actual del modelo (no el guardado en cartItem)
+                val total = enriched.sumOf { itemUi ->
+                    val precio = itemUi.modelo?.precioUnitario ?: itemUi.cartItem.precioUnitario
+                    (precio.toLong() * itemUi.cartItem.cantidad.toLong())
+                }
 
-                _uiState.value = _uiState.value.copy(isLoading = false, items = enriched, total = total)
+                _uiState.value = _uiState.value.copy(isLoading = false, items = enriched, total = total, error = null)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message ?: "Error desconocido")
             }
@@ -100,58 +104,100 @@ class ClienteCartViewModel @Inject constructor(
     fun incrementQuantity(itemUi: CartItemUi) {
         viewModelScope.launch {
             val item = itemUi.cartItem
+            val nombreModelo = itemUi.modelo?.nombreModelo ?: "modelo ${item.idModelo}"
+
+            // Limpiar error previo
+            _uiState.value = _uiState.value.copy(error = null)
+
             try {
                 val nuevaCantidad = item.cantidad + 1
+
                 // Obtener talla y validar inventario
                 val tallaEntity = tallaRepository.getByNumero(item.talla)
                 if (tallaEntity == null) {
-                    _uiState.value = _uiState.value.copy(error = "Talla no encontrada")
-                    return@launch
-                }
-                val inv = inventarioRepository.getByModeloYTalla(item.idModelo, tallaEntity.idTalla)
-                if (inv == null) {
-                    _uiState.value = _uiState.value.copy(error = "Inventario no encontrado para modelo ${item.idModelo} talla ${item.talla}")
-                    return@launch
-                }
-                if (inv.stockActual < nuevaCantidad) {
-                    _uiState.value = _uiState.value.copy(error = "Stock insuficiente: disponible=${inv.stockActual}, requerido=$nuevaCantidad")
+                    _uiState.value = _uiState.value.copy(error = "Talla ${item.talla} no encontrada")
                     return@launch
                 }
 
+                val inv = inventarioRepository.getByModeloYTalla(item.idModelo, tallaEntity.idTalla)
+                if (inv == null) {
+                    _uiState.value = _uiState.value.copy(error = "No hay inventario disponible para $nombreModelo talla ${item.talla}")
+                    return@launch
+                }
+
+                // Validar stock ANTES de permitir incrementar
+                if (inv.stockActual < nuevaCantidad) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Has alcanzado el stock máximo de $nombreModelo talla ${item.talla}. Solo hay ${inv.stockActual} unidades disponibles."
+                    )
+                    return@launch
+                }
+
+                // Si pasa las validaciones, actualizar
                 val updated = item.copy(cantidad = nuevaCantidad)
                 cartRepository.addOrUpdate(updated)
                 loadCart()
+
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Error al actualizar cantidad")
+                _uiState.value = _uiState.value.copy(error = "Error al actualizar cantidad: ${e.message}")
+                loadCart() // Recargar para mantener consistencia
             }
         }
     }
 
     fun decrementQuantity(itemUi: CartItemUi) {
         viewModelScope.launch {
-            val item = itemUi.cartItem
-            if (item.cantidad <= 1) {
-                cartRepository.delete(item)
-            } else {
-                val updated = item.copy(cantidad = item.cantidad - 1)
-                cartRepository.addOrUpdate(updated)
+            // Limpiar error previo
+            _uiState.value = _uiState.value.copy(error = null)
+
+            try {
+                val item = itemUi.cartItem
+                if (item.cantidad <= 1) {
+                    cartRepository.delete(item)
+                } else {
+                    val updated = item.copy(cantidad = item.cantidad - 1)
+                    cartRepository.addOrUpdate(updated)
+                }
+                loadCart()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Error al actualizar cantidad: ${e.message}")
+                loadCart() // Recargar para mantener consistencia
             }
-            loadCart()
         }
     }
 
     fun removeItem(itemUi: CartItemUi) {
         viewModelScope.launch {
-            cartRepository.delete(itemUi.cartItem)
-            loadCart()
+            // Limpiar error previo
+            _uiState.value = _uiState.value.copy(error = null)
+
+            try {
+                cartRepository.delete(itemUi.cartItem)
+                loadCart()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Error al eliminar producto: ${e.message}")
+                loadCart() // Recargar para mantener consistencia
+            }
         }
     }
 
     fun clearCart() {
         viewModelScope.launch {
-            val current = authRepository.currentUser.value ?: return@launch
-            cartRepository.clear(current.idPersona)
-            loadCart()
+            // Limpiar error previo
+            _uiState.value = _uiState.value.copy(error = null)
+
+            try {
+                val current = authRepository.currentUser.value
+                if (current == null) {
+                    _uiState.value = _uiState.value.copy(error = "No hay sesión activa")
+                    return@launch
+                }
+                cartRepository.clear(current.idPersona)
+                loadCart()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Error al vaciar carrito: ${e.message}")
+                loadCart() // Recargar para mantener consistencia
+            }
         }
     }
 
@@ -192,27 +238,49 @@ class ClienteCartViewModel @Inject constructor(
                 for (ci in cartItems) {
                     val tallaEntity = tallaRepository.getByNumero(ci.talla)
                     if (tallaEntity == null) {
-                        _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Talla no encontrada: ${ci.talla}")
+                        _uiState.value = _uiState.value.copy(
+                            isCheckingOut = false,
+                            error = "Talla ${ci.talla} no encontrada. Por favor, elimina este producto del carrito."
+                        )
                         return@launch
                     }
                     val inv = inventarioRepository.getByModeloYTalla(ci.idModelo, tallaEntity.idTalla)
                     if (inv == null) {
-                        _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Inventario no encontrado para modelo ${ci.idModelo} talla ${ci.talla}")
+                        val modelo = modeloRepository.getModeloById(ci.idModelo)
+                        val nombreModelo = modelo?.nombreModelo ?: "modelo ${ci.idModelo}"
+                        _uiState.value = _uiState.value.copy(
+                            isCheckingOut = false,
+                            error = "No hay inventario disponible para $nombreModelo talla ${ci.talla}. Por favor, elimina este producto del carrito."
+                        )
                         return@launch
                     }
                     if (inv.stockActual < ci.cantidad) {
-                        _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Stock insuficiente para modelo ${ci.idModelo} talla ${ci.talla}")
+                        val modelo = modeloRepository.getModeloById(ci.idModelo)
+                        val nombreModelo = modelo?.nombreModelo ?: "modelo ${ci.idModelo}"
+                        _uiState.value = _uiState.value.copy(
+                            isCheckingOut = false,
+                            error = "Stock insuficiente para $nombreModelo talla ${ci.talla}. Tienes ${ci.cantidad} en el carrito pero solo hay ${inv.stockActual} disponibles. Por favor, ajusta la cantidad."
+                        )
                         return@launch
                     }
                     inventarios.add(ci to inv)
                 }
 
-                // Calcular total
-                var montoTotal = 0
+                // Calcular total usando Long para evitar desbordamiento
+                var montoTotal = 0L
                 cartItems.forEach { ci ->
                     val modelo = modeloRepository.getModeloById(ci.idModelo)
                     val precio = modelo?.precioUnitario ?: ci.precioUnitario
-                    montoTotal += precio * ci.cantidad
+                    montoTotal += (precio.toLong() * ci.cantidad.toLong())
+                }
+
+                // Validar que el total no exceda el límite de Int para la base de datos
+                if (montoTotal > Int.MAX_VALUE) {
+                    _uiState.value = _uiState.value.copy(
+                        isCheckingOut = false,
+                        error = "El monto total excede el límite permitido"
+                    )
+                    return@launch
                 }
 
                 // Generar numero de boleta único (timestamp)
@@ -241,7 +309,7 @@ class ClienteCartViewModel @Inject constructor(
                             numeroBoleta = numeroBoleta,
                             idVendedor = idAdminFinal,
                             idCliente = idCliente,
-                            montoTotal = montoTotal,
+                            montoTotal = montoTotal.toInt(),
                             fecha = System.currentTimeMillis()
                         )
 

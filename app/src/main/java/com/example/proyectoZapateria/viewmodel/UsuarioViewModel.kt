@@ -374,23 +374,18 @@ class UsuarioViewModel @Inject constructor(
             _errorMessage.value = null
 
             try {
-                // Eliminar usuario (cascade eliminará la persona)
-                val usuarioEntity = UsuarioEntity(
-                    idPersona = usuario.idPersona,
-                    idRol = usuario.idRol
-                )
-                usuarioRepository.delete(usuarioEntity)
-
-                // También eliminar la persona
+                // En lugar de eliminar, desactivar el usuario cambiando su estado
                 val persona = personaRepository.getById(usuario.idPersona)
                 if (persona != null) {
-                    personaRepository.delete(persona)
+                    val personaDesactivada = persona.copy(estado = "inactivo")
+                    personaRepository.update(personaDesactivada)
+                    _successMessage.value = "Usuario desactivado exitosamente"
+                } else {
+                    _errorMessage.value = "No se encontró el usuario"
                 }
 
-                _successMessage.value = "Usuario eliminado exitosamente"
-
             } catch (e: Exception) {
-                _errorMessage.value = "Error al eliminar usuario: ${e.message}"
+                _errorMessage.value = "Error al desactivar usuario: ${e.message}"
             } finally {
                 _isLoading.value = false
             }

@@ -1,14 +1,17 @@
 package com.example.proyectoZapateria.ui.screen.cliente
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -34,6 +38,7 @@ fun ClientePedidosScreen(
     viewModel: ClientePedidosViewModel = hiltViewModel()
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -75,12 +80,18 @@ fun ClientePedidosScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = colorScheme.onPrimaryContainer
-                        )
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = colorScheme.primaryContainer,
+                        tonalElevation = 2.dp
+                    ) {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
@@ -122,7 +133,10 @@ fun ClientePedidosScreen(
 
             LazyColumn(modifier = Modifier
                 .fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(uiState.pedidos) { boleta ->
+            items(uiState.pedidos) { pedidoConEntrega ->
+                val boleta = pedidoConEntrega.boleta
+                val entrega = pedidoConEntrega.entrega
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -135,6 +149,37 @@ fun ClientePedidosScreen(
                                 Text(text = "Boleta: ${boleta.numeroBoleta}", style = MaterialTheme.typography.titleMedium, color = colorScheme.onSurface)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(text = "Fecha: ${dateFormatter.format(java.util.Date(boleta.fecha))}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+
+                                // Mostrar estado de entrega
+                                if (entrega != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Surface(
+                                        color = when (entrega.estadoEntrega) {
+                                            "pendiente" -> colorScheme.secondaryContainer
+                                            "entregada" -> colorScheme.tertiaryContainer
+                                            "completada" -> colorScheme.primaryContainer
+                                            else -> colorScheme.surfaceVariant
+                                        },
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = when (entrega.estadoEntrega) {
+                                                "pendiente" -> "En camino"
+                                                "entregada" -> "Entregado - Confirmar recepción"
+                                                "completada" -> "Completado"
+                                                else -> entrega.estadoEntrega
+                                            },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = when (entrega.estadoEntrega) {
+                                                "pendiente" -> colorScheme.onSecondaryContainer
+                                                "entregada" -> colorScheme.onTertiaryContainer
+                                                "completada" -> colorScheme.onPrimaryContainer
+                                                else -> colorScheme.onSurfaceVariant
+                                            },
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
                             }
                             IconButton(onClick = { expanded = !expanded }) {
                                 Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = if (expanded) "Ocultar productos" else "Ver productos")
@@ -163,6 +208,32 @@ fun ClientePedidosScreen(
                                         }
                                     }
                                 }
+                            }
+                        }
+
+                        // Botón para confirmar como completado (solo si está "entregada")
+                        if (entrega != null && entrega.estadoEntrega == "entregada") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    viewModel.confirmarPedidoCompletado(entrega.idEntrega) { success, error ->
+                                        if (success) {
+                                            Toast.makeText(context, "Pedido confirmado como completado", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, error ?: "Error al confirmar", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Confirmar",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Confirmar Recepción")
                             }
                         }
                     }

@@ -184,17 +184,12 @@ abstract class AppDatabase : RoomDatabase() {
             val entregaDao = database.entregaDao()
 
             // Roles predefinidos para una zapatería pequeña
-            // Usamos IDs fijos (1, 2, 3, 4) para garantizar consistencia
+            // Usamos IDs fijos (1, 3, 4) para garantizar consistencia
             val rolesIniciales = listOf(
                 RolEntity(
                     idRol = 1,
                     nombreRol = "Administrador",
                     descripcion = "Encargado principal: acceso total al sistema, gestión de usuarios, inventario y configuración"
-                ),
-                RolEntity(
-                    idRol = 2,
-                    nombreRol = "Vendedor",
-                    descripcion = "Personal de ventas: gestión de ventas, clientes y boletas de venta"
                 ),
                 RolEntity(
                     idRol = 3,
@@ -227,21 +222,6 @@ abstract class AppDatabase : RoomDatabase() {
                     numeroPuerta = null,
                     username = "admin@zapateria.cl",
                         passHash = PasswordHasher.hashPassword("admin123!"),
-                    fechaRegistro = System.currentTimeMillis(),
-                    estado = "activo"
-                ),
-                PersonaEntity(
-                    idPersona = 0,
-                    nombre = "Carlos",
-                    apellido = "Vendedor",
-                    rut = "22222222-2",
-                    telefono = "+56922222222",
-                    email = "vend@zapa.cl",
-                    idComuna = null,
-                    calle = null,
-                    numeroPuerta = null,
-                    username = "vend@zapa.cl",
-                    passHash = PasswordHasher.hashPassword("vend123!"),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 ),
@@ -413,47 +393,43 @@ abstract class AppDatabase : RoomDatabase() {
                 ),
                 UsuarioEntity(
                     idPersona = idsPersonas[1].toInt(),
-                    idRol = 2 // Vendedor
-                ),
-                UsuarioEntity(
-                    idPersona = idsPersonas[2].toInt(),
                     idRol = 3 // Transportista
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[3].toInt(),
+                    idPersona = idsPersonas[2].toInt(),
                     idRol = 4 // Cliente - María González
                 ),
                 // Usuarios clientes adicionales
                 UsuarioEntity(
-                    idPersona = idsPersonas[4].toInt(),
+                    idPersona = idsPersonas[3].toInt(),
                     idRol = 4 // Cliente - Pedro Ramírez
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[5].toInt(),
+                    idPersona = idsPersonas[4].toInt(),
                     idRol = 4 // Cliente - Ana Martínez
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[6].toInt(),
+                    idPersona = idsPersonas[5].toInt(),
                     idRol = 4 // Cliente - Luis Fernández
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[7].toInt(),
+                    idPersona = idsPersonas[6].toInt(),
                     idRol = 4 // Cliente - Carmen López
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[8].toInt(),
+                    idPersona = idsPersonas[7].toInt(),
                     idRol = 4 // Cliente - Roberto Silva
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[9].toInt(),
+                    idPersona = idsPersonas[8].toInt(),
                     idRol = 4 // Cliente - Patricia Rojas
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[10].toInt(),
+                    idPersona = idsPersonas[9].toInt(),
                     idRol = 4 // Cliente - Diego Morales
                 ),
                 UsuarioEntity(
-                    idPersona = idsPersonas[11].toInt(),
+                    idPersona = idsPersonas[10].toInt(),
                     idRol = 4 // Cliente - Sofía Vargas
                 )
             )
@@ -465,29 +441,29 @@ abstract class AppDatabase : RoomDatabase() {
 
             // Crear transportista para el usuario transportista
             val transportistaEntity = TransportistaEntity(
-                idPersona = idsPersonas[2].toInt(), // Juan Transportista
+                idPersona = idsPersonas[1].toInt(), // Juan Transportista
                 licencia = "A12345678",
                 vehiculo = "ABCD12"
             )
             transportistaDao.insert(transportistaEntity)
 
-            // Crear cliente para el usuario cliente principal (idPersona[3])
+            // Crear cliente para el usuario cliente principal (idPersona[2])
             val clienteEntity = ClienteEntity(
-                idPersona = idsPersonas[3].toInt(), // María González
+                idPersona = idsPersonas[2].toInt(), // María González
                 categoria = "VIP"
             )
             clienteDao.insert(clienteEntity)
 
-            // Crear clientes adicionales (índices 4-11 de idsPersonas)
+            // Crear clientes adicionales (índices 3-10 de idsPersonas)
             val clientesAdicionales = listOf(
-                ClienteEntity(idPersona = idsPersonas[4].toInt(), categoria = "regular"), // Pedro
-                ClienteEntity(idPersona = idsPersonas[5].toInt(), categoria = "VIP"),     // Ana
-                ClienteEntity(idPersona = idsPersonas[6].toInt(), categoria = "regular"), // Luis
-                ClienteEntity(idPersona = idsPersonas[7].toInt(), categoria = "premium"), // Carmen
-                ClienteEntity(idPersona = idsPersonas[8].toInt(), categoria = "regular"), // Roberto
-                ClienteEntity(idPersona = idsPersonas[9].toInt(), categoria = "VIP"),     // Patricia
-                ClienteEntity(idPersona = idsPersonas[10].toInt(), categoria = "premium"),// Diego
-                ClienteEntity(idPersona = idsPersonas[11].toInt(), categoria = "regular") // Sofía
+                ClienteEntity(idPersona = idsPersonas[3].toInt(), categoria = "regular"), // Pedro
+                ClienteEntity(idPersona = idsPersonas[4].toInt(), categoria = "VIP"),     // Ana
+                ClienteEntity(idPersona = idsPersonas[5].toInt(), categoria = "regular"), // Luis
+                ClienteEntity(idPersona = idsPersonas[6].toInt(), categoria = "premium"), // Carmen
+                ClienteEntity(idPersona = idsPersonas[7].toInt(), categoria = "regular"), // Roberto
+                ClienteEntity(idPersona = idsPersonas[8].toInt(), categoria = "VIP"),     // Patricia
+                ClienteEntity(idPersona = idsPersonas[9].toInt(), categoria = "premium"),// Diego
+                ClienteEntity(idPersona = idsPersonas[10].toInt(), categoria = "regular") // Sofía
             )
 
             clientesAdicionales.forEach { cliente ->
@@ -500,8 +476,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000001",
-                    idCliente = idsPersonas[3].toInt(),
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[2].toInt(),
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 59990,
                     fecha = System.currentTimeMillis()
                 )
@@ -511,8 +487,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000002",
-                    idCliente = idsPersonas[3].toInt(),
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[2].toInt(),
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 79990,
                     fecha = System.currentTimeMillis()
                 )
@@ -522,8 +498,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000003",
-                    idCliente = idsPersonas[3].toInt(),
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[2].toInt(),
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 45990,
                     fecha = System.currentTimeMillis()
                 )
@@ -534,8 +510,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000004",
-                    idCliente = idsPersonas[4].toInt(), // Pedro
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[3].toInt(), // Pedro
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 89990,
                     fecha = System.currentTimeMillis() - 172800000 // Hace 2 días
                 )
@@ -545,8 +521,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000005",
-                    idCliente = idsPersonas[5].toInt(), // Ana
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[4].toInt(), // Ana
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 129990,
                     fecha = System.currentTimeMillis() - 259200000 // Hace 3 días
                 )
@@ -556,8 +532,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000006",
-                    idCliente = idsPersonas[5].toInt(), // Ana - segundo pedido
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[4].toInt(), // Ana - segundo pedido
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 65990,
                     fecha = System.currentTimeMillis() - 86400000 // Hace 1 día
                 )
@@ -567,8 +543,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000007",
-                    idCliente = idsPersonas[7].toInt(), // Carmen
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[6].toInt(), // Carmen
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 199990,
                     fecha = System.currentTimeMillis() - 432000000 // Hace 5 días
                 )
@@ -578,8 +554,8 @@ abstract class AppDatabase : RoomDatabase() {
                 BoletaVentaEntity(
                     idBoleta = 0,
                     numeroBoleta = "B-000008",
-                    idCliente = idsPersonas[9].toInt(), // Patricia
-                    idVendedor = idsPersonas[1].toInt(),
+                    idCliente = idsPersonas[8].toInt(), // Patricia
+                    idVendedor = idsPersonas[0].toInt(), // Admin como vendedor
                     montoTotal = 149990,
                     fecha = System.currentTimeMillis() - 604800000 // Hace 7 días
                 )
@@ -592,7 +568,7 @@ abstract class AppDatabase : RoomDatabase() {
                 EntregaEntity(
                     idEntrega = 0,
                     idBoleta = boleta1Id.toInt(),
-                    idTransportista = idsPersonas[2].toInt(),
+                    idTransportista = idsPersonas[1].toInt(), // Juan Transportista
                     estadoEntrega = "pendiente",
                     fechaAsignacion = System.currentTimeMillis(),
                     fechaEntrega = null,
@@ -604,7 +580,7 @@ abstract class AppDatabase : RoomDatabase() {
                 EntregaEntity(
                     idEntrega = 0,
                     idBoleta = boleta2Id.toInt(),
-                    idTransportista = idsPersonas[2].toInt(),
+                    idTransportista = idsPersonas[1].toInt(), // Juan Transportista
                     estadoEntrega = "pendiente",
                     fechaAsignacion = System.currentTimeMillis(),
                     fechaEntrega = null,
@@ -616,7 +592,7 @@ abstract class AppDatabase : RoomDatabase() {
                 EntregaEntity(
                     idEntrega = 0,
                     idBoleta = boleta3Id.toInt(),
-                    idTransportista = idsPersonas[2].toInt(),
+                    idTransportista = idsPersonas[1].toInt(), // Juan Transportista
                     estadoEntrega = "completada",
                     fechaAsignacion = System.currentTimeMillis() - 86400000, // Hace 1 día
                     fechaEntrega = System.currentTimeMillis() - 43200000, // Hace 12 horas

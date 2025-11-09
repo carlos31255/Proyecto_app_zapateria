@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.data.repository
 
+import com.example.proyectoZapateria.data.local.persona.PersonaDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaConPersona
 import com.example.proyectoZapateria.data.local.transportista.TransportistaDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
@@ -7,7 +8,8 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class TransportistaRepository @Inject constructor(
-    private val transportistaDao: TransportistaDao
+    private val transportistaDao: TransportistaDao,
+    private val personaDao: PersonaDao
 ){
     // --- FUNCIONES PARA "MI PERFIL" ---
 
@@ -25,21 +27,53 @@ class TransportistaRepository @Inject constructor(
     suspend fun updateTransportista(transportista: TransportistaEntity) {
         transportistaDao.update(transportista)
     }
+
+    // Actualiza el perfil completo del transportista (datos de persona y transportista)
+    suspend fun actualizarPerfilTransportista(
+        idPersona: Int,
+        nombre: String,
+        apellido: String,
+        email: String,
+        telefono: String,
+        licencia: String,
+        vehiculo: String
+    ): Boolean {
+        return try {
+            // Actualizar datos de persona
+            val persona = personaDao.getById(idPersona)
+            if (persona != null) {
+                personaDao.update(
+                    persona.copy(
+                        nombre = nombre,
+                        apellido = apellido,
+                        email = email,
+                        telefono = telefono
+                    )
+                )
+            }
+
+            // Actualizar datos de transportista
+            val transportista = transportistaDao.getById(idPersona)
+            if (transportista != null) {
+                transportistaDao.update(
+                    transportista.copy(
+                        licencia = licencia,
+                        vehiculo = vehiculo
+                    )
+                )
+            }
+
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     // --- FUNCIONES PARA ADMINISTRACIÓN ---
 
     // Obtiene un Flow con la lista de TODOS los transportistas (con datos de Persona)
     fun getAllTransportistasConPersona(): Flow<List<TransportistaConPersona>> {
         return transportistaDao.getAllConPersona()
-    }
-
-    // Busca transportistas por nombre, apellido o username
-    fun searchTransportistas(query: String): Flow<List<TransportistaConPersona>> {
-        return transportistaDao.searchTransportistas(query)
-    }
-
-    // Obtiene transportistas filtrados por estado (activo/inactivo)
-    fun getTransportistasPorEstado(estado: String): Flow<List<TransportistaConPersona>> {
-        return transportistaDao.getByEstadoConPersona(estado)
     }
 
     // Inserta un nuevo transportista

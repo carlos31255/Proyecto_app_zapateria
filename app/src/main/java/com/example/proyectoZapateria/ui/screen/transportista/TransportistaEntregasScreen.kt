@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,32 +45,37 @@ fun TransportistaEntregasScreen(
     // Colores del MaterialTheme
     val colorScheme = MaterialTheme.colorScheme
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 16.dp, end = 16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 16.dp, end = 16.dp)
+    ) {
+        // Botón de regreso dentro de un círculo (igual que en ConfirmarEntregaScreen)
+        Surface(
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = colorScheme.primaryContainer,
+            tonalElevation = 2.dp,
+            modifier = Modifier.padding(8.dp)
         ) {
-            // Botón de regreso (igual que en Perfil)
             IconButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier
-                    .padding(8.dp)
+                onClick = { navController.popBackStack() }
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Volver",
-                    tint = colorScheme.onBackground
+                    tint = colorScheme.onPrimaryContainer
                 )
             }
+        }
 
-            // Título principal
-            Text(
-                text = "Mis Entregas",
-                style = MaterialTheme.typography.headlineMedium,
-                color = colorScheme.onBackground,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+        // Título principal
+        Text(
+            text = "Mis Entregas",
+            style = MaterialTheme.typography.headlineMedium,
+            color = colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
 
             Text(
                 text = "Gestiona tus entregas pendientes y completadas",

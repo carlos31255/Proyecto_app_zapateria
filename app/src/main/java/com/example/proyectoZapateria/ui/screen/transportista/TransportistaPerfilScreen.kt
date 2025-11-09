@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,16 @@ fun TransportistaPerfilScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val colorScheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
+
+    // Estados para edición
+    val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
+    val editNombre by viewModel.editNombre.collectAsStateWithLifecycle()
+    val editApellido by viewModel.editApellido.collectAsStateWithLifecycle()
+    val editEmail by viewModel.editEmail.collectAsStateWithLifecycle()
+    val editTelefono by viewModel.editTelefono.collectAsStateWithLifecycle()
+    val editLicencia by viewModel.editLicencia.collectAsStateWithLifecycle()
+    val editVehiculo by viewModel.editVehiculo.collectAsStateWithLifecycle()
 
     when {
         uiState.isLoading -> {
@@ -50,14 +61,21 @@ fun TransportistaPerfilScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    IconButton(
-                        onClick = { navController.popBackStack() },
+                    Surface(
+                        shape = CircleShape,
+                        color = colorScheme.primaryContainer,
+                        tonalElevation = 2.dp,
                         modifier = Modifier.align(Alignment.Start)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        IconButton(
+                            onClick = { navController.popBackStack() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
@@ -77,15 +95,21 @@ fun TransportistaPerfilScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 // Botón de regreso
-                IconButton(
-                    onClick = { navController.popBackStack() },
+                Surface(
+                    shape = CircleShape,
+                    color = colorScheme.primaryContainer,
+                    tonalElevation = 2.dp,
                     modifier = Modifier.padding(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = colorScheme.onBackground
-                    )
+                    IconButton(
+                        onClick = { navController.popBackStack() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
 
                 // Header con foto de perfil
@@ -133,6 +157,16 @@ fun TransportistaPerfilScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // Botón editar
+                            if (!isEditing) {
+                                OutlinedButton(onClick = { viewModel.startEdit() }) {
+                                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar")
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Editar perfil")
+                                }
+                            }
                         }
                     }
 
@@ -149,27 +183,99 @@ fun TransportistaPerfilScreen(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
 
-                        InfoCard(
-                            icon = Icons.Default.Email,
-                            label = "Correo Electrónico",
-                            value = uiState.email
-                        )
+                        if (isEditing) {
+                            // Campos editables
+                            OutlinedTextField(
+                                value = editNombre,
+                                onValueChange = { viewModel.updateEditField(nombre = it) },
+                                label = { Text("Nombre") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = editApellido,
+                                onValueChange = { viewModel.updateEditField(apellido = it) },
+                                label = { Text("Apellido") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = editEmail,
+                                onValueChange = { viewModel.updateEditField(email = it) },
+                                label = { Text("Email") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = editTelefono,
+                                onValueChange = { viewModel.updateEditField(telefono = it) },
+                                label = { Text("Teléfono") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = editLicencia,
+                                onValueChange = { viewModel.updateEditField(licencia = it) },
+                                label = { Text("Licencia") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = editVehiculo,
+                                onValueChange = { viewModel.updateEditField(vehiculo = it) },
+                                label = { Text("Vehículo (Patente)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
 
-                        InfoCard(
-                            icon = Icons.Default.Phone,
-                            label = "Teléfono",
-                            value = uiState.telefono
-                        )
-                        InfoCard(
-                            icon = Icons.Default.Badge,
-                            label = "Licencia",
-                            value = uiState.licencia
-                        )
-                        InfoCard(
-                            icon = Icons.Default.DirectionsCar,
-                            label = "Vehículo",
-                            value = uiState.vehiculo
-                        )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        viewModel.guardarCambios { ok, err ->
+                                            if (ok) {
+                                                android.widget.Toast.makeText(context, "Perfil actualizado", android.widget.Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                android.widget.Toast.makeText(context, err ?: "Error", android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Guardar")
+                                }
+
+                                OutlinedButton(
+                                    onClick = { viewModel.cancelEdit() },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Cancelar")
+                                }
+                            }
+                        } else {
+                            // Modo de solo lectura
+                            InfoCard(
+                                icon = Icons.Default.Email,
+                                label = "Correo Electrónico",
+                                value = uiState.email
+                            )
+
+                            InfoCard(
+                                icon = Icons.Default.Phone,
+                                label = "Teléfono",
+                                value = uiState.telefono
+                            )
+                            InfoCard(
+                                icon = Icons.Default.Badge,
+                                label = "Licencia",
+                                value = uiState.licencia
+                            )
+                            InfoCard(
+                                icon = Icons.Default.DirectionsCar,
+                                label = "Vehículo",
+                                value = uiState.vehiculo
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 

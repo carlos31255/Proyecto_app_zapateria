@@ -44,6 +44,20 @@ fun ClienteProductoDetailScreen(
     // Usuario actual
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
 
+    // Obtener el stock máximo de la talla seleccionada
+    val stockMaximo = remember(idInventarioSeleccionado, inventario) {
+        idInventarioSeleccionado?.let { idInv ->
+            inventario.find { it.idInventario == idInv }?.stockActual ?: 0
+        } ?: 0
+    }
+
+    // Resetear cantidad cuando se cambia de talla
+    LaunchedEffect(idInventarioSeleccionado) {
+        if (idInventarioSeleccionado != null) {
+            cantidadSeleccionada = 1
+        }
+    }
+
     // Refrescar contador del carrito cuando la pantalla se abre o cambia la sesión
     LaunchedEffect(currentUser?.idPersona, modelo?.idModelo) {
         currentUser?.let { viewModel.refreshCartCount(it.idPersona) }
@@ -66,12 +80,18 @@ fun ClienteProductoDetailScreen(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController?.navigateUp() }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = colorScheme.onPrimaryContainer
-                    )
+                Surface(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = colorScheme.primaryContainer,
+                    tonalElevation = 2.dp
+                ) {
+                    IconButton(onClick = { navController?.navigateUp() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
@@ -146,21 +166,60 @@ fun ClienteProductoDetailScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Cantidad:")
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { if (cantidadSeleccionada > 1) cantidadSeleccionada-- }) {
+                IconButton(
+                    onClick = { if (cantidadSeleccionada > 1) cantidadSeleccionada-- },
+                    enabled = cantidadSeleccionada > 1
+                ) {
                     Icon(imageVector = Icons.Default.Remove, contentDescription = "Disminuir")
                 }
                 OutlinedTextField(
                     value = cantidadSeleccionada.toString(),
-                    onValueChange = { v -> cantidadSeleccionada = v.filter { it.isDigit() }.toIntOrNull() ?: 1 },
+                    onValueChange = { v ->
+                        val nuevaCantidad = v.filter { it.isDigit() }.toIntOrNull() ?: 1
+                        // Limitar al stock máximo disponible
+                        cantidadSeleccionada = when {
+                            stockMaximo > 0 -> nuevaCantidad.coerceIn(1, stockMaximo)
+                            else -> nuevaCantidad.coerceAtLeast(1)
+                        }
+                    },
                     singleLine = true,
-                    modifier = Modifier.width(80.dp)
+                    modifier = Modifier.width(80.dp),
+                    enabled = idInventarioSeleccionado != null && stockMaximo > 0
                 )
-                IconButton(onClick = { cantidadSeleccionada++ }) {
+                IconButton(
+                    onClick = {
+                        if (stockMaximo > 0 && cantidadSeleccionada < stockMaximo) {
+                            cantidadSeleccionada++
+                        } else if (stockMaximo > 0) {
+                            Toast.makeText(
+                                context,
+                                "Stock máximo: $stockMaximo unidades",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    enabled = idInventarioSeleccionado != null && cantidadSeleccionada < stockMaximo
+                ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = "Aumentar")
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                val agregarEnabled = !comprando && idInventarioSeleccionado != null && currentUser != null
-                Button(onClick = {
+            }
+
+            // Mostrar stock disponible de la talla seleccionada
+            if (idInventarioSeleccionado != null && stockMaximo > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Stock disponible: $stockMaximo unidades",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (stockMaximo <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Botón agregar al carrito
+            val agregarEnabled = !comprando && idInventarioSeleccionado != null && currentUser != null && stockMaximo > 0
+            Button(
+                onClick = {
                     val usuarioId = currentUser?.idPersona ?: -1
                     val idInv = idInventarioSeleccionado
                     if (idInv == null) {
@@ -172,11 +231,13 @@ fun ClienteProductoDetailScreen(
                         return@Button
                     }
                     viewModel.addToCart(idInv, cantidadSeleccionada, usuarioId)
-                }, enabled = agregarEnabled) {
-                    Icon(Icons.Default.ShoppingCart, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (comprando) "Agregando..." else "Agregar al carrito")
-                }
+                },
+                enabled = agregarEnabled,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (comprando) "Agregando..." else "Agregar al carrito")
             }
 
             mensaje?.let { m ->

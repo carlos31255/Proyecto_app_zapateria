@@ -68,12 +68,18 @@ fun AdminUsuariosScreen(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = colorScheme.onPrimaryContainer
-                        )
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = colorScheme.primaryContainer,
+                        tonalElevation = 2.dp
+                    ) {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
@@ -254,13 +260,13 @@ fun AdminUsuariosScreen(
         )
     }
 
-    // Dialog para confirmar eliminación
+    // Dialog para confirmar desactivación
     if (usuarioAEliminar != null) {
         AlertDialog(
             onDismissRequest = { usuarioAEliminar = null },
-            title = { Text("Eliminar Usuario") },
+            title = { Text("Desactivar Usuario") },
             text = {
-                Text("¿Está seguro de eliminar al usuario ${usuarioAEliminar!!.nombre} ${usuarioAEliminar!!.apellido}? Esta acción no se puede deshacer.")
+                Text("¿Está seguro de desactivar al usuario ${usuarioAEliminar!!.nombre} ${usuarioAEliminar!!.apellido}? El usuario no podrá iniciar sesión hasta que sea reactivado.")
             },
             confirmButton = {
                 TextButton(
@@ -269,7 +275,7 @@ fun AdminUsuariosScreen(
                         usuarioAEliminar = null
                     }
                 ) {
-                    Text("Eliminar", color = colorScheme.error)
+                    Text("Desactivar", color = colorScheme.error)
                 }
             },
             dismissButton = {
@@ -372,8 +378,8 @@ fun UsuarioCard(
                 Surface(
                     color = when (usuario.nombreRol) {
                         "Administrador" -> colorScheme.errorContainer
-                        "Vendedor" -> colorScheme.tertiaryContainer
                         "Transportista" -> colorScheme.secondaryContainer
+                        "Cliente" -> colorScheme.tertiaryContainer
                         else -> colorScheme.surfaceVariant
                     },
                     shape = MaterialTheme.shapes.small
@@ -383,8 +389,8 @@ fun UsuarioCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = when (usuario.nombreRol) {
                             "Administrador" -> colorScheme.onErrorContainer
-                            "Vendedor" -> colorScheme.onTertiaryContainer
                             "Transportista" -> colorScheme.onSecondaryContainer
+                            "Cliente" -> colorScheme.onTertiaryContainer
                             else -> colorScheme.onSurfaceVariant
                         },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

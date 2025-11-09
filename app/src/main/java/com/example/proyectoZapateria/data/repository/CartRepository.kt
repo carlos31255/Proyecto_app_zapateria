@@ -4,8 +4,6 @@ import com.example.proyectoZapateria.data.local.cart.CartDao
 import com.example.proyectoZapateria.data.local.cart.CartItemEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
-import com.example.proyectoZapateria.data.repository.InventarioRepository
-import com.example.proyectoZapateria.data.repository.TallaRepository
 
 /**
  * Repositorio para operaciones del carrito.
@@ -22,15 +20,12 @@ class CartRepository @Inject constructor(
     // Obtiene un item por su id
     suspend fun getById(id: Int): CartItemEntity? = cartDao.getById(id)
 
-    // Busca un item por cliente+modelo+talla
-    suspend fun getByClienteModeloTalla(idCliente: Int, idModelo: Int, talla: String): CartItemEntity? = cartDao.getByClienteModeloTalla(idCliente, idModelo, talla)
-
     // Inserta o actualiza (replace) un item del carrito sin validaciones
     suspend fun addOrUpdate(item: CartItemEntity): Long {
         return cartDao.insert(item)
     }
 
-    // Inserta múltiples items (batch)
+    // Inserta múltiples items al carrito de una vez (útil para importar carritos o compras rápidas)
     suspend fun insertAll(items: List<CartItemEntity>): List<Long> = cartDao.insertAll(items)
 
     // Actualiza un item existente
@@ -56,27 +51,33 @@ class CartRepository @Inject constructor(
      * - verifica que la talla exista
      * - verifica que haya stock suficiente (considerando el item existente en carrito)
      * Si ya existe un item para cliente+modelo+talla, suma cantidades.
-     * Retorna Result.success(idInsertado) o Result.failure(Exception(msg)).
      */
     suspend fun addValidated(item: CartItemEntity): Result<Long> {
         // Verificar talla
         val tallaEntity = tallaRepository.getByNumero(item.talla)
         if (tallaEntity == null) {
-            return Result.failure(Exception("Talla no encontrada: ${item.talla}"))
+            return Result.failure(Exception("Talla ${item.talla} no disponible"))
         }
 
         // Verificar inventario para modelo + talla
         val inventario = inventarioRepository.getByModeloYTalla(item.idModelo, tallaEntity.idTalla)
         if (inventario == null) {
-            return Result.failure(Exception("Inventario no encontrado para modelo ${item.idModelo} talla ${item.talla}"))
+            return Result.failure(Exception("Producto talla ${item.talla} no disponible en inventario"))
         }
 
         // Si ya existe en carrito, sumar cantidades
         val existente = cartDao.getByClienteModeloTalla(item.idCliente, item.idModelo, item.talla)
         val nuevaCantidad = (existente?.cantidad ?: 0) + item.cantidad
 
+        // Validar stock disponible
         if (inventario.stockActual < nuevaCantidad) {
-            return Result.failure(Exception("Stock insuficiente: disponible=${inventario.stockActual}, requerido=$nuevaCantidad"))
+            val cantidadEnCarrito = existente?.cantidad ?: 0
+            val mensaje = if (cantidadEnCarrito > 0) {
+                "Ya tienes $cantidadEnCarrito en el carrito. Stock disponible: ${inventario.stockActual} unidades (talla ${item.talla})"
+            } else {
+                "Stock insuficiente. Solo hay ${inventario.stockActual} unidades disponibles (talla ${item.talla})"
+            }
+            return Result.failure(Exception(mensaje))
         }
 
         return try {

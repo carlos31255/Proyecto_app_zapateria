@@ -6,8 +6,8 @@ object RolValidation {
     // Roles predefinidos del sistema (precargados en la BD, no modificables)
     val SYSTEM_ROLES = listOf(
         "Administrador",
-        "Vendedor",
-        "Transportista"
+        "Transportista",
+        "Cliente"
     )
 
     // Valida el nombre del rol (retorna null si es válido, mensaje de error si no lo es)
@@ -70,8 +70,8 @@ object RolValidation {
     fun getSystemRoleDescription(nombre: String): String? {
         return when (nombre) {
             "Administrador" -> "Dueño o encargado principal: acceso total al sistema, gestión de usuarios, inventario y configuración"
-            "Vendedor" -> "Personal de ventas: gestión de ventas, clientes y boletas de venta"
             "Transportista" -> "Personal de entregas: gestión de despachos y seguimiento de pedidos"
+            "Cliente" -> "Usuario cliente: puede ver catálogo, realizar pedidos y gestionar su perfil"
             else -> null
         }
     }

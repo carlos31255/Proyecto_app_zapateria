@@ -216,8 +216,11 @@ object AppModule {
     // Provee el TransportistaRepository
     @Provides
     @Singleton
-    fun provideTransportistaRepository(transportistaDao: TransportistaDao): TransportistaRepository {
-        return TransportistaRepository(transportistaDao)
+    fun provideTransportistaRepository(
+        transportistaDao: TransportistaDao,
+        personaDao: PersonaDao
+    ): TransportistaRepository {
+        return TransportistaRepository(transportistaDao, personaDao)
     }
 
     // Provee el InventarioRepository

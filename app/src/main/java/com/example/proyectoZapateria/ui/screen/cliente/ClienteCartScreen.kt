@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,10 +63,10 @@ fun ClienteCartScreen(
         }
     }
 
-    // Mostrar Toast de error cuando falla
+    // Mostrar Toast de error cuando hay problemas (no de checkout)
     LaunchedEffect(uiState.error) {
-        if (uiState.error != null && !uiState.isLoading) {
-            Toast.makeText(context, "Compra fallida", Toast.LENGTH_LONG).show()
+        if (uiState.error != null && !uiState.isLoading && !uiState.isCheckingOut) {
+            Toast.makeText(context, uiState.error, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -76,12 +77,7 @@ fun ClienteCartScreen(
             }
             return
         }
-        uiState.error != null -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Error: ${uiState.error}", color = colorScheme.error)
-            }
-            return
-        }
+        // NO mostramos pantalla de error completa, solo el mensaje en la UI
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -95,12 +91,18 @@ fun ClienteCartScreen(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController.navigateUp() }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = colorScheme.onPrimaryContainer
-                    )
+                Surface(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = colorScheme.primaryContainer,
+                    tonalElevation = 2.dp
+                ) {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
@@ -273,14 +275,54 @@ fun ClienteCartScreen(
 
         // Total y acciones
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Mensajes de checkout/errores
-            uiState.checkoutMessage?.let { msg ->
-                Text(text = msg, color = colorScheme.primary)
-                Spacer(modifier = Modifier.height(6.dp))
-            }
+            // Mensajes de error destacados
             uiState.error?.let { err ->
-                Text(text = err, color = colorScheme.error)
-                Spacer(modifier = Modifier.height(6.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Error",
+                            tint = colorScheme.onErrorContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = err,
+                            color = colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            // Mensajes de checkout exitoso
+            uiState.checkoutMessage?.let { msg ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorScheme.primaryContainer
+                    )
+                ) {
+                    Text(
+                        text = msg,
+                        color = colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
 
             Text(text = "Total: ${clpFormatter.format(uiState.total.toDouble())}", style = MaterialTheme.typography.titleMedium)

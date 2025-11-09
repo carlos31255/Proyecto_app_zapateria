@@ -44,7 +44,6 @@ fun ConfirmarEntregaScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
-    val layoutDirection = LocalLayoutDirection.current
 
     // Mantenemos un snapshot del último `entrega` no-nulo para evitar que
     // el bottomBar desaparezca por emisiones transitorias nulas (por ejemplo al abrir Maps)
@@ -60,65 +59,18 @@ fun ConfirmarEntregaScreen(
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            // El botón para marcar como completado va en la BottomBar
-            // Preferimos el estado en vivo (`uiState.entrega`) y usamos el snapshot como respaldo
-            val entregaParaUi: EntregaConDetalles? = uiState.entrega ?: lastEntregaState.value
-            if (entregaParaUi?.estadoEntrega == "pendiente") { // Solo mostrar si está pendiente
-                Button(
-                    onClick = { viewModel.marcarComoEntregado() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !uiState.isConfirming
-                ) {
-                    if (uiState.isConfirming) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = colorScheme.onPrimary
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.TaskAlt,
-                            contentDescription = "Completar",
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text("Marcar como Entregado", fontSize = 16.sp)
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        // Contenido principal de la pantalla
-        // Mostramos siempre la flecha de regreso en la parte superior, independientemente del estado de carga
-        // Root box: overlay back button and content area
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Content container: apply scaffold paddings (including top) so content is laid out below global topBar
-            val contentModifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    start = padding.calculateStartPadding(layoutDirection),
-                    top = padding.calculateTopPadding(),
-                    end = padding.calculateEndPadding(layoutDirection),
-                    bottom = padding.calculateBottomPadding()
-                )
-
-            // Contenido principal
-            Box(modifier = contentModifier) {
-                // Barra superior local (botón de regresar visible y contrastado)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 8.dp, top = 8.dp, end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+    // Contenido sin Scaffold local
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            // --- ESTADO DE CARGA ---
+            uiState.isLoading -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Flecha de regreso
                     Surface(
                         shape = CircleShape,
                         color = colorScheme.primaryContainer,
-                        tonalElevation = 2.dp
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.padding(8.dp)
                     ) {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
@@ -128,129 +80,166 @@ fun ConfirmarEntregaScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    // opcional: título o espacio
-                }
-
-                when {
-                    // --- ESTADO DE CARGA ---
-                    uiState.isLoading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    // --- ESTADO DE ERROR ---
-                    uiState.error != null -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Error: ${uiState.error}",
-                                color = colorScheme.error,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    }
-                    // --- ESTADO CON DATOS ---
-                    uiState.entrega != null -> {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(colorScheme.background)
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            // --- Sección Cliente ---
-                            item {
-                                DetalleSection(title = "Cliente y Destino") {
-                                    ClienteInfoCard(entrega = uiState.entrega!!)
-                                }
-                            }
-
-                            // --- Sección Productos ---
-                            item {
-                                DetalleSection(title = "Productos a Entregar") {
-                                    ProductosListCard(productos = uiState.productos)
-                                }
-                            }
-
-                            // --- Sección Mapa (Botón) ---
-                            item {
-                                OutlinedButton(
-                                    onClick = {
-                                        // Construir la dirección completa
-                                        val direccion = uiState.entrega!!.getDireccionCompleta()
-
-                                        // Crear intent para abrir Google Maps
-                                        val gmmIntentUri = android.net.Uri.parse("geo:0,0?q=${android.net.Uri.encode(direccion)}")
-                                        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                                        mapIntent.setPackage("com.google.android.apps.maps")
-
-                                        // Verificar si Google Maps está instalado
-                                        if (mapIntent.resolveActivity(context.packageManager) != null) {
-                                            context.startActivity(mapIntent)
-                                        } else {
-                                            // Si no está instalado, abrir en el navegador
-                                            val browserIntent = Intent(
-                                                Intent.ACTION_VIEW,
-                                                android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(direccion)}")
-                                            )
-                                            context.startActivity(browserIntent)
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        Icons.Default.FmdGood,
-                                        contentDescription = "Mapa",
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                    Text("Ver en Google Maps")
-                                }
-                            }
-
-                            // --- Sección Observación (Input que usa el ViewModel) ---
-                            item {
-                                OutlinedTextField(
-                                    value = uiState.observacionInput,
-                                    onValueChange = { viewModel.onObservacionChange(it) },
-                                    label = { Text("Observación (opcional)") },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    singleLine = false,
-                                    maxLines = 3
-                                )
-                            }
-                        }
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
             }
-
-            // Overlay del back button: subir unos dp más para no tapar el texto
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .statusBarsPadding()
-                    .padding(start = 8.dp)
-                    .offset(y = -(padding.calculateTopPadding() + 8.dp))
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = colorScheme.primaryContainer,
-                    tonalElevation = 4.dp
+            // --- ESTADO DE ERROR ---
+            uiState.error != null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = colorScheme.onPrimaryContainer
+                    // Flecha de regreso
+                    Surface(
+                        shape = CircleShape,
+                        color = colorScheme.primaryContainer,
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Error: ${uiState.error}",
+                            color = colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
                         )
+                    }
+                }
+            }
+            // --- ESTADO CON DATOS ---
+            uiState.entrega != null -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                            .background(colorScheme.background),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        // Flecha de regreso como primer item
+                        item {
+                            Surface(
+                                shape = CircleShape,
+                                color = colorScheme.primaryContainer,
+                                tonalElevation = 2.dp,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Volver",
+                                        tint = colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                        // --- Sección Cliente ---
+                        item {
+                            DetalleSection(title = "Cliente y Destino") {
+                                ClienteInfoCard(entrega = uiState.entrega!!)
+                            }
+                        }
+
+                        // --- Sección Productos ---
+                        item {
+                            DetalleSection(title = "Productos a Entregar") {
+                                ProductosListCard(productos = uiState.productos)
+                            }
+                        }
+
+                        // --- Sección Mapa (Botón) ---
+                        item {
+                            OutlinedButton(
+                                onClick = {
+                                    // Construir la dirección completa
+                                    val direccion = uiState.entrega!!.getDireccionCompleta()
+
+                                    // Crear intent para abrir Google Maps
+                                    val gmmIntentUri = android.net.Uri.parse("geo:0,0?q=${android.net.Uri.encode(direccion)}")
+                                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                    mapIntent.setPackage("com.google.android.apps.maps")
+
+                                    // Verificar si Google Maps está instalado
+                                    if (mapIntent.resolveActivity(context.packageManager) != null) {
+                                        context.startActivity(mapIntent)
+                                    } else {
+                                        // Si no está instalado, abrir en el navegador
+                                        val browserIntent = Intent(
+                                            Intent.ACTION_VIEW,
+                                            android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(direccion)}")
+                                        )
+                                        context.startActivity(browserIntent)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    Icons.Default.FmdGood,
+                                    contentDescription = "Mapa",
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Text("Ver en Google Maps")
+                            }
+                        }
+
+                        // --- Sección Observación (Input que usa el ViewModel) ---
+                        item {
+                            OutlinedTextField(
+                                value = uiState.observacionInput,
+                                onValueChange = { viewModel.onObservacionChange(it) },
+                                label = { Text("Observación (opcional)") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                singleLine = false,
+                                maxLines = 3
+                            )
+                        }
+                    }
+
+                    // Botón de confirmar entrega en la parte inferior (solo si está pendiente)
+                    val entregaParaUi: EntregaConDetalles? = uiState.entrega ?: lastEntregaState.value
+                    if (entregaParaUi?.estadoEntrega == "pendiente") {
+                        Button(
+                            onClick = { viewModel.marcarComoEntregado() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !uiState.isConfirming
+                        ) {
+                            if (uiState.isConfirming) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.TaskAlt,
+                                    contentDescription = "Completar",
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Text("Marcar como Entregado", fontSize = 16.sp)
+                            }
+                        }
                     }
                 }
             }

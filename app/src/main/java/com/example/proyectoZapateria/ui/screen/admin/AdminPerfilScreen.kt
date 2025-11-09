@@ -61,14 +61,21 @@ fun AdminPerfilScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    IconButton(
-                        onClick = { navController.navigateUp() },
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = colorScheme.primaryContainer,
+                        tonalElevation = 2.dp,
                         modifier = Modifier.align(Alignment.Start)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        IconButton(
+                            onClick = { navController.navigateUp() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -87,15 +94,21 @@ fun AdminPerfilScreen(
             .verticalScroll(rememberScrollState())
     ) {
         // Botón de regreso
-        IconButton(
-            onClick = { navController.navigateUp() },
+        Surface(
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = colorScheme.primaryContainer,
+            tonalElevation = 2.dp,
             modifier = Modifier.padding(8.dp)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver",
-                tint = colorScheme.onBackground
-            )
+            IconButton(
+                onClick = { navController.navigateUp() }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = colorScheme.onPrimaryContainer
+                )
+            }
         }
 
         // Header con avatar

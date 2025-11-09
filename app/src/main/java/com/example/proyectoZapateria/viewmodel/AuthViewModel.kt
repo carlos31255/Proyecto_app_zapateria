@@ -425,6 +425,11 @@ class AuthViewModel @Inject constructor(
         _register.update { it.copy(success = false, errorMsg = null) }
     }
 
+    // Limpiar completamente el formulario de registro
+    fun clearRegisterForm() {
+        _register.value = RegisterUiState()
+    }
+
     // ========== LOGOUT ==========
 
     fun logout() {

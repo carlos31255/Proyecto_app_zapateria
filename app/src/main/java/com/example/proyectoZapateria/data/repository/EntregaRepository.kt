@@ -19,24 +19,26 @@ class EntregaRepository @Inject constructor (
         return entregaDao.getEntregasConDetalles(transportistaId)
     }
 
-    // Obtiene una entrega simple por su ID
-    suspend fun getEntregaSimple(idEntrega: Int): EntregaEntity? {
-        return entregaDao.getEntregaById(idEntrega)
-    }
-    // Cuenta las entregas de un transportista por estado
-    suspend fun getCountEntregasPorEstado(transportistaId: Int, estado:
-    String): Int {
-            return entregaDao.getCountByEstadoParaTransportista(transportistaId, estado)
-        }
     // Obtiene los detalles completos de una entrega por su ID
     fun getDetallesPorId(idEntrega: Int): Flow<EntregaConDetalles> {
         return entregaDao.getDetallesPorId(idEntrega)
     }
 
-    // Actualiza una entrega existente en la base de datos
-    suspend fun updateEntrega(entrega: EntregaEntity) {
+    // Obtiene una entrega por ID de boleta
+    suspend fun getEntregaPorBoleta(idBoleta: Int): EntregaEntity? {
+        return entregaDao.getByBoleta(idBoleta)
+    }
+
+    // Obtiene una entrega por su ID
+    suspend fun getEntregaById(idEntrega: Int): EntregaEntity? {
+        return entregaDao.getEntregaById(idEntrega)
+    }
+
+    // Actualiza una entrega
+    suspend fun actualizarEntrega(entrega: EntregaEntity) {
         entregaDao.updateEntrega(entrega)
     }
+
     // Confirma la entrega, actualizando su estado, fecha y observación
     suspend fun confirmarEntrega(idEntrega: Int, observacion: String?): Boolean {
         return try {

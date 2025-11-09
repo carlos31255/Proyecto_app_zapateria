@@ -70,12 +70,18 @@ fun AdminInventarioScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f)
                     ) {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = colorScheme.onPrimaryContainer
-                            )
+                        Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = colorScheme.primaryContainer,
+                            tonalElevation = 2.dp
+                        ) {
+                            IconButton(onClick = { navController.navigateUp() }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Volver",
+                                    tint = colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {

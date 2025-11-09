@@ -55,8 +55,18 @@ fun ClienteDetalleScreen(
             TopAppBar(
                 title = { Text("Detalle del Cliente") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = colorScheme.primaryContainer,
+                        tonalElevation = 2.dp
+                    ) {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

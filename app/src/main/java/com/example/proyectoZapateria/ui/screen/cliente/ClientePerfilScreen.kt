@@ -69,8 +69,19 @@ fun ClientePerfilScreen(
         uiState.error != null -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                    IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.align(Alignment.Start)) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = colorScheme.primaryContainer,
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.align(Alignment.Start)
+                    ) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(text = "Error: ${uiState.error}", color = colorScheme.error)
@@ -86,15 +97,21 @@ fun ClientePerfilScreen(
             .verticalScroll(rememberScrollState())
     ) {
         // Botón de regreso
-        IconButton(
-            onClick = { navController.popBackStack() },
+        Surface(
+            shape = CircleShape,
+            color = colorScheme.primaryContainer,
+            tonalElevation = 2.dp,
             modifier = Modifier.padding(8.dp)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver",
-                tint = colorScheme.onBackground
-            )
+            IconButton(
+                onClick = { navController.popBackStack() }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = colorScheme.onPrimaryContainer
+                )
+            }
         }
 
         // Header con avatar

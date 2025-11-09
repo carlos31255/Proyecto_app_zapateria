@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,9 +30,16 @@ fun RegisterScreenVm(
     onGoLogin: () -> Unit
 ) {
     val state by authViewModel.register.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Limpiar el formulario cuando se vuelve a la pantalla de registro
+    LaunchedEffect(Unit) {
+        authViewModel.clearRegisterForm()
+    }
 
     LaunchedEffect(state.success) {
         if (state.success) {
+            Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
             authViewModel.clearRegisterResult()
             onRegisterOkGoLogin()
         }

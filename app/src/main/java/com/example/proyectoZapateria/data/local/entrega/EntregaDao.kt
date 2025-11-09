@@ -32,6 +32,10 @@ interface EntregaDao {
         @Query("SELECT * FROM entrega WHERE id_boleta = :idBoleta")
         suspend fun getByBoleta(idBoleta: Int): EntregaEntity?
 
+        // Alias para obtener entrega por boleta (usado por ClientePedidosViewModel)
+        @Query("SELECT * FROM entrega WHERE id_boleta = :idBoleta")
+        suspend fun getEntregaPorBoleta(idBoleta: Int): EntregaEntity?
+
         // Obtener entregas (simples) de un transportista específico
         @Query("SELECT * FROM entrega WHERE id_transportista = :idTransportista ORDER BY fecha_asignacion DESC")
         fun getByTransportista(idTransportista: Int): Flow<List<EntregaEntity>>
@@ -59,7 +63,7 @@ interface EntregaDao {
 
         @Query("""
         UPDATE entrega 
-        SET estado_entrega = 'entregado', 
+        SET estado_entrega = 'entregada', 
             fecha_entrega = :fechaEntrega, 
             observacion = :observacion 
         WHERE id_entrega = :idEntrega

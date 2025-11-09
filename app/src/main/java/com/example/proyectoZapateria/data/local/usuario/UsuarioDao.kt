@@ -56,7 +56,7 @@ interface UsuarioDao {
     """)
     suspend fun getByIdConPersonaYRol(id: Int): UsuarioConPersonaYRol?
 
-    // Obtener todos los usuarios con datos de persona y rol
+    // Obtener todos los usuarios con datos de persona y rol (solo activos)
     @Query("""
         SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
@@ -64,11 +64,12 @@ interface UsuarioDao {
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
+        WHERE p.estado = 'activo'
         ORDER BY p.nombre ASC, p.apellido ASC
     """)
     fun getAllConPersonaYRol(): Flow<List<UsuarioConPersonaYRol>>
 
-    // Obtener usuarios por rol con datos de persona y rol
+    // Obtener usuarios por rol con datos de persona y rol (solo activos)
     @Query("""
         SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
@@ -76,7 +77,7 @@ interface UsuarioDao {
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
-        WHERE u.id_rol = :idRol
+        WHERE u.id_rol = :idRol AND p.estado = 'activo'
         ORDER BY p.nombre ASC, p.apellido ASC
     """)
     fun getByRolConPersonaYRol(idRol: Int): Flow<List<UsuarioConPersonaYRol>>
@@ -117,7 +118,7 @@ interface UsuarioDao {
     """)
     suspend fun getByRutConPersonaYRol(rut: String): UsuarioConPersonaYRol?
 
-    // Buscar usuarios por nombre, apellido o username
+    // Buscar usuarios por nombre, apellido o username (solo activos)
     @Query("""
         SELECT u.id_persona as idPersona, p.nombre, p.apellido, p.rut,
                p.telefono, p.email, p.username, p.estado,
@@ -125,9 +126,10 @@ interface UsuarioDao {
         FROM usuario u
         INNER JOIN persona p ON u.id_persona = p.id_persona
         INNER JOIN rol r ON u.id_rol = r.id_rol
-        WHERE p.nombre LIKE '%' || :query || '%' 
+        WHERE p.estado = 'activo' 
+           AND (p.nombre LIKE '%' || :query || '%' 
            OR p.apellido LIKE '%' || :query || '%'
-           OR p.username LIKE '%' || :query || '%'
+           OR p.username LIKE '%' || :query || '%')
     """)
     fun searchUsuarios(query: String): Flow<List<UsuarioConPersonaYRol>>
 

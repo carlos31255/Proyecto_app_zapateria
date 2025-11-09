@@ -47,15 +47,16 @@ class TransportistaEntregasViewModel @Inject constructor(
                     .map { listaDeEntregas ->
                         // Calculamos los conteos aquí
                         val pendientes = listaDeEntregas.count { it.estadoEntrega == "pendiente" }
+                        val entregadas = listaDeEntregas.count { it.estadoEntrega == "entregada" }
                         val completadas = listaDeEntregas.count { it.estadoEntrega == "completada" }
 
-                        Log.d("TransportistaVM", "Entregas cargadas: ${listaDeEntregas.size} (Pendientes: $pendientes, Completadas: $completadas)")
+                        Log.d("TransportistaVM", "Entregas cargadas: ${listaDeEntregas.size} (Pendientes: $pendientes, Entregadas: $entregadas, Completadas: $completadas)")
 
                         // Creamos el estado exitoso
                         TransportistaEntregasUiState(
                             entregas = listaDeEntregas,
                             pendientesCount = pendientes,
-                            completadasCount = completadas,
+                            completadasCount = completadas + entregadas, // Completadas incluye entregadas
                             isLoading = false // Datos cargados
                         )
                     }
