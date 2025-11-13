@@ -92,4 +92,13 @@ dependencies {
     // Para inyectar ViewModels en Compose
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
+    // ==== AGREGADOS PARA REST ====
+    // Retrofit base
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    // Convertidor JSON con Gson
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    // OkHttp y logging interceptor
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
 }
