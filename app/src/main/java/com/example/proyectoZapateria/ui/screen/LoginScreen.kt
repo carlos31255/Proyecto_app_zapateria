@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
@@ -58,7 +57,8 @@ fun LoginScreenVm(
         onEmailChange = authViewModel::onLoginEmailChange,
         onPassChange = authViewModel::onLoginPassChange,
         onSubmit = authViewModel::submitLogin,
-        onGoRegister = onGoRegister
+        onGoRegister = onGoRegister,
+        onTestApi = authViewModel::testConexionMicroservicio
     )
 }
 
@@ -74,7 +74,8 @@ private fun LoginScreen(
     onEmailChange: (String) -> Unit,
     onPassChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    onGoRegister: () -> Unit
+    onGoRegister: () -> Unit,
+    onTestApi: () -> Unit
 ) {
     // Nuevo esquema de colores morado/violeta claro - Material Design 3
     val colorScheme = MaterialTheme.colorScheme
@@ -229,6 +230,19 @@ private fun LoginScreen(
                     } else {
                         Text("Entrar", style = MaterialTheme.typography.bodyLarge)
                     }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Botón PROBAR API (TEMPORAL)
+                Button(
+                    onClick = onTestApi,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorScheme.secondary
+                    )
+                ) {
+                    Text("🧪 Probar API")
                 }
 
                 if (errorMsg != null) {

@@ -15,6 +15,7 @@ import com.example.proyectoZapateria.data.local.cart.CartDao
 import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.CartRepository
 import com.example.proyectoZapateria.data.repository.ClienteRepository
+import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.repository.DetalleBoletaRepository
 import com.example.proyectoZapateria.data.repository.EntregaRepository
 import com.example.proyectoZapateria.data.repository.InventarioRepository
@@ -25,6 +26,7 @@ import com.example.proyectoZapateria.data.repository.ProductoRepository
 import com.example.proyectoZapateria.data.repository.TallaRepository
 import com.example.proyectoZapateria.data.repository.TransportistaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
+import com.example.proyectoZapateria.data.remote.usuario.UsuarioApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -249,5 +251,14 @@ object AppModule {
     @Singleton
     fun provideRolRepository(rolDao: com.example.proyectoZapateria.data.local.rol.RolDao): com.example.proyectoZapateria.data.repository.RolRepository {
         return com.example.proyectoZapateria.data.repository.RolRepository(rolDao)
+    }
+
+    // ========== Remote Repositories ==========
+
+    // Provee el ClienteRemoteRepository (usa microservicio REST en lugar de SQLite)
+    @Provides
+    @Singleton
+    fun provideClienteRemoteRepository(apiService: UsuarioApiService): ClienteRemoteRepository {
+        return ClienteRemoteRepository(apiService)
     }
 }

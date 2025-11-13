@@ -1,4 +1,4 @@
-package com.example.proyectoZapateria.data.remote.dto
+package com.example.proyectoZapateria.data.remote.usuario.dto
 
 import com.google.gson.annotations.SerializedName
 
@@ -17,6 +17,9 @@ data class UsuarioDTO(
     val username: String?,
 
     @SerializedName("nombreRol")
-    val nombreRol: String?
+    val nombreRol: String?,
+
+    @SerializedName("activo")
+    val activo: Boolean?
 )
 

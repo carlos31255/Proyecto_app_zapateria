@@ -1,4 +1,4 @@
-package com.example.proyectoZapateria.data.remote.dto
+package com.example.proyectoZapateria.data.remote.usuario.dto
 
 import com.google.gson.annotations.SerializedName
 

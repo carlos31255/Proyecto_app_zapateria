@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    <!-- AGREGADO: Permiso para usar Internet -->
+    <!-- Línea nueva 1: habilita tráfico de red para llamar APIs REST -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Permisos para la cámara y almacenamiento de imágenes -->
     <uses-feature
         android:name="android.hardware.camera"
@@ -24,7 +26,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Proyecto_zapateria">
+        android:theme="@style/Theme.Proyecto_zapateria"
+        android:usesCleartextTraffic="true">
 
         <!-- FileProvider para compartir archivos de forma segura -->
         <provider

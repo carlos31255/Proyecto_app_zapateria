@@ -9,6 +9,7 @@ import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
 import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.repository.ClienteRepository
 import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.UsuarioRepository
@@ -69,7 +70,9 @@ class AuthViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
     private val authRepository: AuthRepository,
     private val sessionPreferences: SessionPreferences,
-    private val clienteRepository: ClienteRepository
+    private val clienteRepository: ClienteRepository,
+    private val clienteRemoteRepository: ClienteRemoteRepository
+
 ) : ViewModel() {
 
     init {
@@ -87,6 +90,7 @@ class AuthViewModel @Inject constructor(
     val currentUser: StateFlow<UsuarioConPersonaYRol?> = authRepository.currentUser
 
     // ========== HANDLERS LOGIN ==========
+
 
     fun onLoginEmailChange(value: String) {
         _login.update { it.copy(email = value, emailError = validateEmail(value)) }
@@ -445,6 +449,41 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    // FUNCIÓN TEMPORAL PARA PROBAR API
+    fun testConexionMicroservicio() {
+        viewModelScope.launch {
+            _login.value = _login.value.copy(
+                isLoading = true,
+                errorMsg = null
+            )
+
+            Log.d("API_TEST", "🔵 Iniciando prueba de conexión con microservicio...")
+
+            val result = clienteRemoteRepository.obtenerTodosLosClientes()
+
+            result.onSuccess { clientes ->
+                Log.d("API_TEST", "✅ CONEXIÓN EXITOSA!")
+                Log.d("API_TEST", "📊 Clientes encontrados: ${clientes.size}")
+                clientes.forEach { cliente ->
+                    Log.d("API_TEST", "  - ${cliente.nombreCompleto} (${cliente.email})")
+                }
+
+                _login.value = _login.value.copy(
+                    isLoading = false,
+                    errorMsg = "✅ Conexión exitosa: ${clientes.size} clientes encontrados"
+                )
+            }.onFailure { error ->
+                Log.e("API_TEST", "❌ ERROR DE CONEXIÓN: ${error.message}")
+                Log.e("API_TEST", "Stack trace:", error)
+
+                _login.value = _login.value.copy(
+                    isLoading = false,
+                    errorMsg = "❌ Error: ${error.message}"
+                )
+            }
+        }
+    }
+
     /**
      * Carga la sesión guardada desde DataStore al iniciar la app
      */
@@ -472,3 +511,4 @@ class AuthViewModel @Inject constructor(
         }
     }
 }
+
