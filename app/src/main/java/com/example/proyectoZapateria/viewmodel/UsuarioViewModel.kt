@@ -2,22 +2,21 @@ package com.example.proyectoZapateria.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.local.cliente.ClienteEntity
-import com.example.proyectoZapateria.data.local.persona.PersonaEntity
-import com.example.proyectoZapateria.data.local.rol.RolEntity
 import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
-import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
-import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
-import com.example.proyectoZapateria.data.repository.PersonaRepository
+import com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO
+import com.example.proyectoZapateria.data.repository.PersonaRemoteRepository
+import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
+import com.example.proyectoZapateria.data.remote.usuario.dto.RolDTO
+import com.example.proyectoZapateria.data.remote.usuario.dto.UsuarioDTO
+import com.example.proyectoZapateria.data.repository.UsuarioRemoteRepository
+import com.example.proyectoZapateria.data.repository.RolRemoteRepository
+import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.repository.TransportistaRepository
-import com.example.proyectoZapateria.data.repository.UsuarioRepository
 import com.example.proyectoZapateria.utils.PasswordHasher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,7 +29,7 @@ data class CrearUsuarioState(
     val username: String = "",
     val password: String = "",
     val confirmPassword: String = "",
-    val rolSeleccionado: RolEntity? = null,
+    val rolSeleccionado: RolDTO? = null,
 
     // Campos específicos para transportista
     val licencia: String = "",
@@ -55,32 +54,28 @@ data class CrearUsuarioState(
 
 @HiltViewModel
 class UsuarioViewModel @Inject constructor(
-    private val usuarioRepository: UsuarioRepository,
-    private val personaRepository: PersonaRepository,
-    private val rolRepository: com.example.proyectoZapateria.data.repository.RolRepository,
-    private val clienteRepository: com.example.proyectoZapateria.data.repository.ClienteRepository,
+    private val usuarioRemoteRepository: UsuarioRemoteRepository,
+    private val personaRemoteRepository: PersonaRemoteRepository,
+    private val rolRemoteRepository: RolRemoteRepository,
+    private val clienteRemoteRepository: ClienteRemoteRepository,
     private val transportistaRepository: TransportistaRepository
 ) : ViewModel() {
 
-    // Lista de todos los usuarios
-    val usuarios: StateFlow<List<UsuarioConPersonaYRol>> = usuarioRepository.getAllConPersonaYRol()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    // Lista de todos los usuarios (ahora desde API)
+    private val _usuarios = MutableStateFlow<List<UsuarioDTO>>(emptyList())
+    val usuarios: StateFlow<List<UsuarioDTO>> = _usuarios.asStateFlow()
 
-    // Roles disponibles
-    private val _roles = MutableStateFlow<List<RolEntity>>(emptyList())
-    val roles: StateFlow<List<RolEntity>> = _roles.asStateFlow()
+    // Roles disponibles (ahora desde API)
+    private val _roles = MutableStateFlow<List<RolDTO>>(emptyList())
+    val roles: StateFlow<List<RolDTO>> = _roles.asStateFlow()
 
     // Estado de búsqueda
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     // Usuarios filtrados
-    private val _usuariosFiltrados = MutableStateFlow<List<UsuarioConPersonaYRol>>(emptyList())
-    val usuariosFiltrados: StateFlow<List<UsuarioConPersonaYRol>> = _usuariosFiltrados.asStateFlow()
+    private val _usuariosFiltrados = MutableStateFlow<List<UsuarioDTO>>(emptyList())
+    val usuariosFiltrados: StateFlow<List<UsuarioDTO>> = _usuariosFiltrados.asStateFlow()
 
     // Estado de creación de usuario
     private val _crearUsuarioState = MutableStateFlow(CrearUsuarioState())
@@ -100,13 +95,24 @@ class UsuarioViewModel @Inject constructor(
 
     init {
         cargarRoles()
-        observarUsuarios()
+        cargarUsuarios()
     }
 
-    private fun observarUsuarios() {
+    private fun cargarUsuarios() {
         viewModelScope.launch {
-            usuarios.collect { listaUsuarios ->
-                _usuariosFiltrados.value = filtrarUsuarios(listaUsuarios, _searchQuery.value)
+            _isLoading.value = true
+            try {
+                val result = usuarioRemoteRepository.obtenerTodosLosUsuarios()
+                if (result.isSuccess) {
+                    val listaUsuarios = result.getOrNull() ?: emptyList()
+                    _usuarios.value = listaUsuarios
+                    _usuariosFiltrados.value = listaUsuarios
+                } else {
+                    _errorMessage.value = "Error al cargar usuarios: ${result.exceptionOrNull()?.message}"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error al cargar usuarios: ${e.message}"
+            } finally {
                 _isLoading.value = false
             }
         }
@@ -115,8 +121,11 @@ class UsuarioViewModel @Inject constructor(
     private fun cargarRoles() {
         viewModelScope.launch {
             try {
-                rolRepository.getAllRoles().collect { listaRoles ->
-                    _roles.value = listaRoles
+                val result = rolRemoteRepository.obtenerTodosLosRoles()
+                if (result.isSuccess) {
+                    _roles.value = result.getOrNull() ?: emptyList()
+                } else {
+                    _errorMessage.value = "Error al cargar roles: ${result.exceptionOrNull()?.message}"
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Error al cargar roles: ${e.message}"
@@ -126,19 +135,16 @@ class UsuarioViewModel @Inject constructor(
 
     fun actualizarBusqueda(query: String) {
         _searchQuery.value = query
-        _usuariosFiltrados.value = filtrarUsuarios(usuarios.value, query)
+        _usuariosFiltrados.value = filtrarUsuarios(_usuarios.value, query)
     }
 
-    private fun filtrarUsuarios(usuarios: List<UsuarioConPersonaYRol>, query: String): List<UsuarioConPersonaYRol> {
+    private fun filtrarUsuarios(usuarios: List<UsuarioDTO>, query: String): List<UsuarioDTO> {
         if (query.isBlank()) return usuarios
 
         return usuarios.filter { usuario ->
-            usuario.nombre.contains(query, ignoreCase = true) ||
-            usuario.apellido.contains(query, ignoreCase = true) ||
-            usuario.rut.contains(query, ignoreCase = true) ||
-            usuario.email?.contains(query, ignoreCase = true) == true ||
-            usuario.username.contains(query, ignoreCase = true) ||
-            usuario.nombreRol.contains(query, ignoreCase = true)
+            usuario.nombreCompleto?.contains(query, ignoreCase = true) == true ||
+            usuario.username?.contains(query, ignoreCase = true) == true ||
+            usuario.nombreRol?.contains(query, ignoreCase = true) == true
         }
     }
 
@@ -199,7 +205,7 @@ class UsuarioViewModel @Inject constructor(
         )
     }
 
-    fun actualizarRolSeleccionado(rol: RolEntity?) {
+    fun actualizarRolSeleccionado(rol: RolDTO?) {
         _crearUsuarioState.value = _crearUsuarioState.value.copy(
             rolSeleccionado = rol,
             rolError = null
@@ -224,31 +230,31 @@ class UsuarioViewModel @Inject constructor(
         viewModelScope.launch {
             val state = _crearUsuarioState.value
 
-            // Validaciones usando UserFormValidation
+            // Validaciones
             var hayErrores = false
             var updatedState = state
 
-            // Validar nombre (solo letras)
+            // Validar nombre
             val nombreError = com.example.proyectoZapateria.domain.validation.validateNameLettersOnly(state.nombre)
             if (nombreError != null) {
                 updatedState = updatedState.copy(nombreError = nombreError)
                 hayErrores = true
             }
 
-            // Validar apellido (solo letras)
+            // Validar apellido
             val apellidoError = com.example.proyectoZapateria.domain.validation.validateNameLettersOnly(state.apellido)
             if (apellidoError != null) {
                 updatedState = updatedState.copy(apellidoError = apellidoError)
                 hayErrores = true
             }
 
-            // Validar RUT (básico - requerido)
+            // Validar RUT
             if (state.rut.isBlank()) {
                 updatedState = updatedState.copy(rutError = "El RUT es requerido")
                 hayErrores = true
             }
 
-            // Validar teléfono (solo si no está vacío)
+            // Validar teléfono
             if (state.telefono.isNotBlank()) {
                 val telefonoError = com.example.proyectoZapateria.domain.validation.validatePhoneDigitsOnly(state.telefono)
                 if (telefonoError != null) {
@@ -264,34 +270,34 @@ class UsuarioViewModel @Inject constructor(
                 hayErrores = true
             }
 
-            // Validar username (requerido)
+            // Validar username
             if (state.username.isBlank()) {
                 updatedState = updatedState.copy(usernameError = "El username es requerido")
                 hayErrores = true
             }
 
-            // Validar contraseña fuerte
+            // Validar contraseña
             val passwordError = com.example.proyectoZapateria.domain.validation.validateStrongPassword(state.password)
             if (passwordError != null) {
                 updatedState = updatedState.copy(passwordError = passwordError)
                 hayErrores = true
             }
 
-            // Validar confirmación de contraseña
+            // Validar confirmación
             val confirmError = com.example.proyectoZapateria.domain.validation.validateConfirm(state.password, state.confirmPassword)
             if (confirmError != null) {
                 updatedState = updatedState.copy(confirmPasswordError = confirmError)
                 hayErrores = true
             }
 
-            // Validar rol seleccionado
+            // Validar rol
             if (state.rolSeleccionado == null) {
                 updatedState = updatedState.copy(rolError = "Debe seleccionar un rol")
                 hayErrores = true
             }
 
-            // Validar campos específicos para Transportista (idRol = 3)
-            if (state.rolSeleccionado?.idRol == 3) {
+            // Validar campos de transportista (idRol = 2)
+            if (state.rolSeleccionado?.idRol == 2) {
                 if (state.licencia.isBlank()) {
                     updatedState = updatedState.copy(licenciaError = "La licencia es requerida para transportistas")
                     hayErrores = true
@@ -302,7 +308,6 @@ class UsuarioViewModel @Inject constructor(
                 }
             }
 
-            // Actualizar estado con todos los errores
             _crearUsuarioState.value = updatedState
 
             if (hayErrores) return@launch
@@ -310,9 +315,9 @@ class UsuarioViewModel @Inject constructor(
             _crearUsuarioState.value = _crearUsuarioState.value.copy(isLoading = true, errorMessage = null)
 
             try {
-                // Crear persona
-                val persona = PersonaEntity(
-                    idPersona = 0,
+                // Crear persona en API
+                val personaDTO = PersonaDTO(
+                    idPersona = null,
                     nombre = state.nombre,
                     apellido = state.apellido,
                     rut = state.rut,
@@ -322,34 +327,50 @@ class UsuarioViewModel @Inject constructor(
                     calle = null,
                     numeroPuerta = null,
                     username = state.username,
-                    passHash = PasswordHasher.hashPassword(state.password),
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
                 )
 
-                val personaId = personaRepository.insert(persona)
-
-                // Crear usuario
-                val usuario = UsuarioEntity(
-                    idPersona = personaId.toInt(),
-                    idRol = state.rolSeleccionado!!.idRol
-                )
-
-                usuarioRepository.insert(usuario)
-
-                // Si el rol es Cliente (idRol = 4), crear también el ClienteEntity
-                if (state.rolSeleccionado.idRol == 4) {
-                    val cliente = ClienteEntity(
-                        idPersona = personaId.toInt(),
-                        categoria = "regular" // Categoría por defecto para nuevos clientes
-                    )
-                    clienteRepository.insert(cliente)
+                val personaResult = personaRemoteRepository.crearPersona(personaDTO)
+                if (personaResult.isFailure) {
+                    throw Exception(personaResult.exceptionOrNull()?.message ?: "Error al crear persona")
                 }
 
-                // Si el rol es Transportista (idRol = 3), crear también el TransportistaEntity
+                val personaCreada = personaResult.getOrNull()!!
+                val personaId = personaCreada.idPersona!!
+
+                // Crear usuario en API
+                val usuarioDTO = UsuarioDTO(
+                    idPersona = personaId,
+                    idRol = state.rolSeleccionado!!.idRol,
+                    nombreCompleto = "${state.nombre} ${state.apellido}",
+                    username = state.username,
+                    nombreRol = state.rolSeleccionado.nombreRol,
+                    activo = true
+                )
+
+                val usuarioResult = usuarioRemoteRepository.crearUsuario(usuarioDTO)
+                if (usuarioResult.isFailure) {
+                    throw Exception(usuarioResult.exceptionOrNull()?.message ?: "Error al crear usuario")
+                }
+
+                // Si es cliente (idRol = 3), crear en API
                 if (state.rolSeleccionado.idRol == 3) {
+                    val clienteDTO = ClienteDTO(
+                        idPersona = personaId,
+                        categoria = "regular",
+                        nombreCompleto = "${state.nombre} ${state.apellido}",
+                        email = state.email,
+                        telefono = state.telefono,
+                        activo = true
+                    )
+                    clienteRemoteRepository.crearCliente(clienteDTO)
+                }
+
+                // Si es transportista (idRol = 2), crear localmente
+                if (state.rolSeleccionado.idRol == 2) {
                     val transportista = TransportistaEntity(
-                        idPersona = personaId.toInt(),
+                        idPersona = personaId,
                         licencia = state.licencia.ifBlank { null },
                         vehiculo = state.vehiculo.ifBlank { null }
                     )
@@ -358,6 +379,7 @@ class UsuarioViewModel @Inject constructor(
 
                 _successMessage.value = "Usuario creado exitosamente"
                 _crearUsuarioState.value = CrearUsuarioState(success = true)
+                cargarUsuarios() // Recargar lista
 
             } catch (e: Exception) {
                 _crearUsuarioState.value = _crearUsuarioState.value.copy(
@@ -368,22 +390,19 @@ class UsuarioViewModel @Inject constructor(
         }
     }
 
-    fun eliminarUsuario(usuario: UsuarioConPersonaYRol) {
+    fun eliminarUsuario(usuario: UsuarioDTO) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
             try {
-                // En lugar de eliminar, desactivar el usuario cambiando su estado
-                val persona = personaRepository.getById(usuario.idPersona)
-                if (persona != null) {
-                    val personaDesactivada = persona.copy(estado = "inactivo")
-                    personaRepository.update(personaDesactivada)
+                val result = usuarioRemoteRepository.eliminarUsuario(usuario.idPersona ?: 0)
+                if (result.isSuccess) {
                     _successMessage.value = "Usuario desactivado exitosamente"
+                    cargarUsuarios() // Recargar lista
                 } else {
-                    _errorMessage.value = "No se encontró el usuario"
+                    _errorMessage.value = "Error al desactivar usuario: ${result.exceptionOrNull()?.message}"
                 }
-
             } catch (e: Exception) {
                 _errorMessage.value = "Error al desactivar usuario: ${e.message}"
             } finally {

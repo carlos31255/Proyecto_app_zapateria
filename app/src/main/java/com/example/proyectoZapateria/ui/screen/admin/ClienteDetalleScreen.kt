@@ -3,7 +3,6 @@ package com.example.proyectoZapateria.ui.screen.admin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,11 +17,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaEntity
-import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
+import com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO
+import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
+import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
 import com.example.proyectoZapateria.viewmodel.ClienteViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.Date
 import java.util.Locale
 
@@ -33,17 +34,15 @@ fun ClienteDetalleScreen(
     idCliente: Int,
     viewModel: ClienteViewModel = hiltViewModel()
 ) {
-    val clienteConPedidos by viewModel.clienteSeleccionado.collectAsStateWithLifecycle()
+    val clienteSeleccionado by viewModel.clienteSeleccionado.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val colorScheme = MaterialTheme.colorScheme
 
-    // Cargar detalles del cliente al iniciar
     LaunchedEffect(idCliente) {
         viewModel.cargarDetalleCliente(idCliente)
     }
 
-    // Limpiar al salir
     DisposableEffect(Unit) {
         onDispose {
             viewModel.limpiarClienteSeleccionado()
@@ -55,25 +54,10 @@ fun ClienteDetalleScreen(
             TopAppBar(
                 title = { Text("Detalle del Cliente") },
                 navigationIcon = {
-                    Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = colorScheme.primaryContainer,
-                        tonalElevation = 2.dp
-                    ) {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                "Volver",
-                                tint = colorScheme.onPrimaryContainer
-                            )
-                        }
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.primaryContainer,
-                    titleContentColor = colorScheme.onPrimaryContainer,
-                    navigationIconContentColor = colorScheme.onPrimaryContainer
-                )
+                }
             )
         }
     ) { padding ->
@@ -97,7 +81,6 @@ fun ClienteDetalleScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Icon(
@@ -115,7 +98,7 @@ fun ClienteDetalleScreen(
                     }
                 }
             }
-            clienteConPedidos != null -> {
+            clienteSeleccionado != null -> {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -123,22 +106,19 @@ fun ClienteDetalleScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Información del cliente
                     item {
-                        ClienteInfoCard(cliente = clienteConPedidos!!.cliente)
+                        ClienteInfoCard(cliente = clienteSeleccionado!!.cliente)
                     }
 
-                    // Sección de pedidos
                     item {
                         Text(
-                            text = "Historial de Pedidos",
+                            text = "Historial de Pedidos (${clienteSeleccionado!!.pedidos.size})",
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    if (clienteConPedidos!!.pedidos.isEmpty()) {
+                    if (clienteSeleccionado!!.pedidos.isEmpty()) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -152,9 +132,7 @@ fun ClienteDetalleScreen(
                                         .padding(32.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Icon(
                                             Icons.Default.ShoppingBag,
                                             contentDescription = null,
@@ -172,11 +150,8 @@ fun ClienteDetalleScreen(
                             }
                         }
                     } else {
-                        items(clienteConPedidos!!.pedidos) { pedido ->
-                            PedidoCard(
-                                pedido = pedido,
-                                viewModel = viewModel
-                            )
+                        items(clienteSeleccionado!!.pedidos.size) { index ->
+                            PedidoCard(pedido = clienteSeleccionado!!.pedidos[index])
                         }
                     }
                 }
@@ -186,7 +161,7 @@ fun ClienteDetalleScreen(
 }
 
 @Composable
-fun ClienteInfoCard(cliente: com.example.proyectoZapateria.data.local.cliente.ClienteConPersona) {
+fun ClienteInfoCard(cliente: ClienteDTO) {
     val colorScheme = MaterialTheme.colorScheme
 
     Card(
@@ -201,7 +176,6 @@ fun ClienteInfoCard(cliente: com.example.proyectoZapateria.data.local.cliente.Cl
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Avatar y nombre
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -214,7 +188,7 @@ fun ClienteInfoCard(cliente: com.example.proyectoZapateria.data.local.cliente.Cl
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = cliente.nombre.firstOrNull()?.uppercase() ?: "?",
+                        text = cliente.nombreCompleto?.firstOrNull()?.uppercase()?.toString() ?: "?",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = colorScheme.onPrimary
@@ -225,24 +199,22 @@ fun ClienteInfoCard(cliente: com.example.proyectoZapateria.data.local.cliente.Cl
 
                 Column {
                     Text(
-                        text = cliente.getNombreCompleto(),
+                        text = cliente.nombreCompleto ?: "Sin nombre",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = colorScheme.onPrimaryContainer
                     )
-                    if (cliente.categoria != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            color = colorScheme.secondary,
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Text(
-                                text = cliente.categoria,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = colorScheme.onSecondary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        color = colorScheme.secondary,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = cliente.categoria?.uppercase() ?: "REGULAR",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = colorScheme.onSecondary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
                     }
                 }
             }
@@ -251,39 +223,27 @@ fun ClienteInfoCard(cliente: com.example.proyectoZapateria.data.local.cliente.Cl
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Información de contacto
             InfoRow(
-                icon = Icons.Default.Badge,
-                label = "RUT",
-                value = cliente.rut
+                icon = Icons.Default.Email,
+                label = "Email",
+                value = cliente.email ?: "Sin email"
             )
 
-            if (cliente.email != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                InfoRow(
-                    icon = Icons.Default.Email,
-                    label = "Email",
-                    value = cliente.email
-                )
-            }
+            Spacer(modifier = Modifier.height(12.dp))
 
-            if (cliente.telefono != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                InfoRow(
-                    icon = Icons.Default.Phone,
-                    label = "Teléfono",
-                    value = cliente.telefono
-                )
-            }
+            InfoRow(
+                icon = Icons.Default.Phone,
+                label = "Teléfono",
+                value = cliente.telefono ?: "Sin teléfono"
+            )
 
-            if (cliente.calle != null && cliente.numeroPuerta != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                InfoRow(
-                    icon = Icons.Default.Home,
-                    label = "Dirección",
-                    value = "${cliente.calle} ${cliente.numeroPuerta}"
-                )
-            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            InfoRow(
+                icon = Icons.Default.AccountCircle,
+                label = "Estado",
+                value = if (cliente.activo == true) "Activo" else "Inactivo"
+            )
         }
     }
 }
@@ -296,9 +256,7 @@ fun InfoRow(
 ) {
     val colorScheme = MaterialTheme.colorScheme
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             icon,
             contentDescription = null,
@@ -323,20 +281,9 @@ fun InfoRow(
 }
 
 @Composable
-fun PedidoCard(
-    pedido: BoletaVentaEntity,
-    viewModel: ClienteViewModel
-) {
+fun PedidoCard(pedido: BoletaDTO) {
     val colorScheme = MaterialTheme.colorScheme
     var expanded by remember { mutableStateOf(false) }
-    val productosDelPedido by viewModel.productosDelPedido.collectAsStateWithLifecycle()
-
-    // Cargar productos cuando se expande
-    LaunchedEffect(expanded) {
-        if (expanded) {
-            viewModel.cargarProductosDePedido(pedido.idBoleta)
-        }
-    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -347,7 +294,6 @@ fun PedidoCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Encabezado del pedido
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -355,21 +301,41 @@ fun PedidoCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Pedido #${pedido.numeroBoleta}",
+                        text = "Pedido #${pedido.id}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = formatDate(pedido.fecha),
+                        text = formatDate(pedido.fechaVenta),
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        color = when (pedido.estado.uppercase()) {
+                            "COMPLETADA" -> colorScheme.primary
+                            "CANCELADA" -> colorScheme.error
+                            else -> colorScheme.surfaceVariant
+                        },
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = pedido.estado.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when (pedido.estado.uppercase()) {
+                                "COMPLETADA" -> colorScheme.onPrimary
+                                "CANCELADA" -> colorScheme.onError
+                                else -> colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = formatCurrency(pedido.montoTotal),
+                        text = formatCurrency(pedido.total),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = colorScheme.primary
@@ -379,7 +345,6 @@ fun PedidoCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Botón para expandir/colapsar
             TextButton(
                 onClick = { expanded = !expanded },
                 modifier = Modifier.fillMaxWidth()
@@ -392,23 +357,26 @@ fun PedidoCard(
                 )
             }
 
-            // Productos del pedido (cuando está expandido)
             if (expanded) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                if (productosDelPedido.isEmpty()) {
+                val detalles = pedido.detalles ?: emptyList()
+
+                if (detalles.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Text(
+                            text = "No hay detalles disponibles",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colorScheme.onSurfaceVariant
+                        )
                     }
                 } else {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = "Productos:",
                             style = MaterialTheme.typography.labelLarge,
@@ -416,7 +384,7 @@ fun PedidoCard(
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
 
-                        productosDelPedido.forEach { producto ->
+                        detalles.forEach { producto ->
                             ProductoItemRow(producto)
                         }
                     }
@@ -427,7 +395,7 @@ fun PedidoCard(
 }
 
 @Composable
-fun ProductoItemRow(producto: ProductoDetalle) {
+fun ProductoItemRow(producto: DetalleBoletaDTO) {
     val colorScheme = MaterialTheme.colorScheme
 
     Row(
@@ -460,12 +428,19 @@ fun ProductoItemRow(producto: ProductoDetalle) {
 
             Column {
                 Text(
-                    text = "${producto.marca} ${producto.nombreZapato}",
+                    text = producto.nombreProducto ?: "Producto #${producto.inventarioId}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
+                if (producto.talla != null) {
+                    Text(
+                        text = "Talla: ${producto.talla}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
-                    text = "Talla: ${producto.talla}",
+                    text = formatCurrency(producto.precioUnitario),
                     style = MaterialTheme.typography.bodySmall,
                     color = colorScheme.onSurfaceVariant
                 )
@@ -487,14 +462,18 @@ fun ProductoItemRow(producto: ProductoDetalle) {
     }
 }
 
-// Funciones auxiliares
-private fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-    return sdf.format(Date(timestamp))
+private fun formatDate(fechaStr: String): String {
+    return try {
+        val instant = Instant.parse(fechaStr)
+        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        sdf.format(Date.from(instant))
+    } catch (e: Exception) {
+        fechaStr
+    }
 }
 
 private fun formatCurrency(amount: Int): String {
-    val format = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CL"))
+    val format = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
     return format.format(amount)
 }
 

@@ -1,4 +1,4 @@
-package com.example.proyectoZapateria.ui.screen.admin
+﻿package com.example.proyectoZapateria.ui.screen.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,11 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaConInfo
+import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.viewmodel.admin.VentasViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 import java.util.Calendar
 import java.util.TimeZone
@@ -65,7 +66,7 @@ fun AdminVentasScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Header con diseño
+        // Header con diseÃ±o
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -97,7 +98,7 @@ fun AdminVentasScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Gestión de ventas",
+                        text = "GestiÃ³n de ventas",
                         color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -105,7 +106,7 @@ fun AdminVentasScreen(
             }
         }
 
-        // Barra de búsqueda y filtros
+        // Barra de bÃºsqueda y filtros
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -116,12 +117,12 @@ fun AdminVentasScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Búsqueda
+                // BÃºsqueda
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.actualizarBusqueda(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar por cliente o número...") },
+                    placeholder = { Text("Buscar por cliente o nÃºmero...") },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = "Buscar")
                     },
@@ -296,7 +297,7 @@ fun AdminVentasScreen(
                         VentaCard(
                             venta = venta,
                             onClick = {
-                                navController.navigate(Route.VentaDetalle.createRoute(venta.id_boleta))
+                                navController.navigate(Route.VentaDetalle.createRoute(venta.id ?: 0))
                             }
                         )
                     }
@@ -313,7 +314,7 @@ fun AdminVentasScreen(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { utcMillis ->
-                            // Extraer año, mes y día del DatePicker (está en UTC)
+                            // Extraer aÃ±o, mes y dÃ­a del DatePicker (estÃ¡ en UTC)
                             val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                                 timeInMillis = utcMillis
                             }
@@ -354,7 +355,7 @@ fun AdminVentasScreen(
 
 @Composable
 fun VentaCard(
-    venta: BoletaVentaConInfo,
+    venta: BoletaDTO,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -375,21 +376,21 @@ fun VentaCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header: Número de boleta y estado
+            // Header: NÃºmero de boleta y estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Boleta #${venta.numero_boleta}",
+                    text = "Boleta #${venta.id}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.onSurface
                 )
 
                 Surface(
-                    color = when (venta.estado) {
+                    color = when (venta.estado.uppercase()) {
                         "COMPLETADA" -> colorScheme.primaryContainer
                         "CANCELADA" -> colorScheme.errorContainer
                         else -> colorScheme.surfaceVariant
@@ -397,9 +398,9 @@ fun VentaCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = venta.estado,
+                        text = venta.estado.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = when (venta.estado) {
+                        color = when (venta.estado.uppercase()) {
                             "COMPLETADA" -> colorScheme.onPrimaryContainer
                             "CANCELADA" -> colorScheme.onErrorContainer
                             else -> colorScheme.onSurfaceVariant
@@ -423,7 +424,7 @@ fun VentaCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = venta.nombre_cliente.firstOrNull()?.uppercase() ?: "?",
+                        text = "C",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = colorScheme.onPrimaryContainer
@@ -434,13 +435,13 @@ fun VentaCard(
 
                 Column {
                     Text(
-                        text = "${venta.nombre_cliente} ${venta.apellido_cliente}",
+                        text = "Cliente #${venta.clienteId}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                     Text(
-                        text = "Venta online",
+                        text = "Venta online - ${venta.metodoPago}",
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant
                     )
@@ -468,14 +469,19 @@ fun VentaCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = dateFormat.format(Date(venta.fecha)),
+                        text = try {
+                            val instant = Instant.parse(venta.fechaVenta)
+                            dateFormat.format(Date.from(instant))
+                        } catch (e: Exception) {
+                            venta.fechaVenta
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant
                     )
                 }
 
                 Text(
-                    text = currencyFormat.format(venta.monto_total),
+                    text = currencyFormat.format(venta.total),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.primary
@@ -484,4 +490,3 @@ fun VentaCard(
         }
     }
 }
-

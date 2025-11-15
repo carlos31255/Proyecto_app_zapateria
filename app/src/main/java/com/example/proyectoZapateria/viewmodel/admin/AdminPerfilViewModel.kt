@@ -2,9 +2,9 @@ package com.example.proyectoZapateria.viewmodel.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.local.persona.PersonaEntity
+import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
+import com.example.proyectoZapateria.data.repository.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.repository.AuthRepository
-import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.domain.validation.validateProfileEmail
 import com.example.proyectoZapateria.domain.validation.validateProfileName
 import com.example.proyectoZapateria.domain.validation.validateProfilePhone
@@ -31,7 +31,7 @@ data class AdminPerfilUiState(
 
 @HiltViewModel
 class AdminPerfilViewModel @Inject constructor(
-    private val personaRepository: PersonaRepository,
+    private val personaRemoteRepository: PersonaRemoteRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
@@ -57,7 +57,7 @@ class AdminPerfilViewModel @Inject constructor(
     val editCalle = _editCalle.asStateFlow()
     val editNumeroPuerta = _editNumeroPuerta.asStateFlow()
 
-    private var personaActual: PersonaEntity? = null
+    private var personaActual: PersonaDTO? = null
 
     init {
         cargarPerfil()
@@ -77,34 +77,43 @@ class AdminPerfilViewModel @Inject constructor(
                     return@launch
                 }
 
-                val persona = personaRepository.getPersonaById(currentUser.idPersona)
-                if (persona != null) {
-                    personaActual = persona
+                // Obtener persona desde API
+                val result = personaRemoteRepository.obtenerPersonaPorId(currentUser.idPersona)
+                if (result.isSuccess) {
+                    val persona = result.getOrNull()
+                    if (persona != null) {
+                        personaActual = persona
 
-                    _uiState.value = AdminPerfilUiState(
-                        nombre = persona.nombre,
-                        apellido = persona.apellido,
-                        rut = persona.rut,
-                        email = persona.email ?: "",
-                        telefono = persona.telefono ?: "",
-                        calle = persona.calle ?: "",
-                        numeroPuerta = persona.numeroPuerta ?: "",
-                        username = persona.username,
-                        rol = currentUser.nombreRol,
-                        isLoading = false
-                    )
+                        _uiState.value = AdminPerfilUiState(
+                            nombre = persona.nombre ?: "",
+                            apellido = persona.apellido ?: "",
+                            rut = persona.rut ?: "",
+                            email = persona.email ?: "",
+                            telefono = persona.telefono ?: "",
+                            calle = persona.calle ?: "",
+                            numeroPuerta = persona.numeroPuerta ?: "",
+                            username = persona.username ?: "",
+                            rol = currentUser.nombreRol,
+                            isLoading = false
+                        )
 
-                    // Poblar campos editables
-                    _editNombre.value = persona.nombre
-                    _editApellido.value = persona.apellido
-                    _editEmail.value = persona.email ?: ""
-                    _editTelefono.value = persona.telefono ?: ""
-                    _editCalle.value = persona.calle ?: ""
-                    _editNumeroPuerta.value = persona.numeroPuerta ?: ""
+                        // Poblar campos editables
+                        _editNombre.value = persona.nombre ?: ""
+                        _editApellido.value = persona.apellido ?: ""
+                        _editEmail.value = persona.email ?: ""
+                        _editTelefono.value = persona.telefono ?: ""
+                        _editCalle.value = persona.calle ?: ""
+                        _editNumeroPuerta.value = persona.numeroPuerta ?: ""
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "No se encontró información del usuario"
+                        )
+                    }
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "No se encontró información del usuario"
+                        error = "Error al obtener persona: ${result.exceptionOrNull()?.message}"
                     )
                 }
             } catch (e: Exception) {
@@ -123,8 +132,8 @@ class AdminPerfilViewModel @Inject constructor(
     fun cancelEdit() {
         // Restaurar valores originales
         personaActual?.let { p ->
-            _editNombre.value = p.nombre
-            _editApellido.value = p.apellido
+            _editNombre.value = p.nombre ?: ""
+            _editApellido.value = p.apellido ?: ""
             _editEmail.value = p.email ?: ""
             _editTelefono.value = p.telefono ?: ""
             _editCalle.value = p.calle ?: ""
@@ -189,21 +198,25 @@ class AdminPerfilViewModel @Inject constructor(
                 )
 
                 if (persona != null) {
-                    personaRepository.update(persona)
-                    personaActual = persona
+                    val result = personaRemoteRepository.actualizarPersona(persona.idPersona!!, persona)
+                    if (result.isSuccess) {
+                        personaActual = result.getOrNull()
 
-                    // Actualizar UI
-                    _uiState.value = _uiState.value.copy(
-                        nombre = persona.nombre,
-                        apellido = persona.apellido,
-                        email = persona.email ?: "",
-                        telefono = persona.telefono ?: "",
-                        calle = persona.calle ?: "",
-                        numeroPuerta = persona.numeroPuerta ?: ""
-                    )
+                        // Actualizar UI
+                        _uiState.value = _uiState.value.copy(
+                            nombre = persona.nombre ?: "",
+                            apellido = persona.apellido ?: "",
+                            email = persona.email ?: "",
+                            telefono = persona.telefono ?: "",
+                            calle = persona.calle ?: "",
+                            numeroPuerta = persona.numeroPuerta ?: ""
+                        )
 
-                    _isEditing.value = false
-                    callback(true, null)
+                        _isEditing.value = false
+                        callback(true, null)
+                    } else {
+                        callback(false, "Error al actualizar: ${result.exceptionOrNull()?.message}")
+                    }
                 } else {
                     callback(false, "Error: no se pudo actualizar")
                 }

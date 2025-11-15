@@ -38,6 +38,9 @@ interface BoletaVentaDao {
     @Query("UPDATE boletaventa SET estado = 'CANCELADA' WHERE id_boleta = :idBoleta")
     suspend fun cancelarBoleta(idBoleta: Int)
 
+    // TODO: Queries comentadas - usan JOIN con tablas cliente y persona que ya no existen localmente
+    // Cuando se implementen los microservicios, obtener estos datos combinados desde la API
+    /*
     // Obtener todas las boletas con información del cliente
     @Query("""
         SELECT 
@@ -72,12 +75,16 @@ interface BoletaVentaDao {
         ORDER BY b.fecha DESC
     """)
     suspend fun getBoletasByRangoFechas(fechaInicio: Long, fechaFin: Long): List<BoletaVentaConInfo>
+    */
 
     // Eliminar boleta por ID (para cancelar)
     @Query("DELETE FROM boletaventa WHERE id_boleta = :id")
     suspend fun deleteSync(id: Int)
 }
 
+// TODO: BoletaVentaConInfo comentado - usa datos de cliente y persona que ahora son remotos
+// Cuando se implementen los microservicios, obtener estos datos combinados desde la API
+/*
 data class BoletaVentaConInfo(
     val id_boleta: Int,
     val numero_boleta: String,
@@ -87,3 +94,4 @@ data class BoletaVentaConInfo(
     val nombre_cliente: String,
     val apellido_cliente: String
 )
+*/

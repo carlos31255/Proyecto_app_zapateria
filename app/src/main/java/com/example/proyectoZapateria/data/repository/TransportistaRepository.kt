@@ -1,22 +1,28 @@
 package com.example.proyectoZapateria.data.repository
 
-import com.example.proyectoZapateria.data.local.persona.PersonaDao
-import com.example.proyectoZapateria.data.local.transportista.TransportistaConPersona
+// TODO: Imports comentados - PersonaDao y TransportistaConPersona usan tabla persona que ahora es remota
+// import com.example.proyectoZapateria.data.local.persona.PersonaDao
+// import com.example.proyectoZapateria.data.local.transportista.TransportistaConPersona
 import com.example.proyectoZapateria.data.local.transportista.TransportistaDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
+// TransportistaRepository actualizado para NO depender de PersonaDao (ahora Persona es remota)
 class TransportistaRepository @Inject constructor(
-    private val transportistaDao: TransportistaDao,
-    private val personaDao: PersonaDao
+    private val transportistaDao: TransportistaDao
+    // TODO: PersonaDao comentado - ahora se usa PersonaRemoteRepository
+    // private val personaDao: PersonaDao
 ){
     // --- FUNCIONES PARA "MI PERFIL" ---
 
-    // Obtiene el perfil completo (con datos de Persona) de UN transportista
+    // TODO: getPerfilTransportista comentado - usa TransportistaConPersona que depende de tabla persona remota
+    // Cuando se implemente el microservicio de transportistas, obtener datos combinados desde la API
+    /*
     suspend fun getPerfilTransportista(id: Int): TransportistaConPersona? {
         return transportistaDao.getByIdConPersona(id)
     }
+    */
 
     // Obtiene solo la entidad 'Transportista' (licencia, vehiculo)
     suspend fun getTransportistaSimple(id: Int): TransportistaEntity? {
@@ -28,7 +34,9 @@ class TransportistaRepository @Inject constructor(
         transportistaDao.update(transportista)
     }
 
-    // Actualiza el perfil completo del transportista (datos de persona y transportista)
+    // TODO: actualizarPerfilTransportista comentado - usa PersonaDao que ya no existe localmente
+    // Cuando se implemente el microservicio, actualizar persona vía API y transportista localmente
+    /*
     suspend fun actualizarPerfilTransportista(
         idPersona: Int,
         nombre: String,
@@ -68,13 +76,16 @@ class TransportistaRepository @Inject constructor(
             false
         }
     }
+    */
 
     // --- FUNCIONES PARA ADMINISTRACIÓN ---
 
-    // Obtiene un Flow con la lista de TODOS los transportistas (con datos de Persona)
+    // TODO: getAllTransportistasConPersona comentado - usa TransportistaConPersona que depende de tabla persona remota
+    /*
     fun getAllTransportistasConPersona(): Flow<List<TransportistaConPersona>> {
         return transportistaDao.getAllConPersona()
     }
+    */
 
     // Inserta un nuevo transportista
     suspend fun insertTransportista(transportista: TransportistaEntity): Long {

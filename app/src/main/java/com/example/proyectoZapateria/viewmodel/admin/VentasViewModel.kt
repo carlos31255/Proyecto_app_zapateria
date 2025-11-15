@@ -1,27 +1,26 @@
-package com.example.proyectoZapateria.viewmodel.admin
+﻿package com.example.proyectoZapateria.viewmodel.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaConInfo
-import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
+import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
+import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class VentasViewModel @Inject constructor(
-    private val boletaVentaDao: BoletaVentaDao
+    private val ventasRepository: VentasRemoteRepository
 ) : ViewModel() {
 
-    private val _ventas = MutableStateFlow<List<BoletaVentaConInfo>>(emptyList())
-    val ventas: StateFlow<List<BoletaVentaConInfo>> = _ventas.asStateFlow()
+    private val _ventas = MutableStateFlow<List<BoletaDTO>>(emptyList())
+    val ventas: StateFlow<List<BoletaDTO>> = _ventas.asStateFlow()
 
-    private val _ventasFiltradas = MutableStateFlow<List<BoletaVentaConInfo>>(emptyList())
-    val ventasFiltradas: StateFlow<List<BoletaVentaConInfo>> = _ventasFiltradas.asStateFlow()
+    private val _ventasFiltradas = MutableStateFlow<List<BoletaDTO>>(emptyList())
+    val ventasFiltradas: StateFlow<List<BoletaDTO>> = _ventasFiltradas.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -46,11 +45,15 @@ class VentasViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                boletaVentaDao.getAllBoletasConInfo().collectLatest { ventas ->
-                    _ventas.value = ventas
+                val result = ventasRepository.obtenerTodasLasBoletas()
+
+                if (result.isSuccess) {
+                    _ventas.value = result.getOrNull() ?: emptyList()
                     aplicarFiltros()
-                    _isLoading.value = false
+                } else {
+                    _errorMessage.value = "Error al cargar ventas: ${result.exceptionOrNull()?.message}"
                 }
+                _isLoading.value = false
             } catch (e: Exception) {
                 _errorMessage.value = "Error al cargar ventas: ${e.message}"
                 _isLoading.value = false
@@ -72,25 +75,30 @@ class VentasViewModel @Inject constructor(
         val query = _searchQuery.value.lowercase().trim()
         val fechaSeleccionada = _fechaFiltro.value
 
-        _ventasFiltradas.value = _ventas.value.filter { venta ->
-            // Filtro por búsqueda de texto
+        _ventasFiltradas.value = _ventas.value.filter { boleta ->
             val coincideTexto = if (query.isEmpty()) {
                 true
             } else {
-                val nombreCompleto = "${venta.nombre_cliente} ${venta.apellido_cliente}".lowercase()
-                nombreCompleto.contains(query) ||
-                        venta.numero_boleta.lowercase().contains(query) ||
-                        venta.estado.lowercase().contains(query)
+                boleta.id.toString().contains(query) ||
+                boleta.estado.lowercase().contains(query) ||
+                boleta.metodoPago.lowercase().contains(query)
             }
 
-            // Filtro por fecha
             val coincideFecha = if (fechaSeleccionada != null) {
-                esMismaFecha(venta.fecha, fechaSeleccionada)
+                esMismaFecha(parseFecha(boleta.fechaVenta), fechaSeleccionada)
             } else {
                 true
             }
 
             coincideTexto && coincideFecha
+        }
+    }
+
+    private fun parseFecha(fechaStr: String): Long {
+        return try {
+            java.time.Instant.parse(fechaStr).toEpochMilli()
+        } catch (e: Exception) {
+            0L
         }
     }
 
@@ -110,8 +118,14 @@ class VentasViewModel @Inject constructor(
     fun cancelarVenta(idBoleta: Int) {
         viewModelScope.launch {
             try {
-                boletaVentaDao.cancelarBoleta(idBoleta)
-                _successMessage.value = "Venta cancelada exitosamente"
+                val result = ventasRepository.cambiarEstadoBoleta(idBoleta, "CANCELADA")
+
+                if (result.isSuccess) {
+                    _successMessage.value = "Venta cancelada exitosamente"
+                    cargarVentas()
+                } else {
+                    _errorMessage.value = "Error al cancelar venta: ${result.exceptionOrNull()?.message}"
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "Error al cancelar venta: ${e.message}"
             }
@@ -127,6 +141,10 @@ class VentasViewModel @Inject constructor(
         _searchQuery.value = ""
         _fechaFiltro.value = null
         aplicarFiltros()
+    }
+
+    fun recargarVentas() {
+        cargarVentas()
     }
 }
 

@@ -1,5 +1,9 @@
 package com.example.proyectoZapateria.viewmodel.transportista
 
+// TODO: Archivo comentado temporalmente - usa EntregaConDetalles que depende de tablas locales eliminadas
+// Descomentar cuando se implemente el microservicio de entregas/transportistas
+
+/*
 import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
 import com.example.proyectoZapateria.data.local.entrega.EntregaConDetalles
 
@@ -33,26 +37,11 @@ data class TransportistaEntregasUiState (
     // El conteo de entregas completadas
     val completadasCount: Int = 0,
 
-    // true mientras se cargan los datos por primera vez
-    val isLoading: Boolean = true,
-
-    // Contiene cualquier mensaje de error si la carga falla
-    val error: String? = null
-)
-
-data class TransportistaPerfilUiState(
-    val nombre: String = "",
-    val email: String = "",
-    val telefono: String = "",
-    val totalEntregas: Int = 0,
-    val entregasCompletadas: Int = 0,
-    val entregasPendientes: Int = 0,
-    //placeholder
-    val licencia: String = "...",
-    val vehiculo: String = "...",
+    // El conteo de entregas en envío
+    val enEnvioCount: Int = 0,
 
     val isLoading: Boolean = true,
     val error: String? = null
 )
-
+*/
 

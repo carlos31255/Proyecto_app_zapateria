@@ -35,9 +35,12 @@ data class PersonaDTO(
     val username: String?,
 
     @SerializedName("fechaRegistro")
-    val fechaRegistro: Long?, //Lo dejamos en long, porque reprsenta fecha en milisegundos
+    val fechaRegistro: Long?, //Lo dejamos en long, porque representa fecha en milisegundos
 
     @SerializedName("estado")
-    val estado: String?
+    val estado: String?,
+
+    @SerializedName("password")
+    val password: String? = null // Opcional, solo para registro
 )
 

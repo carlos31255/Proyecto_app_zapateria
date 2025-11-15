@@ -1,3 +1,6 @@
+// TODO: Pantalla comentada temporalmente - ClienteCartViewModel usa entidades locales (CartItemEntity, etc.)
+// Descomentar cuando se migre el carrito a usar microservicios
+/*
 package com.example.proyectoZapateria.ui.screen.cliente
 
 import androidx.compose.foundation.Image
@@ -344,3 +347,4 @@ fun ClienteCartScreen(
         }
     }
 }
+*/

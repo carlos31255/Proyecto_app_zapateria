@@ -1,32 +1,27 @@
 package com.example.proyectoZapateria.di
 
 import android.content.Context
+import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
 import com.example.proyectoZapateria.data.local.database.AppDatabase
 import com.example.proyectoZapateria.data.local.detalleboleta.DetalleBoletaDao
 import com.example.proyectoZapateria.data.local.entrega.EntregaDao
 import com.example.proyectoZapateria.data.local.inventario.InventarioDao
-import com.example.proyectoZapateria.data.local.persona.PersonaDao
 import com.example.proyectoZapateria.data.local.talla.TallaDao
-import com.example.proyectoZapateria.data.local.usuario.UsuarioDao
 import com.example.proyectoZapateria.data.local.marca.MarcaDao
 import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoDao
 import com.example.proyectoZapateria.data.local.transportista.TransportistaDao
 import com.example.proyectoZapateria.data.local.cart.CartDao
 import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.CartRepository
-import com.example.proyectoZapateria.data.repository.ClienteRepository
-import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.repository.DetalleBoletaRepository
-import com.example.proyectoZapateria.data.repository.EntregaRepository
 import com.example.proyectoZapateria.data.repository.InventarioRepository
 import com.example.proyectoZapateria.data.repository.MarcaRepository
 import com.example.proyectoZapateria.data.repository.ModeloZapatoRepository
-import com.example.proyectoZapateria.data.repository.PersonaRepository
 import com.example.proyectoZapateria.data.repository.ProductoRepository
 import com.example.proyectoZapateria.data.repository.TallaRepository
 import com.example.proyectoZapateria.data.repository.TransportistaRepository
-import com.example.proyectoZapateria.data.repository.UsuarioRepository
-import com.example.proyectoZapateria.data.remote.usuario.UsuarioApiService
+import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.remote.usuario.ClienteApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,19 +43,6 @@ object AppModule {
 
     // ========== DAOs ==========
 
-    // Provee el PersonaDao
-    @Provides
-    @Singleton
-    fun providePersonaDao(database: AppDatabase): PersonaDao {
-        return database.personaDao()
-    }
-
-    // Provee el UsuarioDao
-    @Provides
-    @Singleton
-    fun provideUsuarioDao(database: AppDatabase): UsuarioDao {
-        return database.usuarioDao()
-    }
 
     // Provee el EntregaDao
     @Provides
@@ -93,7 +75,7 @@ object AppModule {
     // Provee el TallaDao
     @Provides
     @Singleton
-    fun provideTallaDao(database: AppDatabase): com.example.proyectoZapateria.data.local.talla.TallaDao {
+    fun provideTallaDao(database: AppDatabase): TallaDao {
         return database.tallaDao()
     }
 
@@ -107,14 +89,14 @@ object AppModule {
     // Provee el InventarioDao
     @Provides
     @Singleton
-    fun provideInventarioDao(database: AppDatabase): com.example.proyectoZapateria.data.local.inventario.InventarioDao {
+    fun provideInventarioDao(database: AppDatabase): InventarioDao {
         return database.inventarioDao()
     }
 
     // Provee el BoletaVentaDao
     @Provides
     @Singleton
-    fun provideBoletaVentaDao(database: AppDatabase): com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao {
+    fun provideBoletaVentaDao(database: AppDatabase): BoletaVentaDao {
         return database.boletaVentaDao()
     }
 
@@ -125,13 +107,6 @@ object AppModule {
         return database.cartDao()
     }
 
-    // Provee el RolDao
-    @Provides
-    @Singleton
-    fun provideRolDao(database: AppDatabase): com.example.proyectoZapateria.data.local.rol.RolDao {
-        return database.rolDao()
-    }
-
     // ========== Preferences ==========
 
     // NOTE: SessionPreferences tiene un constructor @Inject con @ApplicationContext,
@@ -140,36 +115,17 @@ object AppModule {
 
     // ========== Repositories ==========
 
-    // Provee el PersonaRepository
-    @Provides
-    @Singleton
-    fun providePersonaRepository(personaDao: PersonaDao): PersonaRepository {
-        return PersonaRepository(personaDao)
-    }
-
-    // Provee el UsuarioRepository
-    @Provides
-    @Singleton
-    fun provideUsuarioRepository(usuarioDao: UsuarioDao): UsuarioRepository {
-        return UsuarioRepository(usuarioDao)
-    }
-
-    // Provee el AuthRepository
+    // Provee el AuthRepository (ahora usa remoto)
     @Provides
     @Singleton
     fun provideAuthRepository(
-        personaDao: PersonaDao,
-        usuarioDao: UsuarioDao
+        personaRemoteRepository: com.example.proyectoZapateria.data.repository.PersonaRemoteRepository,
+        usuarioRemoteRepository: com.example.proyectoZapateria.data.repository.UsuarioRemoteRepository,
+        rolRemoteRepository: com.example.proyectoZapateria.data.repository.RolRemoteRepository
     ): AuthRepository {
-        return AuthRepository(personaDao, usuarioDao)
+        return AuthRepository(personaRemoteRepository, usuarioRemoteRepository, rolRemoteRepository)
     }
 
-    // Provee el EntregaRepository
-    @Provides
-    @Singleton
-    fun provideEntregaRepository(entregaDao: EntregaDao): EntregaRepository {
-        return EntregaRepository(entregaDao)
-    }
 
 
     // Provee el DetalleBoletaRepository
@@ -177,7 +133,7 @@ object AppModule {
     @Singleton
     fun provideDetalleBoletaRepository(
         detalleBoletaDao: DetalleBoletaDao,
-        boletaVentaDao: com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
+        boletaVentaDao: BoletaVentaDao
     ): DetalleBoletaRepository {
         return DetalleBoletaRepository(detalleBoletaDao, boletaVentaDao)
     }
@@ -219,10 +175,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideTransportistaRepository(
-        transportistaDao: TransportistaDao,
-        personaDao: PersonaDao
+        transportistaDao: TransportistaDao
     ): TransportistaRepository {
-        return TransportistaRepository(transportistaDao, personaDao)
+        return TransportistaRepository(transportistaDao)
     }
 
     // Provee el InventarioRepository
@@ -232,12 +187,6 @@ object AppModule {
         return InventarioRepository(inventarioDao)
     }
 
-    // Provee el ClienteRepository (usar AppDatabase para evitar problemas de binding directo de ClienteDao)
-    @Provides
-    @Singleton
-    fun provideClienteRepository(database: AppDatabase): ClienteRepository {
-        return ClienteRepository(database.clienteDao())
-    }
 
     // Provee el CartRepository
     @Provides
@@ -246,19 +195,12 @@ object AppModule {
         return CartRepository(cartDao, inventarioRepository, tallaRepository)
     }
 
-    // Provee el RolRepository
-    @Provides
-    @Singleton
-    fun provideRolRepository(rolDao: com.example.proyectoZapateria.data.local.rol.RolDao): com.example.proyectoZapateria.data.repository.RolRepository {
-        return com.example.proyectoZapateria.data.repository.RolRepository(rolDao)
-    }
-
     // ========== Remote Repositories ==========
 
     // Provee el ClienteRemoteRepository (usa microservicio REST en lugar de SQLite)
     @Provides
     @Singleton
-    fun provideClienteRemoteRepository(apiService: UsuarioApiService): ClienteRemoteRepository {
-        return ClienteRemoteRepository(apiService)
+    fun provideClienteRemoteRepository(clienteApiService: ClienteApiService): ClienteRemoteRepository {
+        return ClienteRemoteRepository(clienteApiService)
     }
 }

@@ -39,7 +39,10 @@ interface TransportistaDao {
     suspend fun deleteAll()
 
     // === Consultas con JOIN a Persona ===
+    // TODO: Queries comentadas - usan JOIN con tabla persona que ya no existe localmente
+    // Cuando se implemente el microservicio de transportistas, obtener estos datos desde la API
 
+    /*
     // Obtener transportista específico con datos de persona
     @Query("""
         SELECT t.id_persona as idPersona, p.nombre, p.apellido, p.rut,
@@ -86,5 +89,6 @@ interface TransportistaDao {
         ORDER BY p.nombre ASC, p.apellido ASC
     """)
     fun getByEstadoConPersona(estado: String): Flow<List<TransportistaConPersona>>
+    */
 }
 

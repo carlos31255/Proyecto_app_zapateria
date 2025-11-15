@@ -2,28 +2,13 @@ package com.example.proyectoZapateria.data.local.boletaventa
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.proyectoZapateria.data.local.cliente.ClienteEntity
-import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
 
+// BoletaVentaEntity ahora no tiene foreign keys a Usuario y Cliente porque son tablas remotas
+// idVendedor e idCliente se mantienen como referencias lógicas al microservicio de usuarios
 @Entity(
     tableName = "boletaventa",
-    foreignKeys = [
-        ForeignKey(
-            entity = UsuarioEntity::class,
-            parentColumns = ["id_persona"],
-            childColumns = ["id_vendedor"],
-            onDelete = ForeignKey.SET_NULL
-        ),
-        ForeignKey(
-            entity = ClienteEntity::class,
-            parentColumns = ["id_persona"],
-            childColumns = ["id_cliente"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [
         Index(value = ["id_vendedor"]),
         Index(value = ["id_cliente"]),

@@ -1,4 +1,4 @@
-package com.example.proyectoZapateria.ui.screen.transportista
+﻿package com.example.proyectoZapateria.ui.screen.transportista
 
 import android.content.Intent
 import android.net.Uri
@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.example.proyectoZapateria.data.local.entrega.EntregaConDetalles
+import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.viewmodel.transportista.TransportistaEntregasViewModel
 
@@ -50,7 +50,7 @@ fun TransportistaEntregasScreen(
             .fillMaxSize()
             .padding(start = 16.dp, end = 16.dp)
     ) {
-        // Botón de regreso dentro de un círculo (igual que en ConfirmarEntregaScreen)
+        // BotÃ³n de regreso dentro de un cÃ­rculo (igual que en ConfirmarEntregaScreen)
         Surface(
             shape = androidx.compose.foundation.shape.CircleShape,
             color = colorScheme.primaryContainer,
@@ -68,7 +68,7 @@ fun TransportistaEntregasScreen(
             }
         }
 
-        // Título principal
+        // TÃ­tulo principal
         Text(
             text = "Mis Entregas",
             style = MaterialTheme.typography.headlineMedium,
@@ -91,7 +91,7 @@ fun TransportistaEntregasScreen(
                     .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                //  Usamos los datos dinámicos del uiState
+                //  Usamos los datos dinÃ¡micos del uiState
                 ResumenCard(
                     icon = Icons.Default.Schedule,
                     titulo = "Pendientes",
@@ -114,7 +114,7 @@ fun TransportistaEntregasScreen(
                 modifier = Modifier.padding(vertical = 12.dp)
             )
 
-            // Manejamos los 3 estados: Carga, Vacío y Datos
+            // Manejamos los 3 estados: Carga, VacÃ­o y Datos
             when {
                 // --- ESTADO DE CARGA ---
                 uiState.isLoading -> {
@@ -140,7 +140,7 @@ fun TransportistaEntregasScreen(
                     )
                 }
 
-                // --- ESTADO VACÍO ---
+                // --- ESTADO VACÃO ---
                 uiState.entregas.isEmpty() -> {
                     Text(
                         text = "No tienes entregas asignadas por ahora.",
@@ -159,13 +159,13 @@ fun TransportistaEntregasScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Usamos la lista de entregas del uiState
-                        items(uiState.entregas, key = { it.idEntrega }) { entrega ->
+                        items(uiState.entregas, key = { it.idEntrega ?: 0 }) { entrega ->
                             EntregaCard(
                                 entrega = entrega,
                                 onClick = {
                                     //  Navegamos a confirmar/completar entrega al hacer click
                                     navController.navigate(
-                                        Route.TransportistaConfirmarEntrega.path.replace("{idEntrega}", entrega.idEntrega.toString())
+                                        Route.TransportistaConfirmarEntrega.path.replace("{idEntrega}", (entrega.idEntrega ?: 0).toString())
                                     )
                                 }
                             )
@@ -177,7 +177,7 @@ fun TransportistaEntregasScreen(
     }
 
 
-// (Composable auxiliar para no duplicar código en las tarjetas de resumen)
+// (Composable auxiliar para no duplicar cÃ³digo en las tarjetas de resumen)
 @Composable
 fun RowScope.ResumenCard(
     icon: ImageVector,
@@ -224,7 +224,7 @@ fun RowScope.ResumenCard(
 
 @Composable
 fun EntregaCard(
-    entrega: EntregaConDetalles,
+    entrega: EntregaDTO,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -261,20 +261,20 @@ fun EntregaCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = entrega.getNumeroOrdenFormateado(),
+                        text = entrega.numeroBoleta ?: "Orden #${entrega.idBoleta}",
                         style = MaterialTheme.typography.titleMedium,
                         color = colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = entrega.clienteNombre,
+                        text = entrega.nombreCliente ?: "Cliente #${entrega.idBoleta}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = entrega.getDireccionCompleta(),
+                        text = entrega.direccionEntrega ?: "Sin dirección",
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -282,7 +282,7 @@ fun EntregaCard(
 
                 // Estado
                 Surface(
-                    color = if (entrega.estadoEntrega == "pendiente")
+                    color = if (entrega.estadoEntrega.lowercase() == "pendiente")
                         colorScheme.secondaryContainer
                     else
                         colorScheme.tertiaryContainer,
@@ -291,7 +291,7 @@ fun EntregaCard(
                     Text(
                         text = entrega.estadoEntrega.replaceFirstChar { it.titlecase() },
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (entrega.estadoEntrega == "pendiente")
+                        color = if (entrega.estadoEntrega.lowercase() == "pendiente")
                             colorScheme.onSecondaryContainer
                         else
                             colorScheme.onTertiaryContainer,
@@ -305,19 +305,15 @@ fun EntregaCard(
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
                 onClick = {
-                    // Construir la dirección completa
-                    val direccion = entrega.getDireccionCompleta()
+                    val direccion = entrega.direccionEntrega ?: "Sin dirección"
 
-                    // Crear intent para abrir Google Maps
                     val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(direccion)}")
                     val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                     mapIntent.setPackage("com.google.android.apps.maps")
 
-                    // Verificar si Google Maps está instalado
                     if (mapIntent.resolveActivity(context.packageManager) != null) {
                         context.startActivity(mapIntent)
                     } else {
-                        // Si no está instalado, abrir en el navegador
                         val browserIntent = Intent(
                             Intent.ACTION_VIEW,
                             Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(direccion)}")
@@ -341,3 +337,4 @@ fun EntregaCard(
         }
     }
 }
+

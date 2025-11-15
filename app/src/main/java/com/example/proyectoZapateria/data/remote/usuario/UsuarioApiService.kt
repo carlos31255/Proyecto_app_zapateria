@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.data.remote.usuario
 
-import com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO
 import com.example.proyectoZapateria.data.remote.usuario.dto.UsuarioDTO
 import retrofit2.Response
 import retrofit2.http.*
@@ -8,37 +7,34 @@ import retrofit2.http.*
 interface UsuarioApiService {
 
     // ========== ENDPOINTS DE USUARIOS ==========
-    @GET("api/usuarios/{id}")
-    suspend fun getUsuario(@Path("id") id: String): UsuarioDTO
 
-    // ========== ENDPOINTS DE CLIENTES ==========
+    // Obtener todos los usuarios
+    @GET("api/usuarios")
+    suspend fun obtenerTodosLosUsuarios(): List<UsuarioDTO>
 
-    // Obtener todos los clientes
-    @GET("api/clientes")
-    suspend fun obtenerTodosLosClientes(): List<ClienteDTO>
+    // Obtener usuario por ID de persona
+    @GET("api/usuarios/{idPersona}")
+    suspend fun obtenerUsuarioPorId(@Path("idPersona") idPersona: Int): Response<UsuarioDTO>
 
-    // Obtener cliente por ID de persona
-    @GET("api/clientes/{idPersona}")
-    suspend fun obtenerClientePorId(@Path("idPersona") idPersona: Int): Response<ClienteDTO>
+    // Obtener usuarios por rol
+    @GET("api/usuarios/rol/{idRol}")
+    suspend fun obtenerUsuariosPorRol(@Path("idRol") idRol: Int): List<UsuarioDTO>
 
-    // Obtener clientes por categoría (VIP, premium, regular)
-    @GET("api/clientes/categoria/{categoria}")
-    suspend fun obtenerClientesPorCategoria(@Path("categoria") categoria: String): List<ClienteDTO>
+    // Crear nuevo usuario
+    @POST("api/usuarios")
+    suspend fun crearUsuario(@Body usuarioDTO: UsuarioDTO): Response<UsuarioDTO>
 
-    // Crear nuevo cliente
-    @POST("api/clientes")
-    suspend fun crearCliente(@Body clienteDTO: ClienteDTO): Response<ClienteDTO>
-
-    // Actualizar categoría de cliente
-    @PUT("api/clientes/{idPersona}/categoria")
-    suspend fun actualizarCategoria(
+    // Actualizar rol de usuario
+    @PUT("api/usuarios/{idPersona}/rol")
+    suspend fun actualizarRolUsuario(
         @Path("idPersona") idPersona: Int,
-        @Query("nuevaCategoria") nuevaCategoria: String
-    ): Response<ClienteDTO>
+        @Query("nuevoIdRol") nuevoIdRol: Int
+    ): Response<UsuarioDTO>
 
-    // Eliminar cliente (solo elimina info de cliente, no la persona)
-    @DELETE("api/clientes/{idPersona}")
-    suspend fun eliminarCliente(@Path("idPersona") idPersona: Int): Response<Void>
+    // Desactivar usuario (borrado lógico - marca como inactivo)
+    @DELETE("api/usuarios/{idPersona}")
+    suspend fun eliminarUsuario(@Path("idPersona") idPersona: Int): Response<Void>
+
 
 }
 

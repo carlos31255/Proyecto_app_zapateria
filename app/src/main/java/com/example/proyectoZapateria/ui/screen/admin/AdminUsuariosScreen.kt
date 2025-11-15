@@ -3,7 +3,6 @@ package com.example.proyectoZapateria.ui.screen.admin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
+import com.example.proyectoZapateria.data.remote.usuario.dto.UsuarioDTO
 import com.example.proyectoZapateria.viewmodel.UsuarioViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +33,7 @@ fun AdminUsuariosScreen(
     val successMessage by viewModel.successMessage.collectAsStateWithLifecycle()
 
     var showCrearDialog by remember { mutableStateOf(false) }
-    var usuarioAEliminar by remember { mutableStateOf<UsuarioConPersonaYRol?>(null) }
+    var usuarioAEliminar by remember { mutableStateOf<UsuarioDTO?>(null) }
 
     val colorScheme = MaterialTheme.colorScheme
 
@@ -69,7 +68,7 @@ fun AdminUsuariosScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                        shape = CircleShape,
                         color = colorScheme.primaryContainer,
                         tonalElevation = 2.dp
                     ) {
@@ -226,7 +225,8 @@ fun AdminUsuariosScreen(
                             )
                         }
 
-                        items(usuariosFiltrados) { usuario ->
+                        items(usuariosFiltrados.size) { index ->
+                            val usuario = usuariosFiltrados[index]
                             UsuarioCard(
                                 usuario = usuario,
                                 onEliminar = { usuarioAEliminar = it }
@@ -266,7 +266,7 @@ fun AdminUsuariosScreen(
             onDismissRequest = { usuarioAEliminar = null },
             title = { Text("Desactivar Usuario") },
             text = {
-                Text("¿Está seguro de desactivar al usuario ${usuarioAEliminar!!.nombre} ${usuarioAEliminar!!.apellido}? El usuario no podrá iniciar sesión hasta que sea reactivado.")
+                Text("¿Está seguro de desactivar al usuario ${usuarioAEliminar!!.nombreCompleto ?: "este usuario"}? El usuario no podrá iniciar sesión hasta que sea reactivado.")
             },
             confirmButton = {
                 TextButton(
@@ -289,8 +289,8 @@ fun AdminUsuariosScreen(
 
 @Composable
 fun UsuarioCard(
-    usuario: UsuarioConPersonaYRol,
-    onEliminar: (UsuarioConPersonaYRol) -> Unit
+    usuario: UsuarioDTO,
+    onEliminar: (UsuarioDTO) -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
 
@@ -316,7 +316,7 @@ fun UsuarioCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = usuario.nombre.firstOrNull()?.uppercase() ?: "?",
+                    text = usuario.nombreCompleto?.firstOrNull()?.uppercase() ?: "?",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.onPrimaryContainer
@@ -328,7 +328,7 @@ fun UsuarioCard(
             // Información
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${usuario.nombre} ${usuario.apellido}",
+                    text = usuario.nombreCompleto ?: "Sin nombre",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.onSurface
@@ -340,37 +340,17 @@ fun UsuarioCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Badge,
+                        Icons.Default.AccountCircle,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = usuario.rut,
+                        text = usuario.username ?: "Sin username",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colorScheme.onSurfaceVariant
                     )
-                }
-
-                if (usuario.email != null) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Email,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = usuario.email,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -385,7 +365,7 @@ fun UsuarioCard(
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
-                        text = usuario.nombreRol,
+                        text = usuario.nombreRol ?: "Sin rol",
                         style = MaterialTheme.typography.labelSmall,
                         color = when (usuario.nombreRol) {
                             "Administrador" -> colorScheme.onErrorContainer

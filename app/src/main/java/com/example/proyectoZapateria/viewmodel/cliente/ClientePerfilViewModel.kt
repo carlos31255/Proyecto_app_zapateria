@@ -3,13 +3,11 @@ package com.example.proyectoZapateria.viewmodel.cliente
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.repository.AuthRepository
-import com.example.proyectoZapateria.data.repository.ClienteRepository
-import com.example.proyectoZapateria.data.repository.PersonaRepository
-import com.example.proyectoZapateria.data.repository.UsuarioRepository
+import com.example.proyectoZapateria.data.repository.PersonaRemoteRepository
+import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
-import com.example.proyectoZapateria.data.local.persona.PersonaEntity
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
-import com.example.proyectoZapateria.domain.validation.validateEmail
+import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
 import com.example.proyectoZapateria.domain.validation.validateProfileEmail
 import com.example.proyectoZapateria.domain.validation.validateProfileName
 import com.example.proyectoZapateria.domain.validation.validateProfilePhone
@@ -25,10 +23,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ClientePerfilViewModel @Inject constructor(
-    private val clienteRepository: ClienteRepository,
-    private val personaRepository: PersonaRepository,
+    private val clienteRemoteRepository: ClienteRemoteRepository,
+    private val personaRemoteRepository: PersonaRemoteRepository,
     private val authRepository: AuthRepository,
-    private val usuarioRepository: UsuarioRepository,
     private val boletaVentaDao: BoletaVentaDao,
     private val sessionPreferences: SessionPreferences
 ) : ViewModel() {
@@ -54,7 +51,7 @@ class ClientePerfilViewModel @Inject constructor(
     val editCalle = _editCalle.asStateFlow()
     val editNumeroPuerta = _editNumeroPuerta.asStateFlow()
 
-    private var personaActual: PersonaEntity? = null
+    private var personaActual: PersonaDTO? = null
 
     init {
         cargarPerfil()
@@ -72,34 +69,44 @@ class ClientePerfilViewModel @Inject constructor(
                 }
 
                 val idPersona = currentUser.idPersona
-                val cliente = clienteRepository.getByIdConPersona(idPersona)
-                if (cliente != null) {
-                    // Estadísticas: contar boletas del cliente
-                    val boletas = boletaVentaDao.getByCliente(idPersona).first()
-                    val total = boletas.size
 
-                    _uiState.value = ClientePerfilUiState(
-                        nombre = cliente.getNombreCompleto(),
-                        email = cliente.email ?: "",
-                        telefono = cliente.telefono ?: "",
-                        categoria = cliente.categoria ?: "",
-                        calle = cliente.calle ?: "",
-                        numeroPuerta = cliente.numeroPuerta ?: "",
-                        totalPedidos = total,
-                        isLoading = false
-                    )
-                    // Guardar personaActual y poblar campos editables
-                    personaActual = personaRepository.getPersonaById(idPersona)
-                    personaActual?.let { p ->
-                        _editNombre.value = p.nombre
-                        _editApellido.value = p.apellido
-                        _editEmail.value = p.email ?: ""
-                        _editTelefono.value = p.telefono ?: ""
-                        _editCalle.value = p.calle ?: ""
-                        _editNumeroPuerta.value = p.numeroPuerta ?: ""
+                // Obtener datos del cliente desde API remota
+                val clienteResult = clienteRemoteRepository.obtenerClientePorId(idPersona)
+                val personaResult = personaRemoteRepository.obtenerPersonaPorId(idPersona)
+
+                if (clienteResult.isSuccess && personaResult.isSuccess) {
+                    val cliente = clienteResult.getOrNull()
+                    val persona = personaResult.getOrNull()
+
+                    if (cliente != null && persona != null) {
+                        // Estadísticas: contar boletas del cliente
+                        val boletas = boletaVentaDao.getByCliente(idPersona).first()
+                        val total = boletas.size
+
+                        _uiState.value = ClientePerfilUiState(
+                            nombre = cliente.nombreCompleto ?: "",
+                            email = cliente.email ?: "",
+                            telefono = cliente.telefono ?: "",
+                            categoria = cliente.categoria ?: "",
+                            calle = persona.calle ?: "",
+                            numeroPuerta = persona.numeroPuerta ?: "",
+                            totalPedidos = total,
+                            isLoading = false
+                        )
+
+                        // Poblar campos editables
+                        personaActual = persona
+                        _editNombre.value = persona.nombre ?: ""
+                        _editApellido.value = persona.apellido ?: ""
+                        _editEmail.value = persona.email ?: ""
+                        _editTelefono.value = persona.telefono ?: ""
+                        _editCalle.value = persona.calle ?: ""
+                        _editNumeroPuerta.value = persona.numeroPuerta ?: ""
+                    } else {
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = "No se encontró información del cliente o persona")
                     }
                 } else {
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = "No hay información de cliente")
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Error al obtener datos del cliente")
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message ?: "Error desconocido")
@@ -117,8 +124,8 @@ class ClientePerfilViewModel @Inject constructor(
     fun cancelEdit() {
         // restaurar valores desde personaActual
         personaActual?.let { p ->
-            _editNombre.value = p.nombre
-            _editApellido.value = p.apellido
+            _editNombre.value = p.nombre ?: ""
+            _editApellido.value = p.apellido ?: ""
             _editEmail.value = p.email ?: ""
             _editTelefono.value = p.telefono ?: ""
             _editCalle.value = p.calle ?: ""
@@ -136,7 +143,7 @@ class ClientePerfilViewModel @Inject constructor(
         numeroPuerta?.let { _editNumeroPuerta.value = it }
     }
 
-    // Guardar cambios en PersonaEntity
+    // Guardar cambios en PersonaDTO usando API remota
     fun guardarCambios(onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch {
             try {
@@ -147,7 +154,7 @@ class ClientePerfilViewModel @Inject constructor(
                 }
 
                 val emailVal = _editEmail.value.trim()
-                val nuevoUsername = if (emailVal.isNotBlank()) emailVal else persona.username
+                val nuevoUsername = if (emailVal.isNotBlank()) emailVal else (persona.username ?: "")
 
                 val actualizado = persona.copy(
                     nombre = _editNombre.value.trim(),
@@ -167,11 +174,7 @@ class ClientePerfilViewModel @Inject constructor(
                 if (emailVal.isNotBlank()) {
                     val emailErr = validateProfileEmail(emailVal)
                     if (emailErr != null) { onResult(false, emailErr); return@launch }
-                    // comprobar unicidad si cambió
-                    if (emailVal != persona.email) {
-                        val existeEmail = personaRepository.existeEmail(emailVal)
-                        if (existeEmail) { onResult(false, "El email ya está registrado"); return@launch }
-                    }
+                    // Validación de email único lo debe hacer el backend
                 }
 
                 val telefonoVal = _editTelefono.value.trim()
@@ -191,14 +194,15 @@ class ClientePerfilViewModel @Inject constructor(
                     if (numeroPuertaErr != null) { onResult(false, numeroPuertaErr); return@launch }
                 }
 
-                val res = personaRepository.updatePersona(actualizado)
+                // Actualizar persona en el API remota
+                val res = personaRemoteRepository.actualizarPersona(persona.idPersona ?: 0, actualizado)
                 if (res.isSuccess) {
-                    // actualizar sesión si el usuario visible cambió (nombre/email)
+                    // Actualizar sesión si el usuario visible cambió (nombre/email)
                     val current = authRepository.currentUser.value
                     if (current != null && current.idPersona == persona.idPersona) {
-                        // reconstruir UsuarioConPersonaYRol desde UsuarioRepository y setearlo
-                        val nuevoUsuario = usuarioRepository.getUsuarioCompletoById(persona.idPersona)
-                        if (nuevoUsuario != null) {
+                        // Obtener usuario actualizado desde API
+                        val usuarioActualizadoResult = authRepository.obtenerUsuarioPorId(persona.idPersona ?: 0)
+                        usuarioActualizadoResult.onSuccess { nuevoUsuario ->
                             authRepository.setCurrentUser(nuevoUsuario)
                             // Actualizar DataStore/sessionPreferences con el nuevo username si cambió
                             try {

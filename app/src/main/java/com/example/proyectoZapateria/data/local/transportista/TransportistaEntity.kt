@@ -2,23 +2,11 @@ package com.example.proyectoZapateria.data.local.transportista
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.proyectoZapateria.data.local.persona.PersonaEntity
 
-@Entity(
-    tableName = "transportista",
-    foreignKeys = [
-        ForeignKey(
-            entity = PersonaEntity::class,
-            parentColumns = ["id_persona"],
-            childColumns = ["id_persona"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [Index(value = ["id_persona"], unique = true)]
-)
+// TransportistaEntity ahora no tiene foreign key a Persona porque Persona es una tabla remota
+// idPersona se mantiene como referencia lógica al microservicio de usuarios
+@Entity(tableName = "transportista")
 data class TransportistaEntity(
     @PrimaryKey
     @ColumnInfo(name = "id_persona")

@@ -1,4 +1,4 @@
-package com.example.proyectoZapateria.ui.screen.admin
+﻿package com.example.proyectoZapateria.ui.screen.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,10 +18,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
+import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
 import com.example.proyectoZapateria.viewmodel.admin.VentaDetalleViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +40,6 @@ fun VentaDetalleScreen(
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
-    // Manejar mensaje de éxito y navegar de regreso
     LaunchedEffect(successMessage) {
         if (successMessage != null) {
             kotlinx.coroutines.delay(1500)
@@ -91,7 +91,6 @@ fun VentaDetalleScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header con información de la boleta
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -113,14 +112,14 @@ fun VentaDetalleScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "Boleta #${uiState.boleta!!.numeroBoleta}",
+                                text = "Boleta #${uiState.boleta!!.id}",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = colorScheme.onPrimaryContainer
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Surface(
-                                color = when (uiState.boleta!!.estado) {
+                                color = when (uiState.boleta!!.estado.uppercase()) {
                                     "COMPLETADA" -> colorScheme.primary
                                     "CANCELADA" -> colorScheme.error
                                     else -> colorScheme.surfaceVariant
@@ -128,9 +127,9 @@ fun VentaDetalleScreen(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = uiState.boleta!!.estado,
+                                    text = uiState.boleta!!.estado.uppercase(),
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = when (uiState.boleta!!.estado) {
+                                    color = when (uiState.boleta!!.estado.uppercase()) {
                                         "COMPLETADA" -> colorScheme.onPrimary
                                         "CANCELADA" -> colorScheme.onError
                                         else -> colorScheme.onSurfaceVariant
@@ -142,7 +141,6 @@ fun VentaDetalleScreen(
                     }
                 }
 
-                // Información del cliente
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -182,13 +180,13 @@ fun VentaDetalleScreen(
 
                                 Column {
                                     Text(
-                                        text = "${uiState.nombreCliente} ${uiState.apellidoCliente}",
+                                        text = uiState.nombreCliente,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium,
                                         color = colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Venta online",
+                                        text = "Venta online - ${uiState.boleta!!.metodoPago}",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = colorScheme.onSurfaceVariant
                                     )
@@ -212,7 +210,12 @@ fun VentaDetalleScreen(
                                         color = colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = dateFormat.format(Date(uiState.boleta!!.fecha)),
+                                        text = try {
+                                            val instant = Instant.parse(uiState.boleta!!.fechaVenta)
+                                            dateFormat.format(Date.from(instant))
+                                        } catch (e: Exception) {
+                                            uiState.boleta!!.fechaVenta
+                                        },
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = colorScheme.onSurface
@@ -226,7 +229,7 @@ fun VentaDetalleScreen(
                                         color = colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = currencyFormat.format(uiState.boleta!!.montoTotal),
+                                        text = currencyFormat.format(uiState.boleta!!.total),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = colorScheme.primary
@@ -237,7 +240,6 @@ fun VentaDetalleScreen(
                     }
                 }
 
-                // Productos
                 item {
                     Text(
                         text = "Productos (${uiState.detalles.size})",
@@ -251,8 +253,7 @@ fun VentaDetalleScreen(
                     ProductoDetalleCard(producto = producto)
                 }
 
-                // Botón de cancelar (solo si está completada)
-                if (uiState.boleta!!.estado == "COMPLETADA") {
+                if (uiState.boleta!!.estado.uppercase() == "COMPLETADA") {
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
@@ -272,7 +273,6 @@ fun VentaDetalleScreen(
         }
     }
 
-    // Dialog de confirmación para cancelar
     if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = { showCancelDialog = false },
@@ -292,7 +292,6 @@ fun VentaDetalleScreen(
                     onClick = {
                         showCancelDialog = false
                         viewModel.cancelarVenta {
-                            // La navegación se manejará en el LaunchedEffect
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -312,8 +311,9 @@ fun VentaDetalleScreen(
 }
 
 @Composable
-fun ProductoDetalleCard(producto: ProductoDetalle) {
+fun ProductoDetalleCard(producto: DetalleBoletaDTO) {
     val colorScheme = MaterialTheme.colorScheme
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -325,7 +325,6 @@ fun ProductoDetalleCard(producto: ProductoDetalle) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ícono del producto
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -343,16 +342,15 @@ fun ProductoDetalleCard(producto: ProductoDetalle) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Información del producto
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = producto.nombreZapato,
+                    text = producto.nombreProducto ?: "Producto #${producto.inventarioId}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = colorScheme.onSurface
                 )
                 Text(
-                    text = producto.marca,
+                    text = currencyFormat.format(producto.precioUnitario),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colorScheme.onSurfaceVariant
                 )
@@ -360,16 +358,18 @@ fun ProductoDetalleCard(producto: ProductoDetalle) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        color = colorScheme.tertiaryContainer,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = "Talla ${producto.talla}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colorScheme.onTertiaryContainer,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                    if (producto.talla != null) {
+                        Surface(
+                            color = colorScheme.tertiaryContainer,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "Talla ${producto.talla}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                     Text(
                         text = "× ${producto.cantidad}",
@@ -378,6 +378,20 @@ fun ProductoDetalleCard(producto: ProductoDetalle) {
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Subtotal",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = currencyFormat.format(producto.subtotal),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.primary
+                )
             }
         }
     }

@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -21,16 +24,14 @@ import com.example.proyectoZapateria.viewmodel.cliente.ClientePedidosViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.time.Instant
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
+import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
 
 @Composable
 fun ClientePedidosScreen(
@@ -146,9 +147,14 @@ fun ClientePedidosScreen(
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Boleta: ${boleta.numeroBoleta}", style = MaterialTheme.typography.titleMedium, color = colorScheme.onSurface)
+                                Text(text = "Boleta: ${boleta.id ?: "#?"}", style = MaterialTheme.typography.titleMedium, color = colorScheme.onSurface)
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Text(text = "Fecha: ${dateFormatter.format(java.util.Date(boleta.fecha))}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                                Text(text = "Fecha: ${try {
+                                    val instant = Instant.parse(boleta.fechaVenta)
+                                    dateFormatter.format(java.util.Date.from(instant))
+                                } catch (e: Exception) {
+                                    boleta.fechaVenta
+                                }}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
 
                                 // Mostrar estado de entrega
                                 if (entrega != null) {
@@ -186,23 +192,23 @@ fun ClientePedidosScreen(
                             }
                         }
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text(text = "Total: ${clpFormatter.format(boleta.montoTotal)}", style = MaterialTheme.typography.bodyMedium, color = colorScheme.primary)
+                        Text(text = "Total: ${clpFormatter.format(boleta.total)}", style = MaterialTheme.typography.bodyMedium, color = colorScheme.primary)
 
                         if (expanded) {
                             Spacer(modifier = Modifier.height(8.dp))
                             // Consumir el flow de productos para esta boleta
-                            val productosFlow = viewModel.getProductosForBoleta(boleta.idBoleta)
+                            val productosFlow = viewModel.getProductosForBoleta(boleta.id ?: 0)
                             val productos by productosFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
                             if (productos.isEmpty()) {
                                 Text(text = "(Sin detalles de productos)", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    productos.forEach { p: ProductoDetalle ->
+                                    productos.forEach { p: DetalleBoletaDTO ->
                                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(text = p.nombreZapato, style = MaterialTheme.typography.bodyMedium)
-                                                Text(text = "Talla: ${p.talla} • Marca: ${p.marca}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                                                Text(text = p.nombreProducto ?: "Producto", style = MaterialTheme.typography.bodyMedium)
+                                                Text(text = "Talla: ${p.talla} • Marca: ${p.nombreProducto}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
                                             }
                                             Text(text = "x${p.cantidad}", style = MaterialTheme.typography.bodyMedium, color = colorScheme.primary)
                                         }
@@ -216,17 +222,22 @@ fun ClientePedidosScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Button(
                                 onClick = {
-                                    viewModel.confirmarPedidoCompletado(entrega.idEntrega) { success, error ->
-                                        if (success) {
-                                            Toast.makeText(context, "Pedido confirmado como completado", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            Toast.makeText(context, error ?: "Error al confirmar", Toast.LENGTH_SHORT).show()
+                                    val entregaId = entrega.idEntrega
+                                    if (entregaId != null) {
+                                        viewModel.confirmarPedidoCompletado(entregaId) { success, error ->
+                                            if (success) {
+                                                Toast.makeText(context, "Pedido confirmado como completado", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, error ?: "Error al confirmar", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
+                                    } else {
+                                        Toast.makeText(context, "ID de entrega inválido", Toast.LENGTH_SHORT).show()
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
+                                 modifier = Modifier.fillMaxWidth(),
+                                 shape = RoundedCornerShape(8.dp)
+                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = "Confirmar",

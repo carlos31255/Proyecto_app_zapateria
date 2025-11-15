@@ -1,6 +1,6 @@
 package com.example.proyectoZapateria.navigation
 
-import android.util.Log
+
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
@@ -51,7 +51,6 @@ import com.example.proyectoZapateria.ui.screen.cliente.clienteDrawerItems
 import com.example.proyectoZapateria.ui.screen.admin.adminDrawerItems
 import com.example.proyectoZapateria.ui.screen.cliente.ClientePerfilScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClientePedidosScreen
-import com.example.proyectoZapateria.ui.screen.cliente.ClienteCartScreen
 import kotlinx.coroutines.launch
 
 
@@ -76,13 +75,12 @@ fun AppNavGraph(
             if (isOnAuthScreen) {
                 // Redireccionar al home correspondiente según el rol
                 val destination = when(currentUser?.idRol) {
-                    1 -> Route.AdminHome.path
-                    3 -> Route.TransportistaHome.path
-                    4 -> Route.ClienteHome.path
+                    1 -> Route.AdminHome.path       // Administrador
+                    2 -> Route.TransportistaHome.path // Transportista
+                    3 -> Route.ClienteHome.path      // Cliente
                     else -> Route.Home.path
                 }
 
-                Log.d("AppNavGraph", "Sesión restaurada, redirigiendo a: $destination")
                 navController.navigate(destination) {
                     popUpTo(Route.Home.path) { inclusive = true }
                 }
@@ -95,9 +93,9 @@ fun AppNavGraph(
         // Si hay usuario autenticado, verificar si ya está en su home
         if (currentUser != null) {
             val destination = when(currentUser?.idRol) {
-                1 -> Route.AdminHome.path
-                3 -> Route.TransportistaHome.path
-                4 -> Route.ClienteHome.path
+                1 -> Route.AdminHome.path       // Administrador
+                2 -> Route.TransportistaHome.path // Transportista
+                3 -> Route.ClienteHome.path      // Cliente
                 else -> Route.Home.path
             }
 
@@ -161,7 +159,6 @@ fun AppNavGraph(
             val routeString = currentRoute?.destination?.route ?: Route.Home.path
             val userRole = currentUser?.nombreRol
 
-            Log.d("AppNavGraph", "Current user role for drawer: '$userRole'")
 
             // Decidimos qué menú mostrar
             when (currentUser?.nombreRol) {
@@ -434,11 +431,11 @@ fun AppNavGraph(
                     )
                 }
 
-                composable(Route.AdminVentas.path) {
-                    AdminVentasScreen(
-                        navController = navController
-                    )
-                }
+//                composable(Route.AdminVentas.path) {
+//                    AdminVentasScreen(
+//                        navController = navController
+//                    )
+//                }
 
                 composable(
                     route = Route.VentaDetalle.path,
@@ -479,9 +476,11 @@ fun AppNavGraph(
                 composable(Route.ClientePedidos.path) {
                     ClientePedidosScreen(navController = navController)
                 }
-                composable(Route.ClienteCart.path) {
-                    ClienteCartScreen(navController = navController)
-                }
+                // composable(Route.ClienteCart.path) {
+                //     // Pantalla desactivada temporalmente: ClienteCartScreen depende de la implementación local del carrito
+                //     // Se mantuvo aquí como referencia para migración futura a microservicios
+                //     // ClienteCartScreen(navController = navController)
+                // }
                 composable(
                     route = Route.ClienteProductoDetail.path,
                     arguments = listOf(navArgument("idModelo") { type = NavType.IntType })

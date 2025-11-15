@@ -1,10 +1,9 @@
-package com.example.proyectoZapateria.ui.screen.admin
+﻿package com.example.proyectoZapateria.ui.screen.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -16,11 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.example.proyectoZapateria.data.local.cliente.ClienteConPersona
+import com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.viewmodel.ClienteViewModel
 
@@ -41,7 +39,7 @@ fun AdminClientesScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-            // Header con diseño
+            // Header con diseÃ±o
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -52,7 +50,7 @@ fun AdminClientesScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                        shape = CircleShape,
                         color = colorScheme.primaryContainer,
                         tonalElevation = 2.dp
                     ) {
@@ -81,7 +79,7 @@ fun AdminClientesScreen(
                 }
             }
 
-            // Barra de búsqueda
+            // Barra de bÃºsqueda
             SearchBar(
                 query = searchQuery,
                 onQueryChange = { viewModel.actualizarBusqueda(it) },
@@ -169,11 +167,12 @@ fun AdminClientesScreen(
                             )
                         }
 
-                        items(clientesFiltrados) { cliente ->
+                        items(clientesFiltrados.size) { index ->
+                            val cliente = clientesFiltrados[index]
                             ClienteCard(
                                 cliente = cliente,
                                 onClick = {
-                                    navController.navigate(Route.ClienteDetalle.createRoute(cliente.idPersona))
+                                    navController.navigate(Route.ClienteDetalle.createRoute(cliente.idPersona ?: 0))
                                 }
                             )
                         }
@@ -211,7 +210,7 @@ fun SearchBar(
 
 @Composable
 fun ClienteCard(
-    cliente: ClienteConPersona,
+    cliente: ClienteDTO,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -240,7 +239,7 @@ fun ClienteCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = cliente.nombre.firstOrNull()?.uppercase() ?: "?",
+                    text = cliente.nombreCompleto?.firstOrNull()?.uppercase() ?: "?",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.onPrimaryContainer
@@ -254,7 +253,7 @@ fun ClienteCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = cliente.getNombreCompleto(),
+                    text = cliente.nombreCompleto ?: "Sin nombre",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.onSurface
@@ -262,25 +261,25 @@ fun ClienteCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                // Categoría del cliente
+                Surface(
+                    color = when(cliente.categoria) {
+                        "VIP" -> colorScheme.tertiary
+                        "premium" -> colorScheme.secondary
+                        else -> colorScheme.surfaceVariant
+                    },
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Icon(
-                        Icons.Default.Badge,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = cliente.rut,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colorScheme.onSurfaceVariant
+                        text = cliente.categoria?.uppercase() ?: "REGULAR",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colorScheme.onSecondary
                     )
                 }
 
                 if (cliente.email != null) {
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -315,21 +314,6 @@ fun ClienteCard(
                             text = cliente.telefono,
                             style = MaterialTheme.typography.bodySmall,
                             color = colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                if (cliente.categoria != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
-                        color = colorScheme.secondaryContainer,
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text(
-                            text = cliente.categoria,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }

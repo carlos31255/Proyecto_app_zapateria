@@ -30,7 +30,7 @@ android {
             // URLs para desarrollo (usando IP de emulador 10.0.2.2)
             // (Si usas teléfono físico, cambia 10.0.2.2 por tu IP de WiFi, ej: "192.168.1.100")
             buildConfigField("String", "BASE_URL_GEOGRAFIA",  "\"http://10.0.2.2:8081/\"")
-            buildConfigField("String", "BASE_URL_INVENTARIO", "\"http://10.0.2.2:8082/\"")
+            buildConfigField("String", "BASE_URL_INVENTARIO", "\"http://10.0.2.2:8082/\"") 
             buildConfigField("String", "BASE_URL_USUARIOS",   "\"http://10.0.2.2:8083/\"")
 
             // --- Puertos por Confirmar ---
@@ -45,10 +45,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-
+            
             // URLs para producción (mismo que debug por ahora)
             buildConfigField("String", "BASE_URL_GEOGRAFIA",  "\"http://10.0.2.2:8081/\"")
-            buildConfigField("String", "BASE_URL_INVENTARIO", "\"http://10.0.2.2:8082/\"")
+            buildConfigField("String", "BASE_URL_INVENTARIO", "\"http://10.0.2.2:8082/\"") 
             buildConfigField("String", "BASE_URL_USUARIOS",   "\"http://10.0.2.2:8083/\"")
             buildConfigField("String", "BASE_URL_PRODUCTOS",  "\"http://10.0.2.2:8084/\"")
             buildConfigField("String", "BASE_URL_VENTAS",     "\"http://10.0.2.2:8085/\"")
@@ -78,13 +78,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
 
     //librerias nuevas
@@ -126,5 +119,22 @@ dependencies {
     // OkHttp y logging interceptor
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Librerías de test locales
+    testImplementation(libs.junit)
+    testImplementation("io.mockk:mockk:1.13.12")
+    testImplementation("org.robolectric:robolectric:4.13")
+
+    // Test de implementación de UI
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Reglas adicionales
+    androidTestImplementation("androidx.test:core-ktx:1.5.0")
+    androidTestImplementation("androidx.test:rules:1.5.0")
 
 }

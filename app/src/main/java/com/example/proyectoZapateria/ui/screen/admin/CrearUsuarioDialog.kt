@@ -232,7 +232,7 @@ fun CrearUsuarioDialog(
                     ) {
                         roles.forEach { rol ->
                             DropdownMenuItem(
-                                text = { Text(rol.nombreRol) },
+                                text = { Text(rol.nombreRol ?: "Sin nombre") },
                                 onClick = {
                                     viewModel.actualizarRolSeleccionado(rol)
                                     expanded = false

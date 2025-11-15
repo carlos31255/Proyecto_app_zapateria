@@ -73,6 +73,10 @@ interface EntregaDao {
                 fechaEntrega: Long,
                 observacion: String?
         )
+
+        // TODO: Queries comentadas - usan JOIN con tablas cliente y persona que ya no existen localmente
+        // Cuando se implementen los microservicios, obtener estos datos combinados desde la API
+        /*
         @Query("""
         SELECT 
             e.id_entrega as idEntrega,
@@ -121,5 +125,6 @@ interface EntregaDao {
     """)
         // Usamos Flow para que la UI se actualice si el estado cambia
         fun getDetallesPorId(idEntrega: Int): Flow<EntregaConDetalles>
+        */
 
     }

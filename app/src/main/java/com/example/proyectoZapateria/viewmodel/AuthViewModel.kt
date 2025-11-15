@@ -3,16 +3,10 @@ package com.example.proyectoZapateria.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.local.database.AppDatabase
-import com.example.proyectoZapateria.data.local.persona.PersonaEntity
-import com.example.proyectoZapateria.data.local.usuario.UsuarioConPersonaYRol
-import com.example.proyectoZapateria.data.local.usuario.UsuarioEntity
+import com.example.proyectoZapateria.data.model.UsuarioCompleto
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
-import com.example.proyectoZapateria.data.repository.ClienteRepository
-import com.example.proyectoZapateria.data.repository.PersonaRepository
-import com.example.proyectoZapateria.data.repository.UsuarioRepository
 import com.example.proyectoZapateria.domain.validation.validateConfirm
 import com.example.proyectoZapateria.domain.validation.validateEmail
 import com.example.proyectoZapateria.domain.validation.validateNameLettersOnly
@@ -20,7 +14,6 @@ import com.example.proyectoZapateria.domain.validation.validatePhoneDigitsOnly
 import com.example.proyectoZapateria.domain.validation.validateStrongPassword
 import com.example.proyectoZapateria.domain.validation.validateStreet
 import com.example.proyectoZapateria.domain.validation.validateHouseNumber
-import com.example.proyectoZapateria.utils.PasswordHasher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -63,16 +56,12 @@ data class RegisterUiState(
     val errorMsg: String? = null,
 )
 
-// ViewModel que usa Room con Hilt
+// ViewModel que usa microservicios remotos con Hilt
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val personaRepository: PersonaRepository,
-    private val usuarioRepository: UsuarioRepository,
     private val authRepository: AuthRepository,
     private val sessionPreferences: SessionPreferences,
-    private val clienteRepository: ClienteRepository,
     private val clienteRemoteRepository: ClienteRemoteRepository
-
 ) : ViewModel() {
 
     init {
@@ -86,8 +75,8 @@ class AuthViewModel @Inject constructor(
     private val _register = MutableStateFlow(RegisterUiState())
     val register: StateFlow<RegisterUiState> = _register
 
-    // Estado para el usuario logueado - ahora viene del AuthRepository
-    val currentUser: StateFlow<UsuarioConPersonaYRol?> = authRepository.currentUser
+    // Estado para el usuario logueado - ahora usa UsuarioCompleto
+    val currentUser: StateFlow<UsuarioCompleto?> = authRepository.currentUser
 
     // ========== HANDLERS LOGIN ==========
 
@@ -117,114 +106,13 @@ class AuthViewModel @Inject constructor(
             delay(500)
 
             try {
-                // Normalizar el input
                 val usernameInput = s.email.trim()
                 Log.d("AuthViewModel", "submitLogin: intentando login con username='$usernameInput'")
 
-                // Esperar a que la precarga de la DB termine (para evitar falsos negativos tras reinstalar)
-                val maxWaitMs = 5000L // Aumentado a 5 segundos
-                var waited = 0L
-                Log.d("AuthViewModel", "submitLogin: esperando precarga de DB...")
-                while (!AppDatabase.preloadComplete.value && waited < maxWaitMs) {
-                    delay(100)
-                    waited += 100
-                }
-                Log.d("AuthViewModel", "submitLogin: precarga completada o timeout (waited=${waited}ms)")
+                // Llamar al método login del AuthRepository que usa el microservicio
+                val result = authRepository.login(usernameInput, s.pass)
 
-                // Intentar encontrar el usuario con reintentos cortos.
-                // Esto evita un falso negativo si la precarga de la BD (seed) aún está terminando.
-                var usuarioCompleto: UsuarioConPersonaYRol? = null
-                val maxAttempts = 5 // Aumentado a 5 intentos
-                var attempt = 0
-                while (attempt < maxAttempts && usuarioCompleto == null) {
-                    attempt++
-                    Log.d("AuthViewModel", "submitLogin: intento $attempt de $maxAttempts")
-
-                    // Buscar el usuario por username (primera opción)
-                    usuarioCompleto = usuarioRepository.getUsuarioByUsername(usernameInput)
-                    Log.d("AuthViewModel", "submitLogin: búsqueda por username result=${usuarioCompleto?.idPersona}")
-
-                    // Si no lo encontramos por username, intentar buscar la persona por email y luego el usuario por id
-                    if (usuarioCompleto == null) {
-                        val persona = personaRepository.getPersonaByEmail(usernameInput)
-                        Log.d("AuthViewModel", "submitLogin: búsqueda por email result persona.id=${persona?.idPersona}")
-                        if (persona != null) {
-                            usuarioCompleto = usuarioRepository.getUsuarioCompletoById(persona.idPersona)
-                            Log.d("AuthViewModel", "submitLogin: búsqueda de usuario completo result=${usuarioCompleto?.idPersona}")
-                        }
-                    }
-
-                    if (usuarioCompleto == null && attempt < maxAttempts) {
-                        // Pequeño retraso antes de reintentar (esperar a que termine la precarga)
-                        Log.d("AuthViewModel", "submitLogin: usuario no encontrado, esperando antes de reintentar...")
-                        delay(500)
-                    }
-                }
-
-                if (usuarioCompleto == null) {
-                    Log.e("AuthViewModel", "submitLogin: usuario no encontrado después de $maxAttempts intentos")
-                    _login.update {
-                        it.copy(
-                            isLoading = false,
-                            success = false,
-                            errorMsg = "Usuario no encontrado. Verifica tu email o espera a que la app termine de cargar"
-                        )
-                    }
-                    return@launch
-                }
-
-                Log.d("AuthViewModel", "submitLogin: usuarioCompleto found id=${usuarioCompleto.idPersona} username=${usuarioCompleto.username} rol=${usuarioCompleto.nombreRol}")
-
-                // Verificar si el usuario está activo
-                if (usuarioCompleto.estado != "activo") {
-                    Log.w("AuthViewModel", "submitLogin: usuario inactivo id=${usuarioCompleto.idPersona}")
-                    _login.update {
-                        it.copy(
-                            isLoading = false,
-                            success = false,
-                            errorMsg = "Usuario inactivo. Contacte al administrador"
-                        )
-                    }
-                    return@launch
-                }
-
-                // Obtener la persona para verificar la contraseña
-                val persona = personaRepository.getPersonaById(usuarioCompleto.idPersona)
-
-                if (persona == null) {
-                    Log.e("AuthViewModel", "submitLogin: error al cargar persona para id=${usuarioCompleto.idPersona}")
-                    _login.update {
-                        it.copy(
-                            isLoading = false,
-                            success = false,
-                            errorMsg = "Error al cargar datos del usuario"
-                        )
-                    }
-                    return@launch
-                }
-
-                // Verificar la contraseña
-                var passwordValida = PasswordHasher.checkPassword(s.pass, persona.passHash)
-                Log.d("AuthViewModel", "submitLogin: verificación de password inicial result=$passwordValida")
-
-                // Si falla en la primera verificación, reintentar una vez tras un pequeño delay (mitiga condiciones de carrera)
-                if (!passwordValida) {
-                    try {
-                        delay(200)
-                        val personaRetry = personaRepository.getPersonaById(usuarioCompleto.idPersona)
-                        if (personaRetry != null) {
-                            passwordValida = PasswordHasher.checkPassword(s.pass, personaRetry.passHash)
-                            Log.d("AuthViewModel", "submitLogin: reintento password check result=$passwordValida for id=${usuarioCompleto.idPersona}")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("AuthViewModel", "submitLogin: error en reintento de password: ${e.message}")
-                    }
-                }
-
-                if (passwordValida) {
-                    // Guardar el usuario autenticado en el repositorio
-                    authRepository.setCurrentUser(usuarioCompleto)
-
+                result.onSuccess { usuarioCompleto ->
                     // Guardar la sesión en DataStore para persistencia
                     sessionPreferences.saveSession(
                         userId = usuarioCompleto.idPersona,
@@ -234,16 +122,23 @@ class AuthViewModel @Inject constructor(
                     )
 
                     Log.d("AuthViewModel", "submitLogin: login exitoso para id=${usuarioCompleto.idPersona}")
-                } else {
-                    Log.d("AuthViewModel", "submitLogin: password inválida para id=${usuarioCompleto.idPersona}")
-                }
 
-                _login.update {
-                    it.copy(
-                        isLoading = false,
-                        success = passwordValida,
-                        errorMsg = if (passwordValida) null else "Usuario o contraseña inválidos"
-                    )
+                    _login.update {
+                        it.copy(
+                            isLoading = false,
+                            success = true,
+                            errorMsg = null
+                        )
+                    }
+                }.onFailure { error ->
+                    Log.e("AuthViewModel", "submitLogin: error en login: ${error.message}", error)
+                    _login.update {
+                        it.copy(
+                            isLoading = false,
+                            success = false,
+                            errorMsg = error.message ?: "Usuario o contraseña inválidos"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "submitLogin: excepción en proceso de login: ${e.message}", e)
@@ -328,14 +223,6 @@ class AuthViewModel @Inject constructor(
             delay(500)
 
             try {
-                val existeEmail = personaRepository.existeEmail(s.email.trim())
-                if (existeEmail) {
-                    _register.update {
-                        it.copy(isLoading = false, success = false, errorMsg = "El email ya está registrado")
-                    }
-                    return@launch
-                }
-
                 val nombreCompleto = s.name.trim().split(" ", limit = 2)
                 val nombre = nombreCompleto.getOrNull(0) ?: ""
                 val apellido = nombreCompleto.getOrNull(1) ?: ""
@@ -347,73 +234,56 @@ class AuthViewModel @Inject constructor(
                     return@launch
                 }
 
-                val passHashed = PasswordHasher.hashPassword(s.pass)
-
-                val nuevaPersona = PersonaEntity(
+                // Llamar al método register del AuthRepository que usa el microservicio
+                val result = authRepository.register(
                     nombre = nombre,
                     apellido = apellido,
-                    rut = "00000000-0",
-                    telefono = s.phone.trim(),
                     email = s.email.trim(),
-                    idComuna = null,
+                    telefono = s.phone.trim(),
+                    password = s.pass,
                     calle = s.calle.trim(),
-                    numeroPuerta = s.numeroPuerta.trim(),
-                    username = s.email.trim(),
-                    passHash = passHashed,
-                    fechaRegistro = System.currentTimeMillis(),
-                    estado = "activo"
+                    numeroPuerta = s.numeroPuerta.trim()
                 )
 
-                val resultPersona = personaRepository.insertPersona(nuevaPersona)
+                result.onSuccess { usuarioCompleto ->
+                    Log.d("AuthViewModel", "submitRegister: Registro exitoso para: ${usuarioCompleto.username}")
 
-                if (resultPersona.isFailure) {
+                    // Crear el cliente con categoría "Regular"
+                    try {
+                        val clienteDTO = com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO(
+                            idPersona = usuarioCompleto.idPersona,
+                            categoria = "Regular",
+                            nombreCompleto = "${usuarioCompleto.nombre} ${usuarioCompleto.apellido}",
+                            email = usuarioCompleto.email,
+                            telefono = usuarioCompleto.telefono,
+                            activo = true
+                        )
+                        val clienteResult = clienteRemoteRepository.crearCliente(clienteDTO)
+                        if (clienteResult.isSuccess) {
+                            Log.d("AuthViewModel", "submitRegister: Cliente creado con categoría Regular")
+                        } else {
+                            Log.w("AuthViewModel", "submitRegister: No se pudo crear el cliente: ${clienteResult.exceptionOrNull()?.message}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("AuthViewModel", "submitRegister: Error al crear cliente: ${e.message}", e)
+                        // No bloqueamos el registro por este error
+                    }
+
+                    _register.update {
+                        it.copy(isLoading = false, success = true, errorMsg = null)
+                    }
+                }.onFailure { error ->
+                    Log.e("AuthViewModel", "submitRegister: error en registro: ${error.message}", error)
                     _register.update {
                         it.copy(
                             isLoading = false,
                             success = false,
-                            errorMsg = resultPersona.exceptionOrNull()?.message ?: "Error al registrar"
+                            errorMsg = error.message ?: "Error al registrar"
                         )
                     }
-                    return@launch
-                }
-
-                val idPersona = resultPersona.getOrNull()?.toInt() ?: 0
-
-                val nuevoUsuario = UsuarioEntity(
-                    idPersona = idPersona,
-                    idRol = 4  // Cliente - Los usuarios que se registran son clientes por defecto
-                )
-
-                val resultUsuario = usuarioRepository.insertUsuario(nuevoUsuario)
-
-                if (resultUsuario.isFailure) {
-                    _register.update {
-                        it.copy(
-                            isLoading = false,
-                            success = false,
-                            errorMsg = "Error al crear usuario: ${resultUsuario.exceptionOrNull()?.message}"
-                        )
-                    }
-                    return@launch
-                }
-
-                // Crear entidad Cliente automáticamente con categoría "Regular"
-                try {
-                    val nuevoCliente = com.example.proyectoZapateria.data.local.cliente.ClienteEntity(
-                        idPersona = idPersona,
-                        categoria = "Regular"  // Todos los usuarios nuevos empiezan como "Regular"
-                    )
-                    clienteRepository.insert(nuevoCliente)
-                    Log.d("AuthViewModel", "submitRegister: Cliente creado con categoría Regular para idPersona=$idPersona")
-                } catch (e: Exception) {
-                    Log.e("AuthViewModel", "submitRegister: Error al crear cliente: ${e.message}", e)
-                    // No bloqueamos el registro por este error, pero lo registramos
-                }
-
-                _register.update {
-                    it.copy(isLoading = false, success = true, errorMsg = null)
                 }
             } catch (e: Exception) {
+                Log.e("AuthViewModel", "submitRegister: excepción en proceso de registro: ${e.message}", e)
                 _register.update {
                     it.copy(
                         isLoading = false,
@@ -491,19 +361,27 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             sessionPreferences.sessionData.collect { sessionData ->
                 if (sessionData != null) {
-                    // Cargar el usuario completo desde la base de datos
+                    // Cargar el usuario completo desde el microservicio
                     try {
-                        // getUsuarioCompletoById usa id_persona como parámetro
-                        val usuarioCompleto = usuarioRepository.getUsuarioCompletoById(sessionData.userId)
+                        val result = authRepository.obtenerUsuarioPorId(sessionData.userId)
 
-                        if (usuarioCompleto != null && usuarioCompleto.estado == "activo") {
-                            // Restaurar el usuario en el repositorio
-                            authRepository.setCurrentUser(usuarioCompleto)
-                        } else {
-                            // Si el usuario ya no existe o está inactivo, limpiar la sesión
+                        result.onSuccess { usuarioCompleto ->
+                            if (usuarioCompleto.estado == "activo" && usuarioCompleto.activo) {
+                                // Restaurar el usuario en el repositorio
+                                authRepository.setCurrentUser(usuarioCompleto)
+                                Log.d("AuthViewModel", "cargarSesionGuardada: Sesión restaurada para: ${usuarioCompleto.username}")
+                            } else {
+                                // Si el usuario está inactivo, limpiar la sesión
+                                sessionPreferences.clearSession()
+                                Log.w("AuthViewModel", "cargarSesionGuardada: Usuario inactivo, sesión limpiada")
+                            }
+                        }.onFailure { error ->
+                            // Si hay error al cargar el usuario, limpiar la sesión
+                            Log.e("AuthViewModel", "cargarSesionGuardada: Error al cargar usuario: ${error.message}")
                             sessionPreferences.clearSession()
                         }
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        Log.e("AuthViewModel", "cargarSesionGuardada: Excepción: ${e.message}", e)
                         sessionPreferences.clearSession()
                     }
                 }
