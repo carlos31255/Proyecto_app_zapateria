@@ -31,7 +31,7 @@ android {
             // (Si usas teléfono físico, cambia 10.0.2.2 por tu IP de WiFi, ej: "192.168.1.100")
             buildConfigField("String", "BASE_URL_GEOGRAFIA",  "\"http://10.0.2.2:8081/\"")
             buildConfigField("String", "BASE_URL_INVENTARIO", "\"http://10.0.2.2:8082/\"") 
-            buildConfigField("String", "BASE_URL_USUARIOS",   "\"http://10.0.2.2:8083/\"")
+            buildConfigField("String", "BASE_URL_USUARIOS",   "\"http://192.168.18.41:8083/\"")
 
             // --- Puertos por Confirmar ---
             buildConfigField("String", "BASE_URL_PRODUCTOS",  "\"http://10.0.2.2:8084/\"")
