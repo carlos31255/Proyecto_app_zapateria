@@ -25,10 +25,8 @@ android {
     }
 
     buildTypes {
-        // Bloque para desarrollo (cuando ejecutas en el emulador/teléfono)
         getByName("debug") {
             // Las URLs ya se gestionan con valores hardcodeados en `NetworkModule.kt`.
-            // Se eliminaron los BuildConfig fields para evitar código muerto.
         }
 
         release {
@@ -38,8 +36,6 @@ android {
                 "proguard-rules.pro"
             )
 
-            // Las URLs ya se gestionan con valores hardcodeados en `NetworkModule.kt`.
-            // Se eliminaron los BuildConfig fields para evitar código muerto.
         }
     }
     compileOptions {

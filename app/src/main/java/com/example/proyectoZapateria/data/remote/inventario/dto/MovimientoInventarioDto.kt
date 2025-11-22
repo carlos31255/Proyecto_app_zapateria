@@ -1,7 +1,6 @@
-package com.example.proyectoZapateria.data.remote.inventario
+package com.example.proyectoZapateria.data.remote.inventario.dto
 
 import com.google.gson.annotations.SerializedName
-
 
 data class MovimientoInventarioDto(
     @SerializedName("id")
@@ -21,4 +20,3 @@ data class MovimientoInventarioDto(
 
     val fecha: Long? // Fecha/timestamp en epoch millis
 )
-
