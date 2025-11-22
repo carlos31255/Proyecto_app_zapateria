@@ -3,6 +3,8 @@ package com.example.proyectoZapateria.data.repository.remote
 import android.util.Log
 import com.example.proyectoZapateria.data.remote.entregas.EntregasApiService
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,7 +31,7 @@ class EntregasRemoteRepository @Inject constructor(
         Result.failure(e)
     }
 
-    suspend fun obtenerEntregaPorId(id: Int): Result<EntregaDTO> = try {
+    suspend fun obtenerEntregaPorId(id: Long): Result<EntregaDTO> = try {
         val response = api.obtenerEntregaPorId(id)
         if (response.isSuccessful && response.body() != null) {
             Result.success(response.body()!!)
@@ -43,15 +45,15 @@ class EntregasRemoteRepository @Inject constructor(
         Result.failure(e)
     }
 
-    suspend fun obtenerEntregasPorTransportista(transportistaId: Int): Result<List<EntregaDTO>> = try {
+    suspend fun obtenerEntregasPorTransportista(transportistaId: Long): Result<List<EntregaDTO>> = try {
         Log.d(TAG, "obtenerEntregasPorTransportista: transportistaId=$transportistaId")
         val response = api.obtenerEntregasPorTransportista(transportistaId)
         if (response.isSuccessful && response.body() != null) {
             val entregas = response.body()!!
-            Log.d(TAG, "obtenerEntregasPorTransportista: encontradas ${entregas.size} entregas")
+            Log.d(TAG, "obtenerEntregasPorTransportista: encontradas ${'$'}{entregas.size} entregas")
             Result.success(entregas)
         } else {
-            val error = "Error ${response.code()}: ${response.message()}"
+            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
             Log.e(TAG, "obtenerEntregasPorTransportista: $error")
             Result.failure(Exception(error))
         }
@@ -66,7 +68,7 @@ class EntregasRemoteRepository @Inject constructor(
         if (response.isSuccessful && response.body() != null) {
             Result.success(response.body()!!)
         } else {
-            val error = "Error ${response.code()}: ${response.message()}"
+            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
             Log.e(TAG, "obtenerEntregasPorEstado: $error")
             Result.failure(Exception(error))
         }
@@ -75,14 +77,14 @@ class EntregasRemoteRepository @Inject constructor(
         Result.failure(e)
     }
 
-    suspend fun asignarTransportista(entregaId: Int, transportistaId: Int): Result<EntregaDTO> = try {
+    suspend fun asignarTransportista(entregaId: Long, transportistaId: Long): Result<EntregaDTO> = try {
         Log.d(TAG, "asignarTransportista: entregaId=$entregaId, transportistaId=$transportistaId")
         val response = api.asignarTransportista(entregaId, transportistaId)
         if (response.isSuccessful && response.body() != null) {
             Log.d(TAG, "asignarTransportista: transportista asignado exitosamente")
             Result.success(response.body()!!)
         } else {
-            val error = "Error ${response.code()}: ${response.message()}"
+            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
             Log.e(TAG, "asignarTransportista: $error")
             Result.failure(Exception(error))
         }
@@ -91,14 +93,14 @@ class EntregasRemoteRepository @Inject constructor(
         Result.failure(e)
     }
 
-    suspend fun completarEntrega(entregaId: Int, observacion: String?): Result<EntregaDTO> = try {
+    suspend fun completarEntrega(entregaId: Long, observacion: String?): Result<EntregaDTO> = try {
         Log.d(TAG, "completarEntrega: entregaId=$entregaId, observacion=$observacion")
         val response = api.completarEntrega(entregaId, observacion)
         if (response.isSuccessful && response.body() != null) {
             Log.d(TAG, "completarEntrega: entrega completada exitosamente")
             Result.success(response.body()!!)
         } else {
-            val error = "Error ${response.code()}: ${response.message()}"
+            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
             Log.e(TAG, "completarEntrega: $error")
             Result.failure(Exception(error))
         }
@@ -107,14 +109,14 @@ class EntregasRemoteRepository @Inject constructor(
         Result.failure(e)
     }
 
-    suspend fun cambiarEstadoEntrega(entregaId: Int, nuevoEstado: String): Result<EntregaDTO> = try {
+    suspend fun cambiarEstadoEntrega(entregaId: Long, nuevoEstado: String): Result<EntregaDTO> = try {
         Log.d(TAG, "cambiarEstadoEntrega: entregaId=$entregaId, nuevoEstado=$nuevoEstado")
         val response = api.cambiarEstadoEntrega(entregaId, nuevoEstado)
         if (response.isSuccessful && response.body() != null) {
             Log.d(TAG, "cambiarEstadoEntrega: estado actualizado exitosamente")
             Result.success(response.body()!!)
         } else {
-            val error = "Error ${response.code()}: ${response.message()}"
+            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
             Log.e(TAG, "cambiarEstadoEntrega: $error")
             Result.failure(Exception(error))
         }
@@ -123,7 +125,7 @@ class EntregasRemoteRepository @Inject constructor(
         Result.failure(e)
     }
 
-    suspend fun contarEntregasPendientes(transportistaId: Int): Result<Int> = try {
+    suspend fun contarEntregasPendientes(transportistaId: Long): Result<Int> = try {
         val entregasResult = obtenerEntregasPorTransportista(transportistaId)
         if (entregasResult.isSuccess) {
             val entregas = entregasResult.getOrNull() ?: emptyList()
@@ -138,7 +140,7 @@ class EntregasRemoteRepository @Inject constructor(
         Result.failure(e)
     }
 
-    suspend fun contarEntregasCompletadas(transportistaId: Int): Result<Int> = try {
+    suspend fun contarEntregasCompletadas(transportistaId: Long): Result<Int> = try {
         val entregasResult = obtenerEntregasPorTransportista(transportistaId)
         if (entregasResult.isSuccess) {
             val entregas = entregasResult.getOrNull() ?: emptyList()
@@ -152,5 +154,17 @@ class EntregasRemoteRepository @Inject constructor(
         Log.e(TAG, "contarEntregasCompletadas exception", e)
         Result.failure(e)
     }
-}
 
+    fun getEntregasPorTransportistaFlow(transportistaId: Long): Flow<List<EntregaDTO>> = flow {
+        try {
+            val response = api.obtenerEntregasPorTransportista(transportistaId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(response.body()!!)
+            } else {
+                emit(emptyList())
+            }
+        } catch (e: Exception) {
+            emit(emptyList())
+        }
+    }
+}

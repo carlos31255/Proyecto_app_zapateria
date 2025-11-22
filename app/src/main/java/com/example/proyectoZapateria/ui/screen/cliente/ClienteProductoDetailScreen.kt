@@ -33,7 +33,7 @@ fun ClienteProductoDetailScreen(
     navController: NavHostController? = null
 ) {
     var cantidadSeleccionada by remember { mutableStateOf(1) }
-    var idInventarioSeleccionado by remember { mutableStateOf<Int?>(null) }
+    var idInventarioSeleccionado by remember { mutableStateOf<Long?>(null) }
 
     val modelo by viewModel.modelo.collectAsStateWithLifecycle()
     val inventario by viewModel.inventario.collectAsStateWithLifecycle()
@@ -44,10 +44,10 @@ fun ClienteProductoDetailScreen(
     // Usuario actual
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
 
-    // Obtener el stock máximo de la talla seleccionada
+    // Obtener el stock máximo de la talla seleccionada (InventarioUi usa idRemote y stock)
     val stockMaximo = remember(idInventarioSeleccionado, inventario) {
         idInventarioSeleccionado?.let { idInv ->
-            inventario.find { it.idInventario == idInv }?.stockActual ?: 0
+            inventario.find { it.idRemote == idInv }?.stock ?: 0
         } ?: 0
     }
 
@@ -150,13 +150,13 @@ fun ClienteProductoDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     for (inv in inventario) {
-                        val tallaLabel = tallasMap[inv.idTalla] ?: inv.idTalla.toString()
-                        val enabled = inv.stockActual > 0
+                        val tallaLabel = tallasMap[inv.tallaIdLocal] ?: inv.talla
+                        val enabled = inv.stock > 0
                         FilterChip(
-                            selected = (idInventarioSeleccionado == inv.idInventario),
-                            onClick = { if (enabled) idInventarioSeleccionado = inv.idInventario },
+                            selected = (idInventarioSeleccionado == inv.idRemote),
+                            onClick = { if (enabled) idInventarioSeleccionado = inv.idRemote },
                             enabled = enabled,
-                            label = { Text("$tallaLabel (${inv.stockActual})") },
+                            label = { Text("$tallaLabel (${inv.stock})") },
                             modifier = Modifier.padding(end = 4.dp)
                         )
                     }
@@ -220,13 +220,13 @@ fun ClienteProductoDetailScreen(
             val agregarEnabled = !comprando && idInventarioSeleccionado != null && currentUser != null && stockMaximo > 0
             Button(
                 onClick = {
-                    val usuarioId = currentUser?.idPersona ?: -1
+                    val usuarioId = currentUser?.idPersona ?: -1L
                     val idInv = idInventarioSeleccionado
                     if (idInv == null) {
                         Toast.makeText(context, "Seleccione una talla", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    if (usuarioId == -1) {
+                    if (usuarioId == -1L) {
                         Toast.makeText(context, "Inicie sesión para agregar al carrito", Toast.LENGTH_SHORT).show()
                         return@Button
                     }

@@ -6,13 +6,16 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -62,7 +65,10 @@ fun AppNavGraph(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+    val isRestoring by authViewModel.isRestoringSession.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+
 
     // Redireccionar automáticamente si hay sesión guardada
     LaunchedEffect(currentUser) {
@@ -75,9 +81,9 @@ fun AppNavGraph(
             if (isOnAuthScreen) {
                 // Redireccionar al home correspondiente según el rol
                 val destination = when(currentUser?.idRol) {
-                    1 -> Route.AdminHome.path       // Administrador
-                    2 -> Route.TransportistaHome.path // Transportista
-                    3 -> Route.ClienteHome.path      // Cliente
+                    1L -> Route.AdminHome.path       // Administrador
+                    2L -> Route.TransportistaHome.path // Transportista
+                    3L -> Route.ClienteHome.path      // Cliente
                     else -> Route.Home.path
                 }
 
@@ -93,9 +99,9 @@ fun AppNavGraph(
         // Si hay usuario autenticado, verificar si ya está en su home
         if (currentUser != null) {
             val destination = when(currentUser?.idRol) {
-                1 -> Route.AdminHome.path       // Administrador
-                2 -> Route.TransportistaHome.path // Transportista
-                3 -> Route.ClienteHome.path      // Cliente
+                1L -> Route.AdminHome.path       // Administrador
+                2L -> Route.TransportistaHome.path // Transportista
+                3L -> Route.ClienteHome.path      // Cliente
                 else -> Route.Home.path
             }
 
@@ -157,7 +163,6 @@ fun AppNavGraph(
         drawerContent = {
             val currentRoute by navController.currentBackStackEntryAsState()
             val routeString = currentRoute?.destination?.route ?: Route.Home.path
-            val userRole = currentUser?.nombreRol
 
 
             // Decidimos qué menú mostrar
@@ -310,91 +315,11 @@ fun AppNavGraph(
                 )
             }
         ) { innerPadding ->
-            NavHost(
-                navController = navController,
-                startDestination = Route.Home.path,
-                modifier = Modifier.padding(innerPadding),
-                enterTransition = {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(300)
-                    ) + fadeIn(animationSpec = tween(300))
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(300)
-                    ) + fadeOut(animationSpec = tween(300))
-                },
-                popEnterTransition = {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(300)
-                    ) + fadeIn(animationSpec = tween(300))
-                },
-                popExitTransition = {
-                    slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(300)
-                    ) + fadeOut(animationSpec = tween(300))
-                }
-            ) {
-                // Rutas publicas
-                composable(Route.Home.path) {
-                    HomeScreen(
-                        onGoLogin = goLogin,
-                        onGoRegister = goRegister
-                    )
-                }
-                composable(Route.Login.path) {
-                    LoginScreenVm(
-                        authViewModel = authViewModel,
-                        onLoginSuccess = redirectByRole,
-                        onGoRegister = goRegister
-                    )
-                }
-                composable(Route.Register.path) {
-                    RegisterScreenVm(
-                        authViewModel = authViewModel,
-                        onRegisterOkGoLogin = goLogin,
-                        onGoLogin = goLogin
-                    )
-                }
-
-                // Rutas del administrador
-                composable(Route.AdminHome.path) {
-                    AdminHomeScreen(
-                        navController = navController,
-                        authViewModel = authViewModel
-                    )
-                }
-
-                composable(Route.AdminAgregarProducto.path) {
-                    AdminAgregarProductoScreen(
-                        navController = navController
-                    )
-                }
-
-                composable(Route.AdminInventario.path) {
-                    AdminInventarioScreen(
-                        navController = navController,
-                        authViewModel = authViewModel
-                    )
-                }
-
-                composable(Route.AdminClientes.path) {
-                    AdminClientesScreen(
-                        navController = navController
-                    )
-                }
-
-                composable(Route.AdminUsuarios.path) {
-                    AdminUsuariosScreen(
-                        navController = navController
-                    )
-                }
-
-                composable(Route.AdminReportes.path,
+            Box(modifier = Modifier.fillMaxSize()) {
+                NavHost(
+                    navController = navController,
+                    startDestination = Route.Home.path,
+                    modifier = Modifier.padding(innerPadding),
                     enterTransition = {
                         slideIntoContainer(
                             towards = AnimatedContentTransitionScope.SlideDirection.Left,
@@ -420,16 +345,97 @@ fun AppNavGraph(
                         ) + fadeOut(animationSpec = tween(300))
                     }
                 ) {
-                    com.example.proyectoZapateria.presentation.admin.reportes.ReportesScreen(
-                        onNavigateBack = { navController.navigateUp() }
-                    )
-                }
+                    // Rutas publicas
+                    composable(Route.Home.path) {
+                        HomeScreen(
+                            onGoLogin = goLogin,
+                            onGoRegister = goRegister
+                        )
+                    }
+                    composable(Route.Login.path) {
+                        LoginScreenVm(
+                            authViewModel = authViewModel,
+                            onLoginSuccess = redirectByRole,
+                            onGoRegister = goRegister
+                        )
+                    }
+                    composable(Route.Register.path) {
+                        RegisterScreenVm(
+                            authViewModel = authViewModel,
+                            onRegisterOkGoLogin = goLogin,
+                            onGoLogin = goLogin
+                        )
+                    }
 
-                composable(Route.AdminPerfil.path) {
-                    AdminPerfilScreen(
-                        navController = navController
-                    )
-                }
+                    // Rutas del administrador
+                    composable(Route.AdminHome.path) {
+                        AdminHomeScreen(
+                            navController = navController,
+                            authViewModel = authViewModel
+                        )
+                    }
+
+                    composable(Route.AdminAgregarProducto.path) {
+                        AdminAgregarProductoScreen(
+                            navController = navController
+                        )
+                    }
+
+                    composable(Route.AdminInventario.path) {
+                        AdminInventarioScreen(
+                            navController = navController,
+                            authViewModel = authViewModel
+                        )
+                    }
+
+                    composable(Route.AdminClientes.path) {
+                        AdminClientesScreen(
+                            navController = navController
+                        )
+                    }
+
+                    composable(Route.AdminUsuarios.path) {
+                        AdminUsuariosScreen(
+                            navController = navController
+                        )
+                    }
+
+                    composable(Route.AdminReportes.path,
+                        enterTransition = {
+                            slideIntoContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        }
+                    ) {
+                        com.example.proyectoZapateria.presentation.admin.reportes.ReportesScreen(
+                            onNavigateBack = { navController.navigateUp() }
+                        )
+                    }
+
+                    composable(Route.AdminPerfil.path) {
+                        AdminPerfilScreen(
+                            navController = navController
+                        )
+                    }
 
 //                composable(Route.AdminVentas.path) {
 //                    AdminVentasScreen(
@@ -437,88 +443,102 @@ fun AppNavGraph(
 //                    )
 //                }
 
-                composable(
-                    route = Route.VentaDetalle.path,
-                    arguments = listOf(navArgument("idBoleta") { type = NavType.IntType })
-                ) { backStackEntry ->
-                    val idBoleta = backStackEntry.arguments?.getInt("idBoleta") ?: 0
-                    VentaDetalleScreen(
-                        navController = navController
-                    )
-                }
+                    composable(
+                        route = Route.VentaDetalle.path,
+                        arguments = listOf(navArgument("idBoleta") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        VentaDetalleScreen(
+                            navController = navController
+                        )
+                    }
 
-                composable(
-                    route = Route.ClienteDetalle.path,
-                    arguments = listOf(navArgument("idCliente") { type = NavType.IntType })
-                ) { backStackEntry ->
-                    val idCliente = backStackEntry.arguments?.getInt("idCliente") ?: 0
-                    ClienteDetalleScreen(
-                        navController = navController,
-                        idCliente = idCliente
-                    )
-                }
-
+                    composable(
+                        route = Route.ClienteDetalle.path,
+                        arguments = listOf(navArgument("idCliente") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val idCliente = backStackEntry.arguments?.getLong("idCliente") ?: 0L
+                        ClienteDetalleScreen(
+                            navController = navController,
+                            idCliente = idCliente
+                        )
+                    }
 
 
-                // Rutas del cliente
-                composable(Route.ClienteHome.path) {
-                    ClienteHomeScreen(
-                        navController = navController,
-                        authViewModel = authViewModel
-                    )
-                }
-                composable(Route.ClienteCatalogo.path) {
-                    ClienteCatalogoScreen(
-                        navController = navController,
-                        viewModel = hiltViewModel()
-                    )
-                }
-                composable(Route.ClientePedidos.path) {
-                    ClientePedidosScreen(navController = navController)
-                }
-                // composable(Route.ClienteCart.path) {
-                //     // Pantalla desactivada temporalmente: ClienteCartScreen depende de la implementación local del carrito
-                //     // Se mantuvo aquí como referencia para migración futura a microservicios
-                //     // ClienteCartScreen(navController = navController)
-                // }
-                composable(
-                    route = Route.ClienteProductoDetail.path,
-                    arguments = listOf(navArgument("idModelo") { type = NavType.IntType })
-                ) {
-                    ClienteProductoDetailScreen(navController = navController)
-                }
-                // Rutas del transportista
-                composable(Route.TransportistaHome.path) {
-                    TransportistaHomeScreen(
-                        navController = navController,
-                        authViewModel = authViewModel
-                    )
-                }
-                // TRANSPORTISTA - Lista de entregas
-                composable(
-                    route = Route.TransportistaListaEntregas.path
-                ) {
-                    TransportistaEntregasScreen(
-                        navController = navController
-                    )
-                }
 
-                // TRANSPORTISTA - Confirmar/Completar entrega
-                composable(
-                    route = Route.TransportistaConfirmarEntrega.path,
-                    arguments = listOf(navArgument("idEntrega") { type = NavType.IntType })
-                ) {
-                    ConfirmarEntregaScreen(navController = navController)
-                }
+                    // Rutas del cliente
+                    composable(Route.ClienteHome.path) {
+                        ClienteHomeScreen(
+                            navController = navController,
+                            authViewModel = authViewModel
+                        )
+                    }
+                    composable(Route.ClienteCatalogo.path) {
+                        ClienteCatalogoScreen(
+                            navController = navController,
+                            viewModel = hiltViewModel()
+                        )
+                    }
+                    composable(Route.ClientePedidos.path) {
+                        ClientePedidosScreen(navController = navController)
+                    }
+                    // composable(Route.ClienteCart.path) {
+                    //     // Pantalla desactivada temporalmente: ClienteCartScreen depende de la implementación local del carrito
+                    //     // Se mantuvo aquí como referencia para migración futura a microservicios
+                    //     // ClienteCartScreen(navController = navController)
+                    // }
+                    composable(
+                        route = Route.ClienteProductoDetail.path,
+                        arguments = listOf(navArgument("idModelo") { type = NavType.LongType })
+                    ) {
+                        ClienteProductoDetailScreen(navController = navController)
+                    }
+                    // Rutas del transportista
+                    composable(Route.TransportistaHome.path) {
+                        TransportistaHomeScreen(
+                            navController = navController,
+                            authViewModel = authViewModel
+                        )
+                    }
+                    // TRANSPORTISTA - Lista de entregas
+                    composable(
+                        route = Route.TransportistaListaEntregas.path
+                    ) {
+                        TransportistaEntregasScreen(
+                            navController = navController
+                        )
+                    }
 
-                composable(route = Route.TransportistaPerfil.path) {
-                    TransportistaPerfilScreen(navController = navController)
-                }
+                    // TRANSPORTISTA - Confirmar/Completar entrega
+                    composable(
+                        route = Route.TransportistaConfirmarEntrega.path,
+                        arguments = listOf(navArgument("idEntrega") { type = NavType.LongType })
+                    ) {
+                        ConfirmarEntregaScreen(navController = navController)
+                    }
 
-                composable(route = Route.ClientePerfil.path) {
-                    ClientePerfilScreen(navController = navController)
+                    composable(route = Route.TransportistaPerfil.path) {
+                        TransportistaPerfilScreen(navController = navController)
+                    }
+                    composable(route = Route.ClientePerfil.path) {
+                        ClientePerfilScreen(navController = navController)
+                    }
                 }
-            }
-        }
-    }
-}
+                // Overlay de carga mientras restauramos la sesión (z-index alto)
+                if (isRestoring) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(text = "Restaurando sesión...", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+             }
+         }
+     }
+ }

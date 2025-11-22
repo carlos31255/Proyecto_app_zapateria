@@ -1,10 +1,12 @@
 package com.example.proyectoZapateria.viewmodel.transportista
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
-import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
+import com.example.proyectoZapateria.data.repository.remote.DetalleBoletaRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +18,7 @@ import javax.inject.Inject
 
 data class DetalleEntregaUiState(
     val entrega: EntregaDTO? = null,
-    val productos: List<DetalleBoletaDTO> = emptyList(),
+    val productos: List<ProductoDetalle> = emptyList(),
     val observacionInput: String = "",
     val isLoading: Boolean = true,
     val isConfirming: Boolean = false,
@@ -28,10 +30,11 @@ data class DetalleEntregaUiState(
 class ConfirmarEntregaViewModel @Inject constructor(
     private val entregasRepository: EntregasRemoteRepository,
     private val ventasRepository: VentasRemoteRepository,
+    private val detalleBoletaRepository: DetalleBoletaRemoteRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val entregaId: Int = checkNotNull(savedStateHandle["idEntrega"])
+    private val entregaId: Long = checkNotNull(savedStateHandle["idEntrega"]) as Long
 
     private val _uiState = MutableStateFlow(DetalleEntregaUiState())
     val uiState: StateFlow<DetalleEntregaUiState> = _uiState
@@ -67,21 +70,34 @@ class ConfirmarEntregaViewModel @Inject constructor(
                     return@launch
                 }
 
-                val boletaResult = ventasRepository.obtenerBoletaPorId(entrega.idBoleta)
-                val productos = if (boletaResult.isSuccess) {
-                    boletaResult.getOrNull()?.detalles ?: emptyList()
-                } else {
-                    emptyList()
+                // Obtener productos usando DetalleBoletaRemoteRepository (mapea a ProductoDetalle)
+                val productosFlow = detalleBoletaRepository.getProductos(entrega.idBoleta ?: 0L)
+                val productosList = try {
+                    productosFlow
+                } catch (e: Exception) {
+                    emptyList<ProductoDetalle>()
                 }
 
+                // Para evitar bloquear, obtenemos detalles mediante el repo y actualizamos el estado cuando lleguen
                 _uiState.update {
                     it.copy(
                         entrega = entrega,
-                        productos = productos,
+                        productos = emptyList(), // inicialmente vacío; UI se actualizará cuando el flow emita
                         observacionInput = entrega.observacion ?: "",
                         isLoading = false,
                         error = null
                     )
+                }
+
+                // Lanzar una coroutine para recolectar el flow y actualizar productos
+                viewModelScope.launch {
+                    try {
+                        detalleBoletaRepository.getProductos(entrega.idBoleta ?: 0L).collect { lista ->
+                            _uiState.update { it.copy(productos = lista) }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ConfirmarEntregaVM", "Error cargando productos: ${e.message}")
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update {
@@ -136,4 +152,3 @@ class ConfirmarEntregaViewModel @Inject constructor(
         }
     }
 }
-

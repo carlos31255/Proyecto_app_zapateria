@@ -5,6 +5,8 @@ import com.example.proyectoZapateria.data.remote.usuario.PersonaApiService
 import com.example.proyectoZapateria.data.remote.usuario.RolApiService
 import com.example.proyectoZapateria.data.remote.usuario.UsuarioApiService
 import com.example.proyectoZapateria.data.remote.entregas.EntregasApiService
+import com.example.proyectoZapateria.data.remote.inventario.InventarioApiService
+import com.example.proyectoZapateria.data.remote.inventario.ProductoApiService
 import com.example.proyectoZapateria.data.remote.ventas.VentasApiService
 import dagger.Module
 import dagger.Provides
@@ -16,13 +18,29 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Qualifier
+
+
+// Anotaciones para identificar los Retrofit
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class UsuarioRetrofit
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-annotation class OtrosRetrofit
+annotation class InventarioRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class EntregasRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class VentasRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class GeografiaRetrofit
+
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -46,7 +64,7 @@ object NetworkModule {
             .build()
     }
 
-    // --- HELPER ---
+    // --- HELPER para no repetir código ---
     private fun buildRetrofit(baseUrl: String, okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(baseUrl)
@@ -56,21 +74,48 @@ object NetworkModule {
     }
 
     // ======================================================
-    //  RETROFIT CONSTRUCTOR (Solo uno activo por ahora)
+    //  RETROFIT CONSTRUCTOR
     // ======================================================
 
     @Provides
     @Singleton
-    @UsuarioRetrofit // <--- Creamos el Retrofit con esta etiqueta
+    @GeografiaRetrofit
+    fun provideRetrofitGeografia(okHttpClient: OkHttpClient): Retrofit {
+        return buildRetrofit("https://t4ld1ws9-8081.brs.devtunnels.ms/", okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    @InventarioRetrofit
+    fun provideRetrofitInventario(okHttpClient: OkHttpClient): Retrofit {
+        return buildRetrofit("https://t4ld1ws9-8082.brs.devtunnels.ms/", okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    @UsuarioRetrofit
     fun provideRetrofitUsuarios(okHttpClient: OkHttpClient): Retrofit {
-        // URL hardcodeada como la tenías para destrabar la compilación
         return buildRetrofit("https://t4ld1ws9-8083.brs.devtunnels.ms/", okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    @VentasRetrofit
+    fun provideRetrofitVentas(okHttpClient: OkHttpClient): Retrofit {
+        return buildRetrofit("https://t4ld1ws9-8084.brs.devtunnels.ms/", okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    @EntregasRetrofit
+    fun provideRetrofitEntregas(okHttpClient: OkHttpClient): Retrofit {
+        return buildRetrofit("https://t4ld1ws9-8085.brs.devtunnels.ms/", okHttpClient)
     }
 
     // ======================================================
     //  CONSUMIDORES (Todos usan @UsuarioRetrofit para compilar)
     // ======================================================
-
+    //USUARIOS
     @Provides
     @Singleton
     fun provideUsuarioApiService(@UsuarioRetrofit retrofit: Retrofit): UsuarioApiService {
@@ -95,18 +140,40 @@ object NetworkModule {
         return retrofit.create(PersonaApiService::class.java)
     }
 
-    // === AQUÍ ESTABA EL ERROR ANTES ===
-    // Le agregamos @UsuarioRetrofit para que use la instancia que SÍ existe.
+    // Transportista API (usuarios)
+    @Provides
+    @Singleton
+    fun provideTransportistaApiService(@UsuarioRetrofit retrofit: Retrofit): com.example.proyectoZapateria.data.remote.usuario.TransportistaApiService {
+        return retrofit.create(com.example.proyectoZapateria.data.remote.usuario.TransportistaApiService::class.java)
+    }
+
+
+    // VENTAS
+    @Provides
+    @Singleton
+    fun provideVentasApiService(@VentasRetrofit retrofit: Retrofit): VentasApiService {
+        return retrofit.create(VentasApiService::class.java)
+    }
+
+    //ENTREGAS
 
     @Provides
     @Singleton
-    fun provideVentasApiService(@UsuarioRetrofit retrofit: Retrofit): VentasApiService {
-        return retrofit.create(VentasApiService::class.java)
+    fun provideEntregasApiService(@EntregasRetrofit retrofit: Retrofit): EntregasApiService {
+        return retrofit.create(EntregasApiService::class.java)
+    }
+
+    //INVENTARIO
+
+    @Provides
+    @Singleton
+    fun provideInventarioApiService(@InventarioRetrofit retrofit: Retrofit): InventarioApiService {
+        return retrofit.create(InventarioApiService::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideEntregasApiService(@UsuarioRetrofit retrofit: Retrofit): EntregasApiService {
-        return retrofit.create(EntregasApiService::class.java)
+    fun provideProductoApiService(@InventarioRetrofit retrofit: Retrofit): ProductoApiService {
+        return retrofit.create(ProductoApiService::class.java)
     }
 }

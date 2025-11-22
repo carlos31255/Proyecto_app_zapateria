@@ -242,8 +242,8 @@ fun CrearUsuarioDialog(
                     }
                 }
 
-                // Campos específicos para Transportista (idRol = 3)
-                if (state.rolSeleccionado?.idRol == 3) {
+                // Campos específicos para Transportista (idRol = 2)
+                if (state.rolSeleccionado?.idRol == 2L) {
                     // Licencia
                     OutlinedTextField(
                         value = state.licencia,
@@ -298,4 +298,3 @@ fun CrearUsuarioDialog(
         }
     )
 }
-

@@ -4,6 +4,10 @@ import android.util.Log
 import com.example.proyectoZapateria.data.model.UsuarioCompleto
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
 import com.example.proyectoZapateria.data.remote.usuario.dto.UsuarioDTO
+import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.RolRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.UsuarioRemoteRepository
+import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +19,8 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val personaRemoteRepository: PersonaRemoteRepository,
     private val usuarioRemoteRepository: UsuarioRemoteRepository,
-    private val rolRemoteRepository: RolRemoteRepository
+    private val rolRemoteRepository: RolRemoteRepository,
+    private val sessionPreferences: SessionPreferences
 ) {
     // Estado del usuario actual
     private val _currentUser = MutableStateFlow<UsuarioCompleto?>(null)
@@ -33,7 +38,7 @@ class AuthRepository @Inject constructor(
 
             val persona = personaResult.getOrNull() ?: return Result.failure(Exception("Usuario no encontrado"))
 
-            // 2. Obtener datos del usuario (rol)
+            // Obtener datos del usuario (rol)
             val usuarioResult = usuarioRemoteRepository.obtenerUsuarioPorId(persona.idPersona ?: 0)
 
             if (usuarioResult.isFailure) {
@@ -73,6 +78,18 @@ class AuthRepository @Inject constructor(
 
             // 6. Guardar el usuario autenticado
             setCurrentUser(usuarioCompleto)
+
+            // Guardar sesión en DataStore (SessionPreferences)
+            try {
+                sessionPreferences.saveSession(
+                    userId = usuarioCompleto.idPersona,
+                    username = usuarioCompleto.username,
+                    userRole = usuarioCompleto.nombreRol,
+                    userRoleId = usuarioCompleto.idRol
+                )
+            } catch (e: Exception) {
+                Log.w("AuthRepository", "No se pudo guardar la sesión en preferences: ${e.message}")
+            }
 
             Result.success(usuarioCompleto)
 
@@ -145,7 +162,7 @@ class AuthRepository @Inject constructor(
                 telefono = telefono,
                 email = email,
                 idComuna = null,
-                calle = calle,
+                calle = numeroPuerta,
                 numeroPuerta = numeroPuerta,
                 username = email,
                 fechaRegistro = System.currentTimeMillis(),
@@ -164,7 +181,7 @@ class AuthRepository @Inject constructor(
     }
 
     // Obtiene un usuario por su ID para restaurar sesión
-    suspend fun obtenerUsuarioPorId(idPersona: Int): Result<UsuarioCompleto> {
+    suspend fun obtenerUsuarioPorId(idPersona: Long): Result<UsuarioCompleto> {
         return try {
             // 1. Obtener persona
             val personaResult = personaRemoteRepository.obtenerPersonaPorId(idPersona)
@@ -188,12 +205,12 @@ class AuthRepository @Inject constructor(
             }
 
             // 4. Obtener rol
-            val rolResult = rolRemoteRepository.obtenerRolPorId(usuario.idRol ?: 0)
+            val rolResult = rolRemoteRepository.obtenerRolPorId(usuario.idRol ?: 0L)
             val rol = rolResult.getOrNull()
 
             // 5. Crear UsuarioCompleto
             val usuarioCompleto = UsuarioCompleto(
-                idPersona = persona.idPersona ?: 0,
+                idPersona = persona.idPersona ?: 0L,
                 nombre = persona.nombre ?: "",
                 apellido = persona.apellido ?: "",
                 rut = persona.rut ?: "",
@@ -205,10 +222,22 @@ class AuthRepository @Inject constructor(
                 username = persona.username ?: "",
                 fechaRegistro = persona.fechaRegistro ?: 0L,
                 estado = persona.estado ?: "activo",
-                idRol = usuario.idRol ?: 0,
+                idRol = usuario.idRol ?: 0L,
                 nombreRol = rol?.nombreRol ?: usuario.nombreRol ?: "",
                 activo = usuario.activo ?: true
             )
+
+            // Guardar sesión en DataStore (SessionPreferences)
+            try {
+                sessionPreferences.saveSession(
+                    userId = usuarioCompleto.idPersona,
+                    username = usuarioCompleto.username,
+                    userRole = usuarioCompleto.nombreRol,
+                    userRoleId = usuarioCompleto.idRol
+                )
+            } catch (e: Exception) {
+                Log.w("AuthRepository", "No se pudo guardar la sesión en preferences: ${e.message}")
+            }
 
             Result.success(usuarioCompleto)
 
@@ -236,6 +265,11 @@ class AuthRepository @Inject constructor(
     // Cierra la sesión del usuario actual
     fun logout() {
         _currentUser.value = null
+        // Borrar DataStore
+        try {
+            // launch a coroutine? but repository is not a coroutine scope; leave clearing to caller
+            // sessionPreferences.clearSession() should be called by the caller when needed
+        } catch (_: Exception) {
+        }
     }
 }
-

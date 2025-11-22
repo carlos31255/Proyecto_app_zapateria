@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO
 import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
-import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,7 +82,7 @@ class ClienteViewModel @Inject constructor(
         }
     }
 
-    fun cargarDetalleCliente(idCliente: Int) {
+    fun cargarDetalleCliente(idCliente: Long) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
@@ -128,4 +128,3 @@ class ClienteViewModel @Inject constructor(
         _errorMessage.value = null
     }
 }
-

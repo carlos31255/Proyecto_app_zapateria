@@ -1,11 +1,12 @@
 package com.example.proyectoZapateria.viewmodel.cliente
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.repository.AuthRepository
-import com.example.proyectoZapateria.data.repository.PersonaRemoteRepository
-import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
-import com.example.proyectoZapateria.data.local.boletaventa.BoletaVentaDao
+import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
 import com.example.proyectoZapateria.domain.validation.validateProfileEmail
@@ -17,7 +18,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,7 +26,7 @@ class ClientePerfilViewModel @Inject constructor(
     private val clienteRemoteRepository: ClienteRemoteRepository,
     private val personaRemoteRepository: PersonaRemoteRepository,
     private val authRepository: AuthRepository,
-    private val boletaVentaDao: BoletaVentaDao,
+    private val ventasRemoteRepository: VentasRemoteRepository,
     private val sessionPreferences: SessionPreferences
 ) : ViewModel() {
 
@@ -79,9 +79,18 @@ class ClientePerfilViewModel @Inject constructor(
                     val persona = personaResult.getOrNull()
 
                     if (cliente != null && persona != null) {
-                        // Estadísticas: contar boletas del cliente
-                        val boletas = boletaVentaDao.getByCliente(idPersona).first()
-                        val total = boletas.size
+                        // Estadísticas: contar boletas del cliente (via remoto)
+                        var total = 0
+                        try {
+                            val boletasRes = ventasRemoteRepository.obtenerBoletasPorCliente(idPersona)
+                            if (boletasRes.isSuccess) {
+                                val boletas = boletasRes.getOrNull()
+                                total = boletas?.size ?: 0
+                            }
+                        } catch (e: Exception) {
+                            // si falla, mantenemos total = 0
+                            Log.w("ClientePerfilVM", "No se pudo obtener boletas remotas: ${e.message}")
+                        }
 
                         _uiState.value = ClientePerfilUiState(
                             nombre = cliente.nombreCompleto ?: "",
@@ -113,8 +122,6 @@ class ClientePerfilViewModel @Inject constructor(
             }
         }
     }
-
-    fun refresh() { cargarPerfil() }
 
     // Comienzo edición
     fun startEdit() {
@@ -201,7 +208,7 @@ class ClientePerfilViewModel @Inject constructor(
                     val current = authRepository.currentUser.value
                     if (current != null && current.idPersona == persona.idPersona) {
                         // Obtener usuario actualizado desde API
-                        val usuarioActualizadoResult = authRepository.obtenerUsuarioPorId(persona.idPersona ?: 0)
+                        val usuarioActualizadoResult = authRepository.obtenerUsuarioPorId(persona.idPersona)
                         usuarioActualizadoResult.onSuccess { nuevoUsuario ->
                             authRepository.setCurrentUser(nuevoUsuario)
                             // Actualizar DataStore/sessionPreferences con el nuevo username si cambió

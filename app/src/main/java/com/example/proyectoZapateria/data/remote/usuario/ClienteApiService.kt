@@ -12,7 +12,7 @@ interface ClienteApiService {
 
     // Obtener cliente por ID de persona
     @GET("api/clientes/{idPersona}")
-    suspend fun obtenerClientePorId(@Path("idPersona") idPersona: Int): Response<ClienteDTO>
+    suspend fun obtenerClientePorId(@Path("idPersona") idPersona: Long): Response<ClienteDTO>
 
     // Obtener clientes por categoría (VIP, premium, regular)
     @GET("api/clientes/categoria/{categoria}")
@@ -25,13 +25,12 @@ interface ClienteApiService {
     // Actualizar categoría de cliente
     @PUT("api/clientes/{idPersona}/categoria")
     suspend fun actualizarCategoria(
-        @Path("idPersona") idPersona: Int,
+        @Path("idPersona") idPersona: Long,
         @Query("nuevaCategoria") nuevaCategoria: String
     ): Response<ClienteDTO>
 
     // Desactivar cliente (borrado lógico - marca como inactivo)
     @DELETE("api/clientes/{idPersona}")
-    suspend fun eliminarCliente(@Path("idPersona") idPersona: Int): Response<Void>
+    suspend fun eliminarCliente(@Path("idPersona") idPersona: Long): Response<Void>
 
 }
-

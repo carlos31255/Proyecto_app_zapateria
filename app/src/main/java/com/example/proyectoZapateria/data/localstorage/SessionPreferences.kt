@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -27,10 +27,10 @@ class SessionPreferences @Inject constructor(
     private val dataStore = context.dataStore
 
     companion object {
-        private val USER_ID_KEY = intPreferencesKey("user_id")
+        private val USER_ID_KEY = longPreferencesKey("user_id")
         private val USERNAME_KEY = stringPreferencesKey("username")
         private val USER_ROLE_KEY = stringPreferencesKey("user_role")
-        private val USER_ROLE_ID_KEY = intPreferencesKey("user_role_id")
+        private val USER_ROLE_ID_KEY = longPreferencesKey("user_role_id")
         private val IS_LOGGED_IN_KEY = stringPreferencesKey("is_logged_in")
     }
 
@@ -38,10 +38,10 @@ class SessionPreferences @Inject constructor(
      * Guarda los datos de sesión del usuario
      */
     suspend fun saveSession(
-        userId: Int,
+        userId: Long,
         username: String,
         userRole: String,
-        userRoleId: Int
+        userRoleId: Long
     ) {
         dataStore.edit { preferences ->
             preferences[USER_ID_KEY] = userId
@@ -55,7 +55,7 @@ class SessionPreferences @Inject constructor(
     /**
      * Obtiene el ID del usuario guardado
      */
-    val userId: Flow<Int?> = dataStore.data.map { preferences ->
+    val userId: Flow<Long?> = dataStore.data.map { preferences ->
         preferences[USER_ID_KEY]
     }
 
@@ -76,7 +76,7 @@ class SessionPreferences @Inject constructor(
     /**
      * Obtiene el ID del rol del usuario guardado
      */
-    val userRoleId: Flow<Int?> = dataStore.data.map { preferences ->
+    val userRoleId: Flow<Long?> = dataStore.data.map { preferences ->
         preferences[USER_ROLE_ID_KEY]
     }
 
@@ -123,8 +123,8 @@ class SessionPreferences @Inject constructor(
  * Clase de datos que representa la sesión del usuario
  */
 data class SessionData(
-    val userId: Int,
+    val userId: Long,
     val username: String,
     val userRole: String,
-    val userRoleId: Int
+    val userRoleId: Long
 )

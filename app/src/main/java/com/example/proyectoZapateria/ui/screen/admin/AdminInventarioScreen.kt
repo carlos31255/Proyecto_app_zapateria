@@ -25,8 +25,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.proyectoZapateria.data.local.marca.MarcaEntity
-import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
+import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
@@ -48,7 +49,7 @@ fun AdminInventarioScreen(
     val productos by inventarioViewModel.productos.collectAsStateWithLifecycle()
     val marcas by inventarioViewModel.marcas.collectAsStateWithLifecycle()
 
-    var productoSeleccionado by remember { mutableStateOf<ModeloZapatoEntity?>(null) }
+    var productoSeleccionado by remember { mutableStateOf<ModeloZapatoDTO?>(null) }
     var mostrarDialogoEliminar by remember { mutableStateOf(false) }
     var mostrarDialogoEditar by remember { mutableStateOf(false) }
     var confirmarEliminar by remember { mutableStateOf(false) }
@@ -158,10 +159,10 @@ fun AdminInventarioScreen(
             ) {
                 item { Spacer(modifier = Modifier.height(4.dp)) }
 
-                items(productos, key = { it.idModelo }) { producto ->
+                items(productos, key = { it.id }) { producto ->
                     ProductoCard(
                         producto = producto,
-                        nombreMarca = marcas.find { it.idMarca == producto.idMarca }?.nombreMarca ?: "Sin marca",
+                        nombreMarca = marcas.find { it.id == producto.marcaId }?.nombre ?: "Sin marca",
                         onEdit = {
                             productoSeleccionado = producto
                             mostrarDialogoEditar = true
@@ -203,7 +204,7 @@ fun AdminInventarioScreen(
                 Column {
                     Text(
                         if (!confirmarEliminar) {
-                            "Se eliminará el producto '${productoSeleccionado!!.nombreModelo}'"
+                            "Se eliminará el producto '${productoSeleccionado!!.nombre}'"
                         } else {
                             "Esta acción no se puede deshacer. Se eliminarán todos los datos del producto incluyendo su imagen."
                         }
@@ -264,7 +265,7 @@ fun AdminInventarioScreen(
 
 @Composable
 fun ProductoCard(
-    producto: ModeloZapatoEntity,
+    producto: ModeloZapatoDTO,
     nombreMarca: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -297,7 +298,7 @@ fun ProductoCard(
                     if (drawableId != null) {
                         Image(
                             painter = androidx.compose.ui.res.painterResource(id = drawableId),
-                            contentDescription = "Imagen de ${producto.nombreModelo}",
+                            contentDescription = "Imagen de ${producto.nombre}",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -341,7 +342,7 @@ fun ProductoCard(
                     .padding(12.dp)
             ) {
                 Text(
-                    text = producto.nombreModelo,
+                    text = producto.nombre,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -370,7 +371,7 @@ fun ProductoCard(
                 if (!producto.descripcion.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = producto.descripcion,
+                        text = producto.descripcion ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -407,16 +408,16 @@ fun ProductoCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarProductoCompletoDialog(
-    producto: ModeloZapatoEntity,
-    marcas: List<MarcaEntity>,
+    producto: ModeloZapatoDTO,
+    marcas: List<MarcaDTO>,
     viewModel: InventarioViewModel,
     context: android.content.Context,
     onDismiss: () -> Unit
 ) {
-    var nombre by remember { mutableStateOf(producto.nombreModelo) }
+    var nombre by remember { mutableStateOf(producto.nombre) }
     var precio by remember { mutableStateOf(producto.precioUnitario.toString()) }
     var descripcion by remember { mutableStateOf(producto.descripcion ?: "") }
-    var idMarcaSeleccionada by remember { mutableStateOf(producto.idMarca) }
+    var idMarcaSeleccionada by remember { mutableStateOf(producto.marcaId) }
     var expandedMarcas by remember { mutableStateOf(false) }
 
     var nombreError by remember { mutableStateOf<String?>(null) }
@@ -426,18 +427,20 @@ fun EditarProductoCompletoDialog(
     val tallas by viewModel.tallas.collectAsStateWithLifecycle()
     val inventario by viewModel.inventarioPorModelo.collectAsStateWithLifecycle()
 
-    LaunchedEffect(producto.idModelo) {
-        viewModel.cargarInventarioDeModelo(producto.idModelo)
+    LaunchedEffect(producto.id) {
+        viewModel.cargarInventarioDeModelo(producto.id)
     }
 
     // Map de idTalla a stock actual (editable)
-    val stockPorTalla = remember { mutableStateMapOf<Int, String>() }
+    val stockPorTalla = remember { mutableStateMapOf<Long, String>() }
 
     // Inicializar con el inventario actual
-    LaunchedEffect(inventario) {
+    LaunchedEffect(inventario, tallas) {
         stockPorTalla.clear()
-        inventario.forEach { inv ->
-            stockPorTalla[inv.idTalla] = inv.stockActual.toString()
+        // Para cada talla remota, mapear el stock si existe en inventario (InventarioUi usa tallaIdLocal:Int?)
+        tallas.forEach { tallaDto ->
+            val inv = inventario.find { it.tallaIdLocal == tallaDto.id }
+            stockPorTalla[tallaDto.id] = inv?.stock?.toString() ?: "0"
         }
     }
 
@@ -487,7 +490,7 @@ fun EditarProductoCompletoDialog(
                         onExpandedChange = { expandedMarcas = it }
                     ) {
                         OutlinedTextField(
-                            value = marcas.find { it.idMarca == idMarcaSeleccionada }?.nombreMarca ?: "",
+                            value = marcas.find { it.id == idMarcaSeleccionada }?.nombre ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Marca") },
@@ -503,9 +506,9 @@ fun EditarProductoCompletoDialog(
                         ) {
                             marcas.forEach { marca ->
                                 DropdownMenuItem(
-                                    text = { Text(marca.nombreMarca) },
+                                    text = { Text(marca.nombre) },
                                     onClick = {
-                                        idMarcaSeleccionada = marca.idMarca
+                                        idMarcaSeleccionada = marca.id
                                         expandedMarcas = false
                                     }
                                 )
@@ -567,7 +570,7 @@ fun EditarProductoCompletoDialog(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                items(tallas, key = { it.idTalla }) { talla ->
+                items(tallas, key = { it.id }) { talla ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -576,16 +579,16 @@ fun EditarProductoCompletoDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Talla ${talla.numeroTalla}",
+                            text = "Talla ${talla.valor}",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
 
                         OutlinedTextField(
-                            value = stockPorTalla[talla.idTalla] ?: "0",
+                            value = stockPorTalla[talla.id] ?: "0",
                             onValueChange = { newValue ->
                                 val filtered = newValue.filter { it.isDigit() }
-                                stockPorTalla[talla.idTalla] = filtered
+                                stockPorTalla[talla.id] = filtered
                             },
                             label = { Text("Stock") },
                             modifier = Modifier.width(120.dp),
@@ -628,12 +631,11 @@ fun EditarProductoCompletoDialog(
                                     )
 
                                     // Actualizar inventario
-                                    val inventarioMap = stockPorTalla.mapValues { (_, stock) ->
-                                        stock.toIntOrNull() ?: 0
-                                    }
+                                    val inventarioMap = stockPorTalla.mapKeys { it.key }
+                                        .mapValues { (_, stock) -> stock.toIntOrNull() ?: 0 }
 
                                     viewModel.actualizarInventario(
-                                        producto.idModelo,
+                                        producto.id,
                                         inventarioMap,
                                         context,
                                         onSuccess = { onDismiss() }

@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
-import com.example.proyectoZapateria.data.repository.TransportistaRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.TransportistaRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +32,7 @@ data class TransportistaPerfilUiState(
 
 @HiltViewModel
 class TransportistaPerfilViewModel @Inject constructor(
-    private val transportistaRepository: TransportistaRepository,
+    private val transportistaRemoteRepository: TransportistaRemoteRepository,
     private val entregasRepository: EntregasRemoteRepository,
     private val ventasRepository: VentasRemoteRepository,
     private val authRepository: AuthRepository
@@ -59,19 +59,25 @@ class TransportistaPerfilViewModel @Inject constructor(
                     return@launch
                 }
 
-                val transportistaId = currentUser.idPersona
-                Log.d("PerfilVM", "Cargando perfil para ID: $transportistaId")
+                val personaId = currentUser.idPersona
+                Log.d("PerfilVM", "Cargando perfil para persona ID: $personaId")
 
-                // Obtener datos de transportista simples (licencia, vehiculo) desde el repositorio local
-                val transportistaEntity = try {
-                    transportistaRepository.getTransportistaSimple(transportistaId)
+                // Intentar obtener transportista desde el microservicio por personaId
+                val remoteDto = try {
+                    val remoteResult = transportistaRemoteRepository.obtenerPorPersona(personaId)
+                    if (remoteResult.isSuccess) remoteResult.getOrNull() else null
                 } catch (ex: Exception) {
-                    Log.w("PerfilVM", "No se pudo obtener transportista local para id=$transportistaId: ${ex.message}")
+                    Log.w("PerfilVM", "Error al consultar transportista remoto: ${ex.message}")
                     null
                 }
 
-                // Obtener estadísticas de entregas
-                val entregasResult = entregasRepository.obtenerEntregasPorTransportista(transportistaId)
+                val licenciaFromRemote = remoteDto?.patente
+                val vehiculoFromRemote = remoteDto?.tipoVehiculo
+
+                // Obtener estadísticas de entregas — usar idTransportista remoto si está disponible, si no usar personaId
+                val idParaEntregas: Long = remoteDto?.idTransportista ?: personaId
+
+                val entregasResult = entregasRepository.obtenerEntregasPorTransportista(idParaEntregas)
 
                 if (entregasResult.isSuccess) {
                     val entregas = entregasResult.getOrNull() ?: emptyList()
@@ -104,15 +110,15 @@ class TransportistaPerfilViewModel @Inject constructor(
                         }
                     }
 
-                    // Construir UI state combinando persona (desde auth currentUser) y transportistaEntity
+                    // Construir UI state combinando persona (desde auth currentUser) y transportista
                     val nombreCompleto = listOfNotNull(currentUser.nombre.takeIf { it.isNotBlank() }, currentUser.apellido.takeIf { it.isNotBlank() }).joinToString(" ").ifBlank { currentUser.username }
 
                     _uiState.value = TransportistaPerfilUiState(
                         nombre = nombreCompleto,
                         email = currentUser.email,
                         telefono = currentUser.telefono,
-                        licencia = transportistaEntity?.licencia ?: "No especificada",
-                        vehiculo = transportistaEntity?.vehiculo ?: "No especificado",
+                        licencia = licenciaFromRemote ?: "No especificada",
+                        vehiculo = vehiculoFromRemote ?: "No especificado",
                         totalEntregas = total,
                         entregasCompletadas = completadas + entregadas,
                         entregasPendientes = pendientes,
@@ -121,7 +127,7 @@ class TransportistaPerfilViewModel @Inject constructor(
                         isLoading = false
                     )
                 } else {
-                    Log.w("PerfilVM", "Error al obtener entregas para transportista id=$transportistaId: ${entregasResult.exceptionOrNull()?.message}")
+                    Log.w("PerfilVM", "Error al obtener entregas para transportista id=$idParaEntregas: ${entregasResult.exceptionOrNull()?.message}")
 
                     // Mostrar perfil mínimo con datos de persona y transportista si existe
                     val nombreCompleto = listOfNotNull(currentUser.nombre.takeIf { it.isNotBlank() }, currentUser.apellido.takeIf { it.isNotBlank() }).joinToString(" ").ifBlank { currentUser.username }
@@ -130,8 +136,8 @@ class TransportistaPerfilViewModel @Inject constructor(
                         nombre = nombreCompleto,
                         email = currentUser.email,
                         telefono = currentUser.telefono,
-                        licencia = transportistaEntity?.licencia ?: "No especificada",
-                        vehiculo = transportistaEntity?.vehiculo ?: "No especificado",
+                        licencia = licenciaFromRemote ?: "No especificada",
+                        vehiculo = vehiculoFromRemote ?: "No especificado",
                         totalEntregas = 0,
                         entregasCompletadas = 0,
                         entregasPendientes = 0,

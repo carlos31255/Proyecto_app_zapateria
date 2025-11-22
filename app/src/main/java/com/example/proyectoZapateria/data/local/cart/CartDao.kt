@@ -12,15 +12,15 @@ import kotlinx.coroutines.flow.Flow
 interface CartDao {
     // Devuelve un Flow con todos los items del carrito para un cliente
     @Query("SELECT * FROM cart_item WHERE id_cliente = :idCliente")
-    fun getByCliente(idCliente: Int): Flow<List<CartItemEntity>>
+    fun getByCliente(idCliente: Long): Flow<List<CartItemEntity>>
 
     // Obtiene un item por su id (o null si no existe)
     @Query("SELECT * FROM cart_item WHERE id_cart_item = :id")
-    suspend fun getById(id: Int): CartItemEntity?
+    suspend fun getById(id: Long): CartItemEntity?
 
     // Busca un item por cliente+modelo+talla (evita duplicados)
     @Query("SELECT * FROM cart_item WHERE id_cliente = :idCliente AND id_modelo = :idModelo AND talla = :talla LIMIT 1")
-    suspend fun getByClienteModeloTalla(idCliente: Int, idModelo: Int, talla: String): CartItemEntity?
+    suspend fun getByClienteModeloTalla(idCliente: Long, idModelo: Long, talla: String): CartItemEntity?
 
     // Inserta o reemplaza un item del carrito y retorna el id generado
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -40,9 +40,9 @@ interface CartDao {
 
     // Elimina todos los items del carrito para el cliente dado
     @Query("DELETE FROM cart_item WHERE id_cliente = :idCliente")
-    suspend fun clearByCliente(idCliente: Int)
+    suspend fun clearByCliente(idCliente: Long)
 
     // Retorna la cantidad de items que tiene el cliente en el carrito
     @Query("SELECT COUNT(*) FROM cart_item WHERE id_cliente = :idCliente")
-    suspend fun getCountByCliente(idCliente: Int): Int
+    suspend fun getCountByCliente(idCliente: Long): Int
 }

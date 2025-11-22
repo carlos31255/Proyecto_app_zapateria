@@ -14,11 +14,11 @@ interface UsuarioApiService {
 
     // Obtener usuario por ID de persona
     @GET("api/usuarios/{idPersona}")
-    suspend fun obtenerUsuarioPorId(@Path("idPersona") idPersona: Int): Response<UsuarioDTO>
+    suspend fun obtenerUsuarioPorId(@Path("idPersona") idPersona: Long): Response<UsuarioDTO>
 
     // Obtener usuarios por rol
     @GET("api/usuarios/rol/{idRol}")
-    suspend fun obtenerUsuariosPorRol(@Path("idRol") idRol: Int): List<UsuarioDTO>
+    suspend fun obtenerUsuariosPorRol(@Path("idRol") idRol: Long): List<UsuarioDTO>
 
     // Crear nuevo usuario
     @POST("api/usuarios")
@@ -27,14 +27,13 @@ interface UsuarioApiService {
     // Actualizar rol de usuario
     @PUT("api/usuarios/{idPersona}/rol")
     suspend fun actualizarRolUsuario(
-        @Path("idPersona") idPersona: Int,
-        @Query("nuevoIdRol") nuevoIdRol: Int
+        @Path("idPersona") idPersona: Long,
+        @Query("nuevoIdRol") nuevoIdRol: Long
     ): Response<UsuarioDTO>
 
     // Desactivar usuario (borrado lógico - marca como inactivo)
     @DELETE("api/usuarios/{idPersona}")
-    suspend fun eliminarUsuario(@Path("idPersona") idPersona: Int): Response<Void>
+    suspend fun eliminarUsuario(@Path("idPersona") idPersona: Long): Response<Void>
 
 
 }
-

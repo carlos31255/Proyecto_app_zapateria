@@ -22,11 +22,11 @@ sealed class Route(val path: String) {
 
     // Rutas con parámetros para Admin
     data object ClienteDetalle : Route("admin/clientes/{idCliente}") {
-        fun createRoute(idCliente: Int) = "admin/clientes/$idCliente"
+        fun createRoute(idCliente: Long) = "admin/clientes/$idCliente"
     }
 
     data object VentaDetalle : Route("admin/ventas/{idBoleta}") {
-        fun createRoute(idBoleta: Int) = "admin/ventas/$idBoleta"
+        fun createRoute(idBoleta: Long) = "admin/ventas/$idBoleta"
     }
 
     // Rutas del Transportista

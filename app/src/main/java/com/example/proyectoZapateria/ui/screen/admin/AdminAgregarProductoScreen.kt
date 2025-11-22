@@ -37,6 +37,8 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import java.io.File
+import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -270,7 +272,7 @@ fun AdminAgregarProductoScreen(
                 onExpandedChange = { expandedMarcas = it }
             ) {
                 OutlinedTextField(
-                    value = marcas.find { it.idMarca == formState.idMarcaSeleccionada }?.nombreMarca ?: "",
+                    value = marcas.find { it.id == formState.idMarcaSeleccionada }?.nombre ?: "",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Marca") },
@@ -300,9 +302,9 @@ fun AdminAgregarProductoScreen(
                     } else {
                         marcas.forEach { marca ->
                             DropdownMenuItem(
-                                text = { Text(marca.nombreMarca) },
+                                text = { Text(marca.nombre) },
                                 onClick = {
-                                    productoViewModel.onMarcaSelected(marca.idMarca)
+                                    productoViewModel.onMarcaSelected(marca.id)
                                     expandedMarcas = false
                                 }
                             )
@@ -395,8 +397,8 @@ fun AdminAgregarProductoScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 rowTallas.forEach { talla ->
-                                    val isSelected = formState.tallasSeleccionadas.containsKey(talla.idTalla)
-                                    val tallaConStock = formState.tallasSeleccionadas[talla.idTalla]
+                                    val isSelected = formState.tallasSeleccionadas.containsKey(talla.id)
+                                    val tallaConStock = formState.tallasSeleccionadas[talla.id]
 
                                     Column(
                                         modifier = Modifier.weight(1f),
@@ -406,7 +408,7 @@ fun AdminAgregarProductoScreen(
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = { productoViewModel.onTallaToggle(talla) },
-                                            label = { Text(talla.numeroTalla) },
+                                            label = { Text(talla.valor) },
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = FilterChipDefaults.filterChipColors(
                                                 selectedContainerColor = colorScheme.primaryContainer,
@@ -420,7 +422,7 @@ fun AdminAgregarProductoScreen(
                                             OutlinedTextField(
                                                 value = tallaConStock.stock,
                                                 onValueChange = {
-                                                    productoViewModel.onStockTallaChange(talla.idTalla, it)
+                                                    productoViewModel.onStockTallaChange(talla.id, it)
                                                 },
                                                 placeholder = { Text("0", style = MaterialTheme.typography.bodySmall) },
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -537,4 +539,3 @@ fun AdminAgregarProductoScreen(
         }
     }
 }
-

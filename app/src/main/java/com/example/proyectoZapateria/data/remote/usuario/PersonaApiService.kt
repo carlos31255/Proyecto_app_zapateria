@@ -14,7 +14,7 @@ interface PersonaApiService {
 
     // Obtener persona por ID
     @GET("api/personas/{id}")
-    suspend fun obtenerPersonaPorId(@Path("id") id: Int): Response<PersonaDTO>
+    suspend fun obtenerPersonaPorId(@Path("id") id: Long): Response<PersonaDTO>
 
     // Obtener persona por RUT
     @GET("api/personas/rut/{rut}")
@@ -39,13 +39,13 @@ interface PersonaApiService {
     // Actualizar persona
     @PUT("api/personas/{id}")
     suspend fun actualizarPersona(
-        @Path("id") id: Int,
+        @Path("id") id: Long,
         @Body personaDTO: PersonaDTO
     ): Response<PersonaDTO>
 
     // Desactivar persona (borrado lógico - cambia estado a inactivo)
     @DELETE("api/personas/{id}")
-    suspend fun eliminarPersona(@Path("id") id: Int): Response<Void>
+    suspend fun eliminarPersona(@Path("id") id: Long): Response<Void>
 
     // Verificar credenciales para autenticación
     @POST("api/personas/verificar-credenciales")
@@ -55,4 +55,3 @@ interface PersonaApiService {
     ): Response<PersonaDTO>
 
 }
-

@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.model.UsuarioCompleto
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.repository.AuthRepository
-import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
 import com.example.proyectoZapateria.domain.validation.validateConfirm
 import com.example.proyectoZapateria.domain.validation.validateEmail
 import com.example.proyectoZapateria.domain.validation.validateNameLettersOnly
@@ -20,6 +20,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class LoginUiState(
@@ -64,11 +68,7 @@ class AuthViewModel @Inject constructor(
     private val clienteRemoteRepository: ClienteRemoteRepository
 ) : ViewModel() {
 
-    init {
-        // Cargar sesión guardada al iniciar
-        cargarSesionGuardada()
-    }
-
+    // Estado de UI para login y registro
     private val _login = MutableStateFlow(LoginUiState())
     val login: StateFlow<LoginUiState> = _login
 
@@ -77,6 +77,15 @@ class AuthViewModel @Inject constructor(
 
     // Estado para el usuario logueado - ahora usa UsuarioCompleto
     val currentUser: StateFlow<UsuarioCompleto?> = authRepository.currentUser
+
+    // Flag público que indica si se está restaurando la sesión al arrancar
+    private val _isRestoringSession = MutableStateFlow(true)
+    val isRestoringSession: StateFlow<Boolean> = _isRestoringSession
+
+    // Ejecutar la restauración de sesión después de inicializar los StateFlows
+    init {
+        cargarSesionGuardada()
+    }
 
     // ========== HANDLERS LOGIN ==========
 
@@ -359,34 +368,63 @@ class AuthViewModel @Inject constructor(
      */
     private fun cargarSesionGuardada() {
         viewModelScope.launch {
-            sessionPreferences.sessionData.collect { sessionData ->
+            // Asegurar que la marca de restauración no vaya a lanzar NPE
+            try {
+                _isRestoringSession.value = true
+            } catch (e: Exception) {
+                Log.w("AuthViewModel", "cargarSesionGuardada: _isRestoringSession no inicializado: ${e.message}")
+            }
+            try {
+                // Intentar leer la sessionData una vez (timeout de 5s) en IO
+                val sessionData = withTimeoutOrNull(5000) {
+                    withContext(Dispatchers.IO) { sessionPreferences.sessionData.first() }
+                }
+
                 if (sessionData != null) {
                     // Cargar el usuario completo desde el microservicio
                     try {
-                        val result = authRepository.obtenerUsuarioPorId(sessionData.userId)
+                        // Llamada al repositorio remoto en IO con timeout para evitar colgar la restauración
+                        val result = withTimeoutOrNull(5000) {
+                            withContext(Dispatchers.IO) { authRepository.obtenerUsuarioPorId(sessionData.userId) }
+                        }
 
-                        result.onSuccess { usuarioCompleto ->
-                            if (usuarioCompleto.estado == "activo" && usuarioCompleto.activo) {
-                                // Restaurar el usuario en el repositorio
-                                authRepository.setCurrentUser(usuarioCompleto)
-                                Log.d("AuthViewModel", "cargarSesionGuardada: Sesión restaurada para: ${usuarioCompleto.username}")
-                            } else {
-                                // Si el usuario está inactivo, limpiar la sesión
-                                sessionPreferences.clearSession()
-                                Log.w("AuthViewModel", "cargarSesionGuardada: Usuario inactivo, sesión limpiada")
+                        if (result == null) {
+                            Log.w("AuthViewModel", "cargarSesionGuardada: timeout al obtener usuario remoto")
+                            withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                        } else {
+                            result.onSuccess { usuarioCompleto ->
+                                if (usuarioCompleto.estado == "activo" && usuarioCompleto.activo) {
+                                    // Restaurar el usuario en el repositorio
+                                    authRepository.setCurrentUser(usuarioCompleto)
+                                    Log.d("AuthViewModel", "cargarSesionGuardada: Sesión restaurada para: ${usuarioCompleto.username}")
+                                } else {
+                                    // Si el usuario está inactivo, limpiar la sesión
+                                    withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                                    Log.w("AuthViewModel", "cargarSesionGuardada: Usuario inactivo, sesión limpiada")
+                                }
+                            }.onFailure { error ->
+                                Log.e("AuthViewModel", "cargarSesionGuardada: Error al cargar usuario: ${error.message}")
+                                withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
                             }
-                        }.onFailure { error ->
-                            // Si hay error al cargar el usuario, limpiar la sesión
-                            Log.e("AuthViewModel", "cargarSesionGuardada: Error al cargar usuario: ${error.message}")
-                            sessionPreferences.clearSession()
                         }
                     } catch (e: Exception) {
                         Log.e("AuthViewModel", "cargarSesionGuardada: Excepción: ${e.message}", e)
-                        sessionPreferences.clearSession()
+                        withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
                     }
+                } else {
+                    // No hay sessionData o timeout, no hacemos nada
+                    Log.d("AuthViewModel", "cargarSesionGuardada: no hay sessionData o timeout")
+                }
+            } catch (e: Exception) {
+                Log.e("AuthViewModel", "cargarSesionGuardada: excepción general: ${e.message}", e)
+            } finally {
+                // Marcar que terminamos el intento de restauración (éxito o no)
+                try {
+                    _isRestoringSession.value = false
+                } catch (e: Exception) {
+                    Log.w("AuthViewModel", "cargarSesionGuardada: _isRestoringSession no inicializado al finalizar: ${e.message}")
                 }
             }
         }
     }
 }
-

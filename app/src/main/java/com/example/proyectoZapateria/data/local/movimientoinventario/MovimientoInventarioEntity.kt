@@ -5,17 +5,11 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.proyectoZapateria.data.local.inventario.InventarioEntity
 import com.example.proyectoZapateria.data.local.tipomovimiento.TipoMovimientoEntity
 
 @Entity(
     tableName = "movimientoinventario",
     foreignKeys = [
-        ForeignKey(
-            entity = InventarioEntity::class,
-            parentColumns = ["id_inventario"],
-            childColumns = ["id_inventario"]
-        ),
         ForeignKey(
             entity = TipoMovimientoEntity::class,
             parentColumns = ["id_tipo_movimiento"],
@@ -45,4 +39,3 @@ data class MovimientoInventarioEntity(
 
     val observacion: String?
 )
-

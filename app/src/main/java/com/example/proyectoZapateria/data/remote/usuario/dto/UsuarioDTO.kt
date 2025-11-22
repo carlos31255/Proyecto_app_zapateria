@@ -5,10 +5,10 @@ import com.google.gson.annotations.SerializedName
 
 data class UsuarioDTO(
     @SerializedName("idPersona")
-    val idPersona: Int?,
+    val idPersona: Long?,
 
     @SerializedName("idRol")
-    val idRol: Int?,
+    val idRol: Long?,
 
     @SerializedName("nombreCompleto")
     val nombreCompleto: String?,
@@ -20,6 +20,5 @@ data class UsuarioDTO(
     val nombreRol: String?,
 
     @SerializedName("activo")
-    val activo: Boolean?
+    val activo: Boolean? = true
 )
-

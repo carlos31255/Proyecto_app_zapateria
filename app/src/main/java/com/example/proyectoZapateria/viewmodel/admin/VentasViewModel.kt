@@ -115,7 +115,7 @@ class VentasViewModel @Inject constructor(
                 cal1.get(java.util.Calendar.DAY_OF_MONTH) == cal2.get(java.util.Calendar.DAY_OF_MONTH)
     }
 
-    fun cancelarVenta(idBoleta: Int) {
+    fun cancelarVenta(idBoleta: Long) {
         viewModelScope.launch {
             try {
                 val result = ventasRepository.cambiarEstadoBoleta(idBoleta, "CANCELADA")
@@ -147,4 +147,3 @@ class VentasViewModel @Inject constructor(
         cargarVentas()
     }
 }
-

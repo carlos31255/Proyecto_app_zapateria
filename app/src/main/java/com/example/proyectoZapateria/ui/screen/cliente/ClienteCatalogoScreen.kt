@@ -18,12 +18,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
+import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.cliente.ClienteCatalogoViewModel
@@ -39,6 +38,7 @@ fun ClienteCatalogoScreen(
     val colorScheme = MaterialTheme.colorScheme
 
     val modelos by viewModel.modelos.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     val clpFormatter = remember { NumberFormat.getCurrencyInstance(java.util.Locale.forLanguageTag("es-CL")) }
 
@@ -83,6 +83,14 @@ fun ClienteCatalogoScreen(
             }
         }
 
+        // Mostrar animación de carga mientras se obtienen datos
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = colorScheme.primary)
+            }
+            return
+        }
+
         // No usar Scaffold local — el scaffold global maneja la TopAppBar y paddings
         if (modelos.isEmpty()) {
             Box(modifier = Modifier
@@ -100,7 +108,7 @@ fun ClienteCatalogoScreen(
             ) {
                 items(modelos) { modelo ->
                     ClienteProductoCard(modelo = modelo, onClick = {
-                        val rutaDetalle = Route.ClienteProductoDetail.path.replace("{idModelo}", modelo.idModelo.toString())
+                        val rutaDetalle = Route.ClienteProductoDetail.path.replace("{idModelo}", modelo.id.toString())
                         navController.navigate(rutaDetalle)
                     }, colorScheme = colorScheme, context = context, priceFormatter = clpFormatter)
                 }
@@ -111,7 +119,7 @@ fun ClienteCatalogoScreen(
 
 @Composable
 fun ClienteProductoCard(
-    modelo: ModeloZapatoEntity,
+    modelo: ModeloZapatoDTO,
     onClick: () -> Unit,
     colorScheme: ColorScheme,
     context: android.content.Context,
@@ -162,7 +170,7 @@ fun ClienteProductoCard(
             Column(modifier = Modifier
                 .padding(8.dp)
                 .fillMaxWidth()) {
-                Text(modelo.nombreModelo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(modelo.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(4.dp))
                 // Mostrar precio en CLP (entero)
                 Text(priceFormatter.format(modelo.precioUnitario), color = colorScheme.primary, style = MaterialTheme.typography.titleMedium)

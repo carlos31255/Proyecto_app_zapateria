@@ -31,7 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
-import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
 import com.example.proyectoZapateria.viewmodel.transportista.ConfirmarEntregaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -277,7 +277,7 @@ fun ClienteInfoCard(entrega: EntregaDTO) {
 }
 
 @Composable
-fun ProductosListCard(productos: List<DetalleBoletaDTO>) {
+fun ProductosListCard(productos: List<ProductoDetalle>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -330,7 +330,7 @@ fun InfoRow(icon: ImageVector, label: String, value: String) {
 }
 
 @Composable
-fun ProductoRow(producto: DetalleBoletaDTO) {
+fun ProductoRow(producto: ProductoDetalle) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -338,7 +338,7 @@ fun ProductoRow(producto: DetalleBoletaDTO) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = producto.nombreProducto ?: "Producto #${producto.inventarioId}",
+                text = producto.nombreZapato,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold
             )
@@ -359,4 +359,3 @@ fun ProductoRow(producto: DetalleBoletaDTO) {
         }
     }
 }
-

@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 
 data class RolDTO(
     @SerializedName("idRol")
-    val idRol: Int?,
+    val idRol: Long?,
 
     @SerializedName("nombreRol")
     val nombreRol: String?,
@@ -13,4 +13,3 @@ data class RolDTO(
     @SerializedName("descripcion")
     val descripcion: String?
 )
-

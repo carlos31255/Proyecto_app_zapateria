@@ -1,18 +1,18 @@
 package com.example.proyectoZapateria.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.local.transportista.TransportistaEntity
 import com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO
-import com.example.proyectoZapateria.data.repository.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
 import com.example.proyectoZapateria.data.remote.usuario.dto.RolDTO
 import com.example.proyectoZapateria.data.remote.usuario.dto.UsuarioDTO
-import com.example.proyectoZapateria.data.repository.UsuarioRemoteRepository
-import com.example.proyectoZapateria.data.repository.RolRemoteRepository
-import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
-import com.example.proyectoZapateria.data.repository.TransportistaRepository
-import com.example.proyectoZapateria.utils.PasswordHasher
+import com.example.proyectoZapateria.data.remote.usuario.dto.TransportistaDTO
+import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.UsuarioRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.RolRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.TransportistaRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,7 +58,7 @@ class UsuarioViewModel @Inject constructor(
     private val personaRemoteRepository: PersonaRemoteRepository,
     private val rolRemoteRepository: RolRemoteRepository,
     private val clienteRemoteRepository: ClienteRemoteRepository,
-    private val transportistaRepository: TransportistaRepository
+    private val transportistaRemoteRepository: TransportistaRemoteRepository
 ) : ViewModel() {
 
     // Lista de todos los usuarios (ahora desde API)
@@ -297,7 +297,7 @@ class UsuarioViewModel @Inject constructor(
             }
 
             // Validar campos de transportista (idRol = 2)
-            if (state.rolSeleccionado?.idRol == 2) {
+            if (state.rolSeleccionado?.idRol == 2L) {
                 if (state.licencia.isBlank()) {
                     updatedState = updatedState.copy(licenciaError = "La licencia es requerida para transportistas")
                     hayErrores = true
@@ -355,7 +355,7 @@ class UsuarioViewModel @Inject constructor(
                 }
 
                 // Si es cliente (idRol = 3), crear en API
-                if (state.rolSeleccionado.idRol == 3) {
+                if (state.rolSeleccionado.idRol == 3L) {
                     val clienteDTO = ClienteDTO(
                         idPersona = personaId,
                         categoria = "regular",
@@ -367,14 +367,19 @@ class UsuarioViewModel @Inject constructor(
                     clienteRemoteRepository.crearCliente(clienteDTO)
                 }
 
-                // Si es transportista (idRol = 2), crear localmente
-                if (state.rolSeleccionado.idRol == 2) {
-                    val transportista = TransportistaEntity(
+                // Si es transportista (idRol = 2), crear en API
+                if (state.rolSeleccionado.idRol == 2L) {
+                    val transportistaDTO = TransportistaDTO(
                         idPersona = personaId,
-                        licencia = state.licencia.ifBlank { null },
-                        vehiculo = state.vehiculo.ifBlank { null }
+                        patente = state.licencia.ifBlank { null },
+                        tipoVehiculo = state.vehiculo.ifBlank { null },
+                        activo = true
                     )
-                    transportistaRepository.insertTransportista(transportista)
+                    val transportistaResult = transportistaRemoteRepository.crear(transportistaDTO)
+                    if (transportistaResult.isFailure) {
+                        // No hay repositorio local: registrar en logs
+                        Log.w("UsuarioVM", "No se pudo crear transportista remoto para personaId=$personaId: ${transportistaResult.exceptionOrNull()?.message}")
+                    }
                 }
 
                 _successMessage.value = "Usuario creado exitosamente"
@@ -420,4 +425,3 @@ class UsuarioViewModel @Inject constructor(
         _crearUsuarioState.value = CrearUsuarioState()
     }
 }
-

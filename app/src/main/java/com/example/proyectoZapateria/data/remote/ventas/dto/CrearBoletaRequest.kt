@@ -1,9 +1,8 @@
 package com.example.proyectoZapateria.data.remote.ventas.dto
 
 data class CrearBoletaRequest(
-    val clienteId: Int,
+    val clienteId: Long,
     val metodoPago: String,
     val observaciones: String? = null,
     val detalles: List<DetalleBoletaDTO>
 )
-

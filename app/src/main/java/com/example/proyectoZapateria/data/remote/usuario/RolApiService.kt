@@ -12,7 +12,7 @@ interface RolApiService {
 
     // Obtener rol por ID
     @GET("api/roles/{id}")
-    suspend fun obtenerRolPorId(@Path("id") id: Int): Response<RolDTO>
+    suspend fun obtenerRolPorId(@Path("id") id: Long): Response<RolDTO>
 
     // Obtener rol por nombre
     @GET("api/roles/nombre/{nombreRol}")
@@ -25,13 +25,12 @@ interface RolApiService {
     // Actualizar rol
     @PUT("api/roles/{id}")
     suspend fun actualizarRol(
-        @Path("id") id: Int,
+        @Path("id") id: Long,
         @Body rolDTO: RolDTO
     ): Response<RolDTO>
 
     // Eliminar rol
     @DELETE("api/roles/{id}")
-    suspend fun eliminarRol(@Path("id") id: Int): Response<Void>
+    suspend fun eliminarRol(@Path("id") id: Long): Response<Void>
 
 }
-

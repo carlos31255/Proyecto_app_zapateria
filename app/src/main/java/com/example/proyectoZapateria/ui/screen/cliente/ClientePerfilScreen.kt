@@ -1,13 +1,18 @@
 package com.example.proyectoZapateria.ui.screen.cliente
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +28,7 @@ import com.example.proyectoZapateria.viewmodel.cliente.ClientePerfilViewModel
 import com.example.proyectoZapateria.navigation.Route
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.CircleShape
 
 @Composable
 fun ClientePerfilScreen(
@@ -59,81 +65,52 @@ fun ClientePerfilScreen(
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
 
-    when {
-        uiState.isLoading -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = colorScheme.primary)
-            }
-            return
-        }
-        uiState.error != null -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                    Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = colorScheme.primaryContainer,
-                        tonalElevation = 2.dp,
-                        modifier = Modifier.align(Alignment.Start)
-                    ) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = colorScheme.onPrimaryContainer
-                            )
+    // Seguir patrón de ClientePedidos / ClienteCatalogo: header integrado y contenido debajo sin padding extra
+    Column(modifier = Modifier.fillMaxSize()) {
+
+        // Header integrado (igual estilo que ClientePedidos)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colorScheme.primaryContainer)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Surface(shape = CircleShape, color = colorScheme.primaryContainer, tonalElevation = 2.dp) {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = colorScheme.onPrimaryContainer)
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = "Error: ${uiState.error}", color = colorScheme.error)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(text = "Mi perfil", color = colorScheme.onPrimaryContainer, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Botón para refrescar / editar de forma similar al patrón
+                IconButton(onClick = { if (!isEditing) viewModel.startEdit() else viewModel.cancelEdit() }) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = if (!isEditing) "Editar" else "Cancelar", tint = colorScheme.onPrimaryContainer)
                 }
             }
-            return
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Botón de regreso
-        Surface(
-            shape = CircleShape,
-            color = colorScheme.primaryContainer,
-            tonalElevation = 2.dp,
-            modifier = Modifier.padding(8.dp)
-        ) {
-            IconButton(
-                onClick = { navController.popBackStack() }
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = colorScheme.onPrimaryContainer
-                )
-            }
-        }
-
-        // Header con avatar
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = colorScheme.primaryContainer
-        ) {
+            // Avatar grande y nombre (estilo similar al transportista)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(top = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
                     modifier = Modifier.size(100.dp),
                     shape = CircleShape,
-                    color = colorScheme.primary
+                    color = colorScheme.primary,
+                    tonalElevation = 2.dp
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Avatar",
@@ -143,141 +120,74 @@ fun ClientePerfilScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = uiState.nombre,
+                    text = currentUser?.nombre ?: (editNombre + " " + editApellido).trim().ifBlank { "Usuario" },
                     style = MaterialTheme.typography.headlineSmall,
                     color = colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = currentUser?.nombreRol ?: "Cliente",
+                    text = "Cliente",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                // Botón editar
-                if (isEditing == false) {
-                    OutlinedButton(onClick = { viewModel.startEdit() }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Editar perfil")
-                    }
-                }
             }
         }
 
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Información Personal",
-                style = MaterialTheme.typography.titleMedium,
-                color = colorScheme.onBackground,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+        // Contenido: spinner / error / formulario o info
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp)) {
 
-            if (isEditing) {
-                // Campos editables
-                OutlinedTextField(value = editNombre, onValueChange = { new -> viewModel.updateEditField(nombre = new) }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = editApellido, onValueChange = { new -> viewModel.updateEditField(apellido = new) }, label = { Text("Apellido") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = editEmail, onValueChange = { new -> viewModel.updateEditField(email = new) }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(value = editTelefono, onValueChange = { new -> viewModel.updateEditField(telefono = new) }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(
-                    value = editCalle,
-                    onValueChange = { new -> if (new.length <= 80) viewModel.updateEditField(calle = new) },
-                    label = { Text("Calle") },
-                    placeholder = { Text("Ej: Av. Libertador Bernardo O'Higgins") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    supportingText = { Text("${editCalle.length}/80") }
-                )
-                OutlinedTextField(
-                    value = editNumeroPuerta,
-                    onValueChange = { new -> if (new.length <= 15) viewModel.updateEditField(numeroPuerta = new) },
-                    label = { Text("Número puerta") },
-                    placeholder = { Text("Ej: 1234, 123-A, Depto 5B") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    supportingText = { Text("${editNumeroPuerta.length}/15") }
-                )
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        viewModel.guardarCambios { ok, err ->
-                            if (ok) {
-                                android.widget.Toast.makeText(context, "Perfil actualizado", android.widget.Toast.LENGTH_SHORT).show()
-                            } else {
-                                android.widget.Toast.makeText(context, err ?: "Error", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }, modifier = Modifier.weight(1f)) {
-                        Text("Guardar")
-                    }
-
-                    OutlinedButton(onClick = { viewModel.cancelEdit() }, modifier = Modifier.weight(1f)) {
-                        Text("Cancelar")
+            when {
+                uiState.isLoading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = colorScheme.primary)
                     }
                 }
-            } else {
-                InfoCard(
-                    icon = Icons.Default.Email,
-                    label = "Correo Electrónico",
-                    value = uiState.email
-                )
-
-                InfoCard(
-                    icon = Icons.Default.Phone,
-                    label = "Teléfono",
-                    value = uiState.telefono
-                )
-
-                InfoCard(
-                    icon = Icons.Default.Home,
-                    label = "Dirección",
-                    value = if (uiState.calle.isNotBlank() || uiState.numeroPuerta.isNotBlank()) "${uiState.calle}, ${uiState.numeroPuerta}" else "No especificada"
-                )
-
-                InfoCard(
-                    icon = Icons.Default.Badge,
-                    label = "Categoría",
-                    value = uiState.categoria.ifBlank { "-" }
-                )
-
-                InfoCard(
-                    icon = Icons.Default.Receipt,
-                    label = "Total Pedidos",
-                    value = uiState.totalPedidos.toString()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    authViewModel.logout()
-                    navController.navigate(Route.Login.path) {
-                        popUpTo(0) { inclusive = true }
+                uiState.error != null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "Error: ${uiState.error}", color = colorScheme.error)
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorScheme.error
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ExitToApp,
-                    contentDescription = "Cerrar sesión",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Cerrar Sesión")
+                }
+                else -> {
+                    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (isEditing) {
+                            OutlinedTextField(value = editNombre, onValueChange = { new -> viewModel.updateEditField(nombre = new) }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = editApellido, onValueChange = { new -> viewModel.updateEditField(apellido = new) }, label = { Text("Apellido") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(value = editEmail, onValueChange = { new -> viewModel.updateEditField(email = new) }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                            OutlinedTextField(value = editTelefono, onValueChange = { new -> viewModel.updateEditField(telefono = new) }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                            OutlinedTextField(value = editCalle, onValueChange = { new -> if (new.length <= 80) viewModel.updateEditField(calle = new) }, label = { Text("Calle") }, placeholder = { Text("Ej: Av. Libertador Bernardo O'Higgins") }, modifier = Modifier.fillMaxWidth(), singleLine = true, supportingText = { Text("${editCalle.length}/80") })
+                            OutlinedTextField(value = editNumeroPuerta, onValueChange = { new -> if (new.length <= 15) viewModel.updateEditField(numeroPuerta = new) }, label = { Text("Número puerta") }, placeholder = { Text("Ej: 1234, 123-A, Depto 5B") }, modifier = Modifier.fillMaxWidth(), singleLine = true, supportingText = { Text("${editNumeroPuerta.length}/15") })
+
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = {
+                                    viewModel.guardarCambios { ok, err ->
+                                        if (ok) android.widget.Toast.makeText(context, "Perfil actualizado", android.widget.Toast.LENGTH_SHORT).show() else android.widget.Toast.makeText(context, err ?: "Error", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }, modifier = Modifier.weight(1f)) { Text("Guardar") }
+                                OutlinedButton(onClick = { viewModel.cancelEdit() }, modifier = Modifier.weight(1f)) { Text("Cancelar") }
+                            }
+                        } else {
+                            InfoCard(icon = Icons.Default.Email, label = "Correo Electrónico", value = uiState.email)
+                            InfoCard(icon = Icons.Default.Phone, label = "Teléfono", value = uiState.telefono)
+                            InfoCard(icon = Icons.Default.Home, label = "Dirección", value = if (uiState.calle.isNotBlank() || uiState.numeroPuerta.isNotBlank()) "${uiState.calle}, ${uiState.numeroPuerta}" else "No especificada")
+                            InfoCard(icon = Icons.Default.Badge, label = "Categoría", value = uiState.categoria.ifBlank { "-" })
+                            InfoCard(icon = Icons.Default.Receipt, label = "Total Pedidos", value = uiState.totalPedidos.toString())
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(onClick = { authViewModel.logout(); navController.navigate(Route.Login.path) { popUpTo(0) { inclusive = true } } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorScheme.error), shape = RoundedCornerShape(12.dp)) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión", modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Cerrar Sesión")
+                        }
+                    }
+                }
             }
         }
     }

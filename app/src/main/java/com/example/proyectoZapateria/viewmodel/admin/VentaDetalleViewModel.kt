@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
 import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
-import com.example.proyectoZapateria.data.repository.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +29,7 @@ class VentaDetalleViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val idBoleta: Int = checkNotNull(savedStateHandle["idBoleta"])
+    private val idBoleta: Long = checkNotNull(savedStateHandle["idBoleta"]) as Long
 
     private val _uiState = MutableStateFlow(VentaDetalleUiState())
     val uiState: StateFlow<VentaDetalleUiState> = _uiState.asStateFlow()
@@ -115,4 +115,3 @@ class VentaDetalleViewModel @Inject constructor(
         _successMessage.value = null
     }
 }
-

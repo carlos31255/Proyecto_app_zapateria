@@ -3,7 +3,7 @@ package com.example.proyectoZapateria.viewmodel.admin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
-import com.example.proyectoZapateria.data.repository.PersonaRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.domain.validation.validateProfileEmail
 import com.example.proyectoZapateria.domain.validation.validateProfileName

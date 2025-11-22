@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
 import com.example.proyectoZapateria.data.repository.AuthRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.TransportistaRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -24,13 +25,22 @@ data class TransportistaEntregasUiState(
 class TransportistaEntregasViewModel @Inject constructor(
     private val entregasRepository: EntregasRemoteRepository,
     private val authRepository: AuthRepository,
+    private val transportistaRemoteRepository: TransportistaRemoteRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransportistaEntregasUiState())
     val uiState: StateFlow<TransportistaEntregasUiState> = _uiState.asStateFlow()
 
-    private val transportistaId: Int? = savedStateHandle.get<Int>("transportistaId")
+    private val transportistaId: Long? = run {
+        val raw = savedStateHandle.get<Any?>("transportistaId")
+        when (raw) {
+            is Long -> raw
+            is Int -> raw.toLong()
+            is Number -> raw.toLong()
+            else -> null
+        }
+    }
 
     init {
         Log.d("TransportistaEntregasVM", "ViewModel inicializado")
@@ -42,7 +52,18 @@ class TransportistaEntregasViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                val idTransportista = transportistaId ?: authRepository.currentUser.value?.idPersona
+                val personaId = authRepository.currentUser.value?.idPersona
+                val idTransportistaRemoto: Long? = try {
+                    if (personaId != null) {
+                        val resp = transportistaRemoteRepository.obtenerPorPersona(personaId)
+                        resp.getOrNull()?.idTransportista
+                    } else null
+                } catch (ex: Exception) {
+                    Log.w("TransportistaEntregasVM", "Error consultando transportista remoto: ${ex.message}")
+                    null
+                }
+
+                val idTransportista = transportistaId ?: idTransportistaRemoto ?: personaId
 
                 if (idTransportista == null) {
                     Log.e("TransportistaEntregasVM", "No se pudo obtener el ID del transportista")
@@ -94,4 +115,3 @@ class TransportistaEntregasViewModel @Inject constructor(
         cargarEntregas()
     }
 }
-

@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 
 data class PersonaDTO(
     @SerializedName("idPersona")
-    val idPersona: Int?,
+    val idPersona: Long?,
 
     @SerializedName("nombre")
     val nombre: String?,
@@ -23,7 +23,7 @@ data class PersonaDTO(
     val email: String?,
 
     @SerializedName("idComuna")
-    val idComuna: Int?,
+    val idComuna: Long?,
 
     @SerializedName("calle")
     val calle: String?,
@@ -43,4 +43,3 @@ data class PersonaDTO(
     @SerializedName("password")
     val password: String? = null // Opcional, solo para registro
 )
-

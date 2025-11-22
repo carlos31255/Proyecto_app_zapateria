@@ -11,7 +11,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.proyecto_zapateria"
+        applicationId = "com.example.proyectoZapateria"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -27,16 +27,8 @@ android {
     buildTypes {
         // Bloque para desarrollo (cuando ejecutas en el emulador/teléfono)
         getByName("debug") {
-            // URLs para desarrollo (usando IP de emulador 10.0.2.2)
-            // (Si usas teléfono físico, cambia 10.0.2.2 por tu IP de WiFi, ej: "192.168.1.100")
-            buildConfigField("String", "BASE_URL_GEOGRAFIA",  "\"http://10.0.2.2:8081/\"")
-            buildConfigField("String", "BASE_URL_INVENTARIO", "\"http://10.0.2.2:8082/\"") 
-            buildConfigField("String", "BASE_URL_USUARIOS",   "\"https://t4ld1ws9-8083.brs.devtunnels.ms/\"")
-
-            // --- Puertos por Confirmar ---
-            buildConfigField("String", "BASE_URL_PRODUCTOS",  "\"http://10.0.2.2:8084/\"")
-            buildConfigField("String", "BASE_URL_VENTAS",     "\"http://10.0.2.2:8085/\"")
-            buildConfigField("String", "BASE_URL_ENTREGAS",   "\"http://10.0.2.2:8086/\"")
+            // Las URLs ya se gestionan con valores hardcodeados en `NetworkModule.kt`.
+            // Se eliminaron los BuildConfig fields para evitar código muerto.
         }
 
         release {
@@ -45,14 +37,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            
-            // URLs para producción (mismo que debug por ahora)
-            buildConfigField("String", "BASE_URL_GEOGRAFIA",  "\"http://10.0.2.2:8081/\"")
-            buildConfigField("String", "BASE_URL_INVENTARIO", "\"http://10.0.2.2:8082/\"") 
-            buildConfigField("String", "BASE_URL_USUARIOS",   "\"http://10.0.2.2:8083/\"")
-            buildConfigField("String", "BASE_URL_PRODUCTOS",  "\"http://10.0.2.2:8084/\"")
-            buildConfigField("String", "BASE_URL_VENTAS",     "\"http://10.0.2.2:8085/\"")
-            buildConfigField("String", "BASE_URL_ENTREGAS",   "\"http://10.0.2.2:8086/\"")
+
+            // Las URLs ya se gestionan con valores hardcodeados en `NetworkModule.kt`.
+            // Se eliminaron los BuildConfig fields para evitar código muerto.
         }
     }
     compileOptions {
@@ -61,9 +48,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
-    }
-    buildFeatures {
-        compose = true
     }
 }
 

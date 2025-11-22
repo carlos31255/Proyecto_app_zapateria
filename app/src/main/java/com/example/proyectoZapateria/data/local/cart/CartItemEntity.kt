@@ -8,13 +8,13 @@ import androidx.room.PrimaryKey
 data class CartItemEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id_cart_item")
-    val idCartItem: Int = 0,
+    val idCartItem: Long = 0L,
 
     @ColumnInfo(name = "id_cliente")
-    val idCliente: Int,
+    val idCliente: Long,
 
     @ColumnInfo(name = "id_modelo")
-    val idModelo: Int,
+    val idModelo: Long,
 
     val talla: String,
 
@@ -26,4 +26,3 @@ data class CartItemEntity(
     @ColumnInfo(name = "fecha_agregado")
     val fechaAgregado: Long = System.currentTimeMillis()
 )
-

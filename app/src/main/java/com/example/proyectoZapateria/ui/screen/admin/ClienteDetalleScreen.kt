@@ -31,7 +31,7 @@ import java.util.Locale
 @Composable
 fun ClienteDetalleScreen(
     navController: NavHostController,
-    idCliente: Int,
+    idCliente: Long,
     viewModel: ClienteViewModel = hiltViewModel()
 ) {
     val clienteSeleccionado by viewModel.clienteSeleccionado.collectAsStateWithLifecycle()
@@ -476,4 +476,3 @@ private fun formatCurrency(amount: Int): String {
     val format = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
     return format.format(amount)
 }
-
