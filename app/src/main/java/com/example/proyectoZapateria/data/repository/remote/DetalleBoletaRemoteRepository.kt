@@ -12,11 +12,11 @@ class DetalleBoletaRemoteRepository @Inject constructor(
 ) {
     // Obtener detalles de una boleta desde el servicio remoto y mapear a ProductoDetalle
     fun getProductos(idBoleta: Long): Flow<List<ProductoDetalle>> = flow {
-        try {
+        val productos = try {
             val res = ventasRemoteRepository.obtenerDetallesDeBoleta(idBoleta)
             if (res.isSuccess) {
                 val detalles: List<DetalleBoletaDTO> = res.getOrNull() ?: emptyList()
-                val productos = detalles.map { d ->
+                detalles.map { d ->
                     ProductoDetalle(
                         nombreZapato = d.nombreProducto ?: "",
                         talla = d.talla ?: "",
@@ -24,15 +24,15 @@ class DetalleBoletaRemoteRepository @Inject constructor(
                         marca = "" // Marca no provista en DetalleBoletaDTO
                     )
                 }
-                emit(productos)
             } else {
                 Log.w("DetalleBoletaRepo", "Error al obtener detalles remotos: ${res.exceptionOrNull()?.message}")
-                emit(emptyList())
+                emptyList()
             }
         } catch (e: Exception) {
             Log.e("DetalleBoletaRepo", "Exception al obtener detalles remotos: ${e.message}")
-            emit(emptyList())
+            emptyList()
         }
+        emit(productos)
     }
 
     // Obtener por número de boleta: no existe endpoint directo, devolver vacío y loguear
