@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.DetalleBoletaRemoteRepository
@@ -28,7 +28,7 @@ class ClientePedidosViewModel @Inject constructor(
     private val ventasRepository: VentasRemoteRepository,
     private val entregasRepository: EntregasRemoteRepository,
     private val detalleBoletaRepository: DetalleBoletaRemoteRepository,
-    private val authRepository: AuthRepository
+    private val authRemoteRepository: AuthRemoteRepository
 ) : ViewModel() {
 
     data class UiState(
@@ -48,7 +48,7 @@ class ClientePedidosViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val current = authRepository.currentUser.value
+                val current = authRemoteRepository.currentUser.value
                 if (current == null) {
                     _uiState.value = _uiState.value.copy(isLoading = false, error = "No hay sesión activa")
                     return@launch

@@ -45,8 +45,10 @@ annotation class GeografiaRetrofit
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+    // Base URL pública para inventario (se usa en UI al cargar imágenes desde endpoint /inventario/productos/{id}/imagen)
+    const val INVENTARIO_BASE_URL = "https://t4ld1ws9-8082.brs.devtunnels.ms/"
 
-    // 1. Provee el Interceptor de Logging
+     // 1. Provee el Interceptor de Logging
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
@@ -153,6 +155,12 @@ object NetworkModule {
     @Singleton
     fun provideVentasApiService(@VentasRetrofit retrofit: Retrofit): VentasApiService {
         return retrofit.create(VentasApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCarritoApiService(@VentasRetrofit retrofit: Retrofit): com.example.proyectoZapateria.data.remote.carrito.CarritoApiService {
+        return retrofit.create(com.example.proyectoZapateria.data.remote.carrito.CarritoApiService::class.java)
     }
 
     //ENTREGAS

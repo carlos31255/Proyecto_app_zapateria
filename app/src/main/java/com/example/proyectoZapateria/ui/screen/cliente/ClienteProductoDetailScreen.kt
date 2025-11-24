@@ -35,11 +35,12 @@ fun ClienteProductoDetailScreen(
     var cantidadSeleccionada by remember { mutableStateOf(1) }
     var idInventarioSeleccionado by remember { mutableStateOf<Long?>(null) }
 
-    val modelo by viewModel.modelo.collectAsStateWithLifecycle()
+    val producto by viewModel.producto.collectAsStateWithLifecycle()
     val inventario by viewModel.inventario.collectAsStateWithLifecycle()
     val comprando by viewModel.comprando.collectAsStateWithLifecycle()
     val mensaje by viewModel.mensaje.collectAsStateWithLifecycle()
     val cartCount by viewModel.cartCount.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     // Usuario actual
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
@@ -59,7 +60,7 @@ fun ClienteProductoDetailScreen(
     }
 
     // Refrescar contador del carrito cuando la pantalla se abre o cambia la sesión
-    LaunchedEffect(currentUser?.idPersona, modelo?.idModelo) {
+    LaunchedEffect(currentUser?.idPersona, producto?.id) {
         currentUser?.let { viewModel.refreshCartCount(it.idPersona) }
     }
 
@@ -102,7 +103,7 @@ fun ClienteProductoDetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = modelo?.nombreModelo ?: "Cargando...",
+                        text = producto?.nombre ?: "Cargando...",
                         color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -117,149 +118,164 @@ fun ClienteProductoDetailScreen(
             Column(modifier = Modifier
                 .fillMaxSize()) {
 
-                if (modelo == null) {
-                Text("Producto no encontrado")
-                return@Column
-            }
-
-            Text(text = modelo!!.nombreModelo, style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(8.dp))
-            // Mostrar precio en CLP
-            Text(text = "Precio: ${clpFormatter.format(modelo!!.precioUnitario)}", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text("Tallas disponibles:")
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Chips horizontales con tallas
-            val tallasMap by viewModel.tallasMap.collectAsStateWithLifecycle()
-
-            if (inventario.isEmpty()) {
-                // Mostrar mensaje claro si no hay tallas/inventario
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                    Text("No hay tallas disponibles")
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = colorScheme.primary)
+                    }
+                    return@Column
                 }
-            } else {
-                Row(
-                    modifier = Modifier
+
+                if (producto == null) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Producto no encontrado", color = colorScheme.error)
+                    }
+                    return@Column
+                }
+
+                Text(text = producto!!.nombre, style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                // Mostrar precio en CLP
+                Text(text = "Precio: ${clpFormatter.format(producto!!.precioUnitario)}", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("Tallas disponibles:")
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Chips horizontales con tallas
+                val tallasMap by viewModel.tallasMap.collectAsStateWithLifecycle()
+
+                if (isLoading) {
+                    Box(modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    for (inv in inventario) {
-                        val tallaLabel = tallasMap[inv.tallaIdLocal] ?: inv.talla
-                        val enabled = inv.stock > 0
-                        FilterChip(
-                            selected = (idInventarioSeleccionado == inv.idRemote),
-                            onClick = { if (enabled) idInventarioSeleccionado = inv.idRemote },
-                            enabled = enabled,
-                            label = { Text("$tallaLabel (${inv.stock})") },
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
+                        .padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = colorScheme.primary)
+                    }
+                } else if (inventario.isEmpty()) {
+                    // Mostrar mensaje claro si no hay tallas/inventario (y ya no estamos cargando)
+                    Box(modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                        Text("No hay tallas disponibles")
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        for (inv in inventario) {
+                            val tallaLabel = tallasMap[inv.tallaIdLocal] ?: inv.talla
+                            val enabled = inv.stock > 0
+                            FilterChip(
+                                selected = (idInventarioSeleccionado == inv.idRemote),
+                                onClick = { if (enabled) idInventarioSeleccionado = inv.idRemote },
+                                enabled = enabled,
+                                label = { Text("$tallaLabel (${inv.stock})") },
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
                     }
                 }
-            }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Cantidad:")
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = { if (cantidadSeleccionada > 1) cantidadSeleccionada-- },
-                    enabled = cantidadSeleccionada > 1
-                ) {
-                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Disminuir")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Cantidad:")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { if (cantidadSeleccionada > 1) cantidadSeleccionada-- },
+                        enabled = cantidadSeleccionada > 1
+                    ) {
+                        Icon(imageVector = Icons.Default.Remove, contentDescription = "Disminuir")
+                    }
+                    OutlinedTextField(
+                        value = cantidadSeleccionada.toString(),
+                        onValueChange = { v ->
+                            val nuevaCantidad = v.filter { it.isDigit() }.toIntOrNull() ?: 1
+                            // Limitar al stock máximo disponible
+                            cantidadSeleccionada = when {
+                                stockMaximo > 0 -> nuevaCantidad.coerceIn(1, stockMaximo)
+                                else -> nuevaCantidad.coerceAtLeast(1)
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.width(80.dp),
+                        enabled = idInventarioSeleccionado != null && stockMaximo > 0
+                    )
+                    IconButton(
+                        onClick = {
+                            if (stockMaximo > 0 && cantidadSeleccionada < stockMaximo) {
+                                cantidadSeleccionada++
+                            } else if (stockMaximo > 0) {
+                                Toast.makeText(
+                                    context,
+                                    "Stock máximo: $stockMaximo unidades",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        enabled = idInventarioSeleccionado != null && cantidadSeleccionada < stockMaximo
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Aumentar")
+                    }
                 }
-                OutlinedTextField(
-                    value = cantidadSeleccionada.toString(),
-                    onValueChange = { v ->
-                        val nuevaCantidad = v.filter { it.isDigit() }.toIntOrNull() ?: 1
-                        // Limitar al stock máximo disponible
-                        cantidadSeleccionada = when {
-                            stockMaximo > 0 -> nuevaCantidad.coerceIn(1, stockMaximo)
-                            else -> nuevaCantidad.coerceAtLeast(1)
-                        }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.width(80.dp),
-                    enabled = idInventarioSeleccionado != null && stockMaximo > 0
-                )
-                IconButton(
+
+                // Mostrar stock disponible de la talla seleccionada
+                if (idInventarioSeleccionado != null && stockMaximo > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Stock disponible: $stockMaximo unidades",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (stockMaximo <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Botón agregar al carrito
+                val agregarEnabled = !comprando && idInventarioSeleccionado != null && currentUser != null && stockMaximo > 0
+                Button(
                     onClick = {
-                        if (stockMaximo > 0 && cantidadSeleccionada < stockMaximo) {
-                            cantidadSeleccionada++
-                        } else if (stockMaximo > 0) {
-                            Toast.makeText(
-                                context,
-                                "Stock máximo: $stockMaximo unidades",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        val usuarioId = currentUser?.idPersona ?: -1L
+                        val idInv = idInventarioSeleccionado
+                        if (idInv == null) {
+                            Toast.makeText(context, "Seleccione una talla", Toast.LENGTH_SHORT).show()
+                            return@Button
                         }
+                        if (usuarioId == -1L) {
+                            Toast.makeText(context, "Inicie sesión para agregar al carrito", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        viewModel.addToCart(idInv, cantidadSeleccionada, usuarioId)
                     },
-                    enabled = idInventarioSeleccionado != null && cantidadSeleccionada < stockMaximo
+                    enabled = agregarEnabled,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Aumentar")
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (comprando) "Agregando..." else "Agregar al carrito")
                 }
-            }
 
-            // Mostrar stock disponible de la talla seleccionada
-            if (idInventarioSeleccionado != null && stockMaximo > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Stock disponible: $stockMaximo unidades",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (stockMaximo <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Botón agregar al carrito
-            val agregarEnabled = !comprando && idInventarioSeleccionado != null && currentUser != null && stockMaximo > 0
-            Button(
-                onClick = {
-                    val usuarioId = currentUser?.idPersona ?: -1L
-                    val idInv = idInventarioSeleccionado
-                    if (idInv == null) {
-                        Toast.makeText(context, "Seleccione una talla", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    if (usuarioId == -1L) {
-                        Toast.makeText(context, "Inicie sesión para agregar al carrito", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    viewModel.addToCart(idInv, cantidadSeleccionada, usuarioId)
-                },
-                enabled = agregarEnabled,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.ShoppingCart, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(if (comprando) "Agregando..." else "Agregar al carrito")
-            }
-
-            mensaje?.let { m ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = m, color = MaterialTheme.colorScheme.primary)
-            }
-            // Floating cart button
-            Box(modifier = Modifier
-                .fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
-                if (cartCount > 0) {
-                    FloatingActionButton(onClick = {
-                        // Navegar al carrito
-                        navController?.navigate(Route.ClienteCart.path)
-                    }, modifier = Modifier.padding(16.dp)) {
-                        BadgedBox(badge = {
-                            Badge { Text(cartCount.toString()) }
-                        }) {
-                            Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "Carrito")
+                mensaje?.let { m ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = m, color = MaterialTheme.colorScheme.primary)
+                }
+                // Floating cart button
+                Box(modifier = Modifier
+                    .fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                    if (cartCount > 0) {
+                        FloatingActionButton(onClick = {
+                            // Navegar al carrito
+                            navController?.navigate(Route.ClienteCart.path)
+                        }, modifier = Modifier.padding(16.dp)) {
+                            BadgedBox(badge = {
+                                Badge { Text(cartCount.toString()) }
+                            }) {
+                                Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "Carrito")
+                            }
                         }
                     }
                 }
-            }
             } // Cierre de Column interno
         } // Cierre de Box
     } // Cierre de Column principal

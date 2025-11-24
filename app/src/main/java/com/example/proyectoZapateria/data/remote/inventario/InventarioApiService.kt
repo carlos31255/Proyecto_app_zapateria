@@ -16,6 +16,13 @@ interface InventarioApiService {
     @GET("api/inventario/producto/{modeloId}")
     suspend fun obtenerInventarioPorModelo(@Path("modeloId") modeloId: Long): Response<List<InventarioDTO>>
 
+    // Rutas alternativas que algunos backends podrían exponer
+    @GET("api/inventario/modelo/{modeloId}")
+    suspend fun obtenerInventarioPorModeloAlt(@Path("modeloId") modeloId: Long): Response<List<InventarioDTO>>
+
+    @GET("api/inventario")
+    suspend fun obtenerInventarioPorQuery(@retrofit2.http.Query("modeloId") modeloId: Long): Response<List<InventarioDTO>>
+
     @GET("api/inventario/{id}") // FALTA ESTE
     suspend fun obtenerInventarioPorId(@Path("id") id: Long): Response<InventarioDTO>
 

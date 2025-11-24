@@ -3,17 +3,17 @@ package com.example.proyectoZapateria.viewmodel.cliente
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.local.cart.CartItemEntity
-import com.example.proyectoZapateria.data.local.modelo.ModeloZapatoEntity
-import com.example.proyectoZapateria.data.repository.CartRepository
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.remote.carrito.dto.CartItemRequest
+import com.example.proyectoZapateria.data.remote.carrito.dto.CartItemResponse
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
+import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.remote.ventas.dto.CrearBoletaRequest
 import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.data.repository.remote.CartRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.InventarioRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,16 +23,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ClienteCartViewModel @Inject constructor(
-    private val cartRepository: CartRepository,           // Local: Solo para guardar items temporalmente
+    private val cartRepository: CartRemoteRepository, // Remote wrapper over local for migration
     private val ventasRepository: VentasRemoteRepository,       // Remoto: Para crear la venta
-    private val inventarioRepository: InventarioRemoteRepository, // Remoto: Para consultar stock
+    private val inventarioRepository: InventarioRemoteRepository, // Remoto: Para consultar stock y productos
     private val personaRemoteRepository: PersonaRemoteRepository, // Remoto: Dirección
-    private val authRepository: AuthRepository
+    private val authRemoteRepository: AuthRemoteRepository
 ) : ViewModel() {
 
     data class CartItemUi(
-        val cartItem: CartItemEntity,
-        val modelo: ModeloZapatoEntity?
+        val cartItem: CartItemResponse,
+        val producto: ProductoDTO?
     )
 
     data class UiState(
@@ -47,10 +47,6 @@ class ClienteCartViewModel @Inject constructor(
         val address: String = "Sin dirección configurada"
     )
 
-    // Mapas para manejar el Debounce (no usados ahora pero se dejan comentados para futuras mejoras)
-    // private val debounceJobs = mutableMapOf<String, Job>()
-    // private val pendingQuantities = mutableMapOf<String, Int>()
-
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
@@ -62,7 +58,7 @@ class ClienteCartViewModel @Inject constructor(
     // obtener los datos del usuario (direccion)
     private fun cargarDatosUsuario() {
         viewModelScope.launch {
-            val current = authRepository.currentUser.value ?: return@launch
+            val current = authRemoteRepository.currentUser.value ?: return@launch
             try {
                 val result = personaRemoteRepository.obtenerPersonaPorId(current.idPersona)
                 if (result.isSuccess) {
@@ -84,58 +80,75 @@ class ClienteCartViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val current = authRepository.currentUser.value
+                val current = authRemoteRepository.currentUser.value
                 if (current == null) {
                     _uiState.value = _uiState.value.copy(isLoading = false, error = "Sesión expirada")
                     return@launch
                 }
 
-                // Obtener lista local
+                // Obtener lista remota (CartItemResponse)
                 var lista = cartRepository.getCartForCliente(current.idPersona).first()
 
-                // Verificar stock remoto y ajustar/eliminar items locales si es necesario
+                Log.d("ClienteCartVM", "loadCart: currentUser=${current.username} id=${current.idPersona}")
+                Log.d("ClienteCartVM", "loadCart: received lista.size=${lista.size}")
+
+                // Verificar stock remoto y ajustar/eliminar items si es necesario
                 val ajustes = mutableListOf<String>()
                 for (item in lista) {
                     try {
-                        val invResult = inventarioRepository.getInventarioPorModelo(item.idModelo.toLong())
-                        val inventarioRemoto = invResult.getOrNull()?.find { it.talla == item.talla }
+                        val invResult = inventarioRepository.getInventarioPorModelo(item.modeloId)
+                        val inventarioRemoto = invResult.getOrNull()?.find { it.talla.trim().equals(item.talla.trim(), ignoreCase = true) }
 
                         if (inventarioRemoto == null) {
                             // No existe en remoto -> eliminar del carrito
-                            cartRepository.delete(item)
-                            ajustes.add("Producto ${item.idModelo} eliminado: sin stock")
+                            val clienteId = item.clienteId
+                            val idItem = item.id ?: 0L
+                            cartRepository.deleteById(clienteId, idItem)
+                            ajustes.add("Producto ${item.modeloId} eliminado: sin stock")
                         } else if (inventarioRemoto.cantidad < item.cantidad) {
                             // Ajustar cantidad al máximo disponible
                             val nuevaCantidad = inventarioRemoto.cantidad
                             if (nuevaCantidad <= 0) {
-                                cartRepository.delete(item)
-                                ajustes.add("Producto ${item.idModelo} eliminado: stock 0")
+                                val clienteId = item.clienteId
+                                val idItem = item.id ?: 0L
+                                cartRepository.deleteById(clienteId, idItem)
+                                ajustes.add("Producto ${item.modeloId} eliminado: stock 0")
                             } else {
-                                cartRepository.addOrUpdate(item.copy(cantidad = nuevaCantidad))
-                                ajustes.add("Cantidad de ${item.idModelo} ajustada a $nuevaCantidad por stock")
+                                val currentUser = authRemoteRepository.currentUser.value
+                                val req = CartItemRequest(
+                                    id = item.id,
+                                    clienteId = item.clienteId,
+                                    modeloId = item.modeloId,
+                                    talla = item.talla,
+                                    cantidad = nuevaCantidad,
+                                    precioUnitario = item.precioUnitario,
+                                    nombreProducto = item.nombreProducto
+                                )
+                                if (currentUser != null) cartRepository.addOrUpdate(req, currentUser.idPersona)
+                                else cartRepository.addOrUpdate(req)
+                                ajustes.add("Cantidad de ${item.modeloId} ajustada a $nuevaCantidad por stock")
                             }
                         }
                     } catch (e: Exception) {
-                        // Si falla la verificación remota, no hacemos cambios, solo informamos
-                        Log.w("ClienteCartVM", "No se pudo verificar stock remoto para modelo ${item.idModelo}: ${e.message}")
+                        Log.w("ClienteCartVM", "No se pudo verificar stock remoto para modelo ${item.modeloId}: ${e.message}")
                     }
                 }
 
-                // Si hubo ajustes, recargar la lista local actualizada
+                // Si hubo ajustes, recargar la lista actualizada
                 if (ajustes.isNotEmpty()) {
                     lista = cartRepository.getCartForCliente(current.idPersona).first()
                     _uiState.value = _uiState.value.copy(error = ajustes.joinToString("; "))
                 }
 
-                // Mapeo simple
+                // Mapeo: por cada item obtener ProductoDTO remoto (si posible)
                 val itemsUi = lista.map { item ->
-                    // Usamos un modelo dummy con los datos del carrito
-                    val modeloDummy = ModeloZapatoEntity(
-                        idModelo = item.idModelo,
-                        nombreModelo = "Producto #${item.idModelo}", // Ideal: obtener nombre real de API o cache
-                        idMarca = 0L, precioUnitario = item.precioUnitario, descripcion = "", estado = "activo"
-                    )
-                    CartItemUi(item, modeloDummy)
+                    val modeloRes = try {
+                        inventarioRepository.getModeloById(item.modeloId)
+                    } catch (e: Exception) {
+                        Result.failure<ProductoDTO>(e)
+                    }
+                    val producto = modeloRes.getOrNull()
+                    CartItemUi(item, producto)
                 }
 
                 val total = lista.sumOf { it.cantidad.toLong() * it.precioUnitario }
@@ -153,16 +166,14 @@ class ClienteCartViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(error = null)
 
             try {
-                // Consultar Stock Real al Microservicio
-                val result = inventarioRepository.getInventarioPorModelo(item.idModelo.toLong())
-                val inventarioRemoto = result.getOrNull()?.find { it.talla == item.talla }
+                val result = inventarioRepository.getInventarioPorModelo(item.modeloId)
+                val inventarioRemoto = result.getOrNull()?.find { it.talla?.trim()?.equals(item.talla.trim(), ignoreCase = true) == true }
 
                 if (inventarioRemoto == null) {
                     _uiState.value = _uiState.value.copy(error = "Producto no disponible en el servidor.")
                     return@launch
                 }
 
-                // Validar
                 val nuevaCantidad = item.cantidad + 1
                 if (inventarioRemoto.cantidad < nuevaCantidad) {
                     _uiState.value = _uiState.value.copy(
@@ -171,8 +182,17 @@ class ClienteCartViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Actualizar localmente
-                cartRepository.addOrUpdate(item.copy(cantidad = nuevaCantidad))
+                val current = authRemoteRepository.currentUser.value
+                val req = CartItemRequest(
+                    id = item.id,
+                    clienteId = item.clienteId,
+                    modeloId = item.modeloId,
+                    talla = item.talla,
+                    cantidad = nuevaCantidad,
+                    precioUnitario = item.precioUnitario,
+                    nombreProducto = item.nombreProducto
+                )
+                if (current != null) cartRepository.addOrUpdate(req, current.idPersona) else cartRepository.addOrUpdate(req)
                 loadCart()
 
             } catch (e: Exception) {
@@ -187,10 +207,18 @@ class ClienteCartViewModel @Inject constructor(
             try {
                 val item = itemUi.cartItem
                 if (item.cantidad <= 1) {
-                    cartRepository.delete(item)
+                    cartRepository.deleteById(item.clienteId, item.id ?: 0L)
                 } else {
-                    val updated = item.copy(cantidad = item.cantidad - 1)
-                    cartRepository.addOrUpdate(updated)
+                    val updatedReq = CartItemRequest(
+                        id = item.id,
+                        clienteId = item.clienteId,
+                        modeloId = item.modeloId,
+                        talla = item.talla,
+                        cantidad = item.cantidad - 1,
+                        precioUnitario = item.precioUnitario,
+                        nombreProducto = item.nombreProducto
+                    )
+                    cartRepository.addOrUpdate(updatedReq)
                 }
                 loadCart()
             } catch (e: Exception) {
@@ -204,7 +232,8 @@ class ClienteCartViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(error = null)
             try {
-                cartRepository.delete(itemUi.cartItem)
+                val item = itemUi.cartItem
+                cartRepository.deleteById(item.clienteId, item.id ?: 0L)
                 loadCart()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Error al eliminar: ${e.message}")
@@ -217,7 +246,7 @@ class ClienteCartViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(error = null)
             try {
-                val current = authRepository.currentUser.value ?: return@launch
+                val current = authRemoteRepository.currentUser.value ?: return@launch
                 cartRepository.clear(current.idPersona)
                 loadCart()
             } catch (e: Exception) {
@@ -231,7 +260,7 @@ class ClienteCartViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCheckingOut = true, error = null)
             try {
-                val current = authRepository.currentUser.value ?: return@launch
+                val current = authRemoteRepository.currentUser.value ?: return@launch
                 val idCliente = current.idPersona
                 val items = cartRepository.getCartForCliente(idCliente).first()
 
@@ -245,19 +274,19 @@ class ClienteCartViewModel @Inject constructor(
 
                 // obtener los IDs de inventario reales desde el backend y re-verificar stock
                 for (item in items) {
-                    val invResult = inventarioRepository.getInventarioPorModelo(item.idModelo)
-                    val remoto = invResult.getOrNull()?.find { it.talla == item.talla }
+                    val invResult = inventarioRepository.getInventarioPorModelo(item.modeloId)
+                    val remoto = invResult.getOrNull()?.find { it.talla?.trim()?.equals(item.talla.trim(), ignoreCase = true) == true }
 
                     if (remoto == null) {
-                        throw Exception("Stock insuficiente para el producto ${item.idModelo} (Talla ${item.talla})")
+                        throw Exception("Stock insuficiente para el producto ${item.modeloId} (Talla ${item.talla})")
                     }
 
                     // Re-verificación final: volver a consultar cantidad justo antes de agregar
-                    val invFinal = inventarioRepository.getInventarioPorModelo(item.idModelo)
-                    val remotoFinal = invFinal.getOrNull()?.find { it.talla == item.talla }
+                    val invFinal = inventarioRepository.getInventarioPorModelo(item.modeloId)
+                    val remotoFinal = invFinal.getOrNull()?.find { it.talla?.trim()?.equals(item.talla.trim(), ignoreCase = true) == true }
 
                     if (remotoFinal == null || remotoFinal.cantidad < item.cantidad) {
-                        throw Exception("Stock insuficiente para el producto ${item.idModelo} (Talla ${item.talla})")
+                        throw Exception("Stock insuficiente para el producto ${item.modeloId} (Talla ${item.talla})")
                     }
 
                     detallesDTO.add(
@@ -274,7 +303,6 @@ class ClienteCartViewModel @Inject constructor(
                     )
                 }
 
-                //  Enviar la Venta al Microservicio
                 val request = CrearBoletaRequest(
                     clienteId = idCliente,
                     metodoPago = "App Android",
@@ -285,7 +313,6 @@ class ClienteCartViewModel @Inject constructor(
                 val response = ventasRepository.crearBoleta(request)
 
                 if (response.isSuccess) {
-                    // ÉXITO
                     cartRepository.clear(idCliente)
                     _uiState.value = _uiState.value.copy(
                         isCheckingOut = false,

@@ -3,7 +3,7 @@ package com.example.proyectoZapateria.viewmodel.cliente
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
 import com.example.proyectoZapateria.ui.model.InventarioUi
@@ -22,8 +22,8 @@ class ClienteCatalogoViewModel @Inject constructor(
     private val inventarioRemoteRepository: InventarioRemoteRepository
 ) : ViewModel() {
 
-    private val _modelos = MutableStateFlow<List<ModeloZapatoDTO>>(emptyList())
-    val modelos: StateFlow<List<ModeloZapatoDTO>> = _modelos.asStateFlow()
+    private val _modelos = MutableStateFlow<List<ProductoDTO>>(emptyList())
+    val modelos: StateFlow<List<ProductoDTO>> = _modelos.asStateFlow()
 
     private val _marcas = MutableStateFlow<List<MarcaDTO>>(emptyList())
     val marcas: StateFlow<List<MarcaDTO>> = _marcas.asStateFlow()
@@ -46,7 +46,7 @@ class ClienteCatalogoViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 // Cargar tallas
-                val tallasRes = inventarioRemoteRepository.getTallas()
+                val tallasRes = inventarioRemoteRepository.getTallasLogged()
                 if (tallasRes.isSuccess) {
                     _tallas.value = tallasRes.getOrNull() ?: emptyList()
                     Log.d(TAG, "Tallas cargadas: ${_tallas.value.size}")
@@ -81,7 +81,7 @@ class ClienteCatalogoViewModel @Inject constructor(
 
     fun cargarInventarioParaModelo(idModelo: Long) {
         viewModelScope.launch {
-            val res = inventarioRemoteRepository.getInventarioPorModelo(idModelo)
+            val res = inventarioRemoteRepository.getInventarioPorModeloLogged(idModelo)
             res.onSuccess { dtos ->
                 val listaLocal = dtos?.mapNotNull { dto ->
                     val tallaLocal = _tallas.value.find { it.valor == dto.talla }

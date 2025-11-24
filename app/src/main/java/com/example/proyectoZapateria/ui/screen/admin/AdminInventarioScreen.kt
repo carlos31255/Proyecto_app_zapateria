@@ -26,8 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
-import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
-import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
@@ -49,7 +48,7 @@ fun AdminInventarioScreen(
     val productos by inventarioViewModel.productos.collectAsStateWithLifecycle()
     val marcas by inventarioViewModel.marcas.collectAsStateWithLifecycle()
 
-    var productoSeleccionado by remember { mutableStateOf<ModeloZapatoDTO?>(null) }
+    var productoSeleccionado by remember { mutableStateOf<ProductoDTO?>(null) }
     var mostrarDialogoEliminar by remember { mutableStateOf(false) }
     var mostrarDialogoEditar by remember { mutableStateOf(false) }
     var confirmarEliminar by remember { mutableStateOf(false) }
@@ -265,7 +264,7 @@ fun AdminInventarioScreen(
 
 @Composable
 fun ProductoCard(
-    producto: ModeloZapatoDTO,
+    producto: ProductoDTO,
     nombreMarca: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -408,7 +407,7 @@ fun ProductoCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarProductoCompletoDialog(
-    producto: ModeloZapatoDTO,
+    producto: ProductoDTO,
     marcas: List<MarcaDTO>,
     viewModel: InventarioViewModel,
     context: android.content.Context,

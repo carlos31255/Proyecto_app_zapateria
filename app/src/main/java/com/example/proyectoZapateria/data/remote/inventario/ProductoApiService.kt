@@ -1,7 +1,7 @@
 package com.example.proyectoZapateria.data.remote.inventario
 
 import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
-import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
 import retrofit2.Response
 import retrofit2.http.Body
@@ -25,26 +25,26 @@ interface ProductoApiService {
     @GET("api/tallas")
     suspend fun obtenerTodasLasTallas(): Response<List<TallaDTO>>
 
-    // --- MODELOS (PRODUCTOS) ---
-    @GET("api/modelos")
-    suspend fun obtenerTodosLosModelos(): Response<List<ModeloZapatoDTO>>
+    // --- PRODUCTOS ---
+    @GET("/inventario/productos")
+    suspend fun obtenerTodosLosProductos(): Response<List<ProductoDTO>>
 
-    @GET("api/modelos/{id}") // FALTA ESTE
-    suspend fun obtenerModeloPorId(@Path("id") id: Long): Response<ModeloZapatoDTO>
+    @GET("/inventario/productos/{id}")
+    suspend fun obtenerProductoPorId(@Path("id") id: Long): Response<ProductoDTO>
 
-    @GET("api/modelos/marca/{marcaId}") // FALTA ESTE
-    suspend fun obtenerModelosPorMarca(@Path("marcaId") marcaId: Long): Response<List<ModeloZapatoDTO>>
+    @GET("/inventario/productos/marca/{marcaId}")
+    suspend fun obtenerProductosPorMarca(@Path("marcaId") marcaId: Long): Response<List<ProductoDTO>>
 
-    @GET("api/modelos/buscar") // FALTA ESTE (Query param: ?nombre=Nike)
-    suspend fun buscarModelos(@Query("nombre") query: String): Response<List<ModeloZapatoDTO>>
+    @GET("/inventario/productos/buscar")
+    suspend fun buscarProductos(@Query("nombre") query: String): Response<List<ProductoDTO>>
 
-    @POST("api/modelos")
-    suspend fun crearModelo(@Body modelo: ModeloZapatoDTO): Response<ModeloZapatoDTO>
+    @POST("/inventario/productos/crear")
+    suspend fun crearProducto(@Body producto: ProductoDTO): Response<ProductoDTO>
 
-    @PUT("api/modelos/{id}")
-    suspend fun actualizarModelo(@Path("id") id: Long, @Body modelo: ModeloZapatoDTO): Response<ModeloZapatoDTO>
+    @PUT("/inventario/productos/{id}")
+    suspend fun actualizarProducto(@Path("id") id: Long, @Body producto: ProductoDTO): Response<ProductoDTO>
 
-    @DELETE("api/modelos/{id}")
-    suspend fun eliminarModelo(@Path("id") id: Long): Response<Void>
+    @DELETE("/inventario/productos/{id}")
+    suspend fun eliminarProducto(@Path("id") id: Long): Response<Void>
 
 }

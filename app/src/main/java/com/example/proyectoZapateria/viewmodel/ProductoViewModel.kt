@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.inventario.dto.InventarioDTO
-import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
 import com.example.proyectoZapateria.data.repository.remote.InventarioRemoteRepository
@@ -55,8 +55,8 @@ class ProductoViewModel @Inject constructor(
     private val _tallas = MutableStateFlow<List<TallaDTO>>(emptyList())
     val tallas: StateFlow<List<TallaDTO>> = _tallas
 
-    private val _productos = MutableStateFlow<List<ModeloZapatoDTO>>(emptyList())
-    val productos: StateFlow<List<ModeloZapatoDTO>> = _productos
+    private val _productos = MutableStateFlow<List<ProductoDTO>>(emptyList())
+    val productos: StateFlow<List<ProductoDTO>> = _productos
 
     init {
         cargarDatosIniciales()
@@ -143,7 +143,7 @@ class ProductoViewModel @Inject constructor(
 
             try {
                 // 1. Crear Modelo en API
-                val nuevoModelo = ModeloZapatoDTO(
+                val nuevoProducto = ProductoDTO(
                     id = 0,
                     nombre = s.nombreModelo.trim(),
                     marcaId = s.idMarcaSeleccionada!!,
@@ -152,7 +152,7 @@ class ProductoViewModel @Inject constructor(
                     imagenUrl = null
                 )
 
-                val resultModelo = inventarioRemoteRepository.crearModelo(nuevoModelo)
+                val resultModelo = inventarioRemoteRepository.crearModelo(nuevoProducto)
 
                 if (resultModelo.isSuccess) {
                     val modeloCreado = resultModelo.getOrNull()!! // Este objeto viene del Backend con el ID generado
@@ -190,7 +190,7 @@ class ProductoViewModel @Inject constructor(
     fun limpiarFormulario() { _formState.value = ProductoFormState() }
     fun clearSuccess() { _formState.update { it.copy(success = false) } }
 
-    fun eliminarProducto(context: Context, producto: ModeloZapatoDTO) {
+    fun eliminarProducto(context: Context, producto: ProductoDTO) {
         viewModelScope.launch {
             inventarioRemoteRepository.eliminarModelo(producto.id).onSuccess { cargarProductos() }
         }

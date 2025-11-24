@@ -1,6 +1,3 @@
-// TODO: Pantalla comentada temporalmente - ClienteCartViewModel usa entidades locales (CartItemEntity, etc.)
-// Descomentar cuando se migre el carrito a usar microservicios
-/*
 package com.example.proyectoZapateria.ui.screen.cliente
 
 import androidx.compose.foundation.Image
@@ -68,8 +65,11 @@ fun ClienteCartScreen(
 
     // Mostrar Toast de error cuando hay problemas (no de checkout)
     LaunchedEffect(uiState.error) {
-        if (uiState.error != null && !uiState.isLoading && !uiState.isCheckingOut) {
-            Toast.makeText(context, uiState.error, Toast.LENGTH_LONG).show()
+        val err = uiState.error
+        // Mostrar el toast sólo si hay un mensaje de error válido, la carga ya terminó,
+        // no estamos en proceso de checkout y además el carrito no está vacío.
+        if (!err.isNullOrBlank() && !uiState.isLoading && !uiState.isCheckingOut && uiState.items.isNotEmpty()) {
+            Toast.makeText(context, err, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -138,11 +138,11 @@ fun ClienteCartScreen(
         LazyColumn(modifier = Modifier
             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(uiState.items) { itemUi ->
-                val modelo = itemUi.modelo
+                val producto = itemUi.producto
                 Card(
                     onClick = {
                         // Navegar al detalle del modelo si está disponible
-                        val idModelo = itemUi.cartItem.idModelo
+                        val idModelo = itemUi.cartItem.modeloId
                         navController.navigate(Route.ClienteProductoDetail.path.replace("{idModelo}", idModelo.toString()))
                     },
                     modifier = Modifier
@@ -163,23 +163,23 @@ fun ClienteCartScreen(
                                     .background(colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (modelo?.imagenUrl != null) {
+                                if (producto?.imagenUrl != null) {
                                     // Primero intentar cargar desde drawable
-                                    val drawableId = ImageHelper.getDrawableResourceId(context, modelo.imagenUrl)
+                                    val drawableId = ImageHelper.getDrawableResourceId(context, producto.imagenUrl)
                                     if (drawableId != null) {
                                         Image(
                                             painter = androidx.compose.ui.res.painterResource(id = drawableId),
-                                            contentDescription = "Imagen de ${modelo.nombreModelo}",
+                                            contentDescription = "Imagen de ${producto.nombre}",
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Crop
                                         )
                                     } else {
                                         // Si no está en drawable, buscar en archivos
-                                        val imageFile = ImageHelper.getFileFromPath(context, modelo.imagenUrl)
+                                        val imageFile = ImageHelper.getFileFromPath(context, producto.imagenUrl)
                                         if (imageFile.exists()) {
                                             Image(
                                                 painter = rememberAsyncImagePainter(imageFile),
-                                                contentDescription = "Imagen de ${modelo.nombreModelo}",
+                                                contentDescription = "Imagen de ${producto.nombre}",
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Crop
                                             )
@@ -199,7 +199,7 @@ fun ClienteCartScreen(
                                                     tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                                 )
                                                 Text(
-                                                    text = modelo.nombreModelo,
+                                                    text = producto.nombre,
                                                     style = MaterialTheme.typography.labelSmall,
                                                     textAlign = TextAlign.Center,
                                                     maxLines = 2,
@@ -225,7 +225,7 @@ fun ClienteCartScreen(
                                             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                         )
                                         Text(
-                                            text = modelo?.nombreModelo ?: "Producto",
+                                            text = producto?.nombre ?: "Producto",
                                             style = MaterialTheme.typography.labelSmall,
                                             textAlign = TextAlign.Center,
                                             maxLines = 2,
@@ -240,12 +240,12 @@ fun ClienteCartScreen(
 
                             Column {
                                 Text(
-                                    text = modelo?.nombreModelo ?: "#${itemUi.cartItem.idModelo}",
+                                    text = producto?.nombre ?: "#${itemUi.cartItem.modeloId}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(text = "Talla: ${itemUi.cartItem.talla}", style = MaterialTheme.typography.bodySmall)
-                                Text(text = "Precio: ${clpFormatter.format((modelo?.precioUnitario ?: itemUi.cartItem.precioUnitario).toDouble())}", style = MaterialTheme.typography.bodySmall)
+                                Text(text = "Precio: ${clpFormatter.format((producto?.precioUnitario ?: itemUi.cartItem.precioUnitario).toDouble())}", style = MaterialTheme.typography.bodySmall)
                             }
                         }
 
@@ -263,7 +263,7 @@ fun ClienteCartScreen(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            Text(text = "Subtotal: ${clpFormatter.format(((modelo?.precioUnitario ?: itemUi.cartItem.precioUnitario) * itemUi.cartItem.cantidad).toDouble())}", style = MaterialTheme.typography.bodySmall, color = colorScheme.primary)
+                            Text(text = "Subtotal: ${clpFormatter.format(((producto?.precioUnitario ?: itemUi.cartItem.precioUnitario) * itemUi.cartItem.cantidad).toDouble())}", style = MaterialTheme.typography.bodySmall, color = colorScheme.primary)
 
                             IconButton(onClick = { viewModel.removeItem(itemUi) }) {
                                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Eliminar", tint = colorScheme.error)
@@ -347,4 +347,3 @@ fun ClienteCartScreen(
         }
     }
 }
-*/

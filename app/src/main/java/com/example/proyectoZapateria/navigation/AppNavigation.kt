@@ -43,6 +43,7 @@ import com.example.proyectoZapateria.ui.screen.admin.ClienteDetalleScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteHomeScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteCatalogoScreen
 import com.example.proyectoZapateria.ui.screen.cliente.ClienteProductoDetailScreen
+import com.example.proyectoZapateria.ui.screen.cliente.ClienteCartScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaEntregasScreen
 import com.example.proyectoZapateria.ui.screen.transportista.ConfirmarEntregaScreen
 import com.example.proyectoZapateria.ui.screen.transportista.TransportistaHomeScreen
@@ -66,8 +67,16 @@ fun AppNavGraph(
     val scope = rememberCoroutineScope()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val isRestoring by authViewModel.isRestoringSession.collectAsStateWithLifecycle()
+    val startupError by authViewModel.startupError.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // Mostrar error global de inicio (por ejemplo: microservicio inaccesible)
+    LaunchedEffect(startupError) {
+        if (!startupError.isNullOrBlank()) {
+            Toast.makeText(context, startupError, Toast.LENGTH_LONG).show()
+            authViewModel.clearStartupError()
+        }
+    }
 
 
     // Redireccionar automáticamente si hay sesión guardada
@@ -481,11 +490,9 @@ fun AppNavGraph(
                     composable(Route.ClientePedidos.path) {
                         ClientePedidosScreen(navController = navController)
                     }
-                    // composable(Route.ClienteCart.path) {
-                    //     // Pantalla desactivada temporalmente: ClienteCartScreen depende de la implementación local del carrito
-                    //     // Se mantuvo aquí como referencia para migración futura a microservicios
-                    //     // ClienteCartScreen(navController = navController)
-                    // }
+                    composable(Route.ClienteCart.path) {
+                        ClienteCartScreen(navController = navController)
+                    }
                     composable(
                         route = Route.ClienteProductoDetail.path,
                         arguments = listOf(navArgument("idModelo") { type = NavType.LongType })

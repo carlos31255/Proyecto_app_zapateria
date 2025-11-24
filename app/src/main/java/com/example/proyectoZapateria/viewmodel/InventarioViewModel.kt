@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.ui.model.InventarioUi
 import com.example.proyectoZapateria.data.remote.inventario.dto.InventarioDTO
-import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
 import com.example.proyectoZapateria.data.repository.remote.InventarioRemoteRepository
@@ -21,8 +21,8 @@ class InventarioViewModel @Inject constructor(
     private val inventarioRemoteRepository: InventarioRemoteRepository
 ) : ViewModel() {
 
-    private val _productos = MutableStateFlow<List<ModeloZapatoDTO>>(emptyList())
-    val productos: StateFlow<List<ModeloZapatoDTO>> = _productos
+    private val _productos = MutableStateFlow<List<ProductoDTO>>(emptyList())
+    val productos: StateFlow<List<ProductoDTO>> = _productos
 
     private val _marcas = MutableStateFlow<List<MarcaDTO>>(emptyList())
     val marcas: StateFlow<List<MarcaDTO>> = _marcas
@@ -91,14 +91,14 @@ class InventarioViewModel @Inject constructor(
 
     // Actualizar Producto en la API
     fun actualizarProducto(
-        producto: ModeloZapatoDTO,
+        producto: ProductoDTO,
         nuevoNombre: String,
         nuevoPrecio: Int,
         nuevaDescripcion: String?,
         nuevoIdMarca: Long
     ) {
         viewModelScope.launch {
-            val dto = ModeloZapatoDTO(
+            val dto = ProductoDTO(
                 id = producto.id,
                 nombre = nuevoNombre,
                 marcaId = nuevoIdMarca,
@@ -172,7 +172,7 @@ class InventarioViewModel @Inject constructor(
         }
     }
 
-    fun eliminarProducto(context: Context, producto: ModeloZapatoDTO) {
+    fun eliminarProducto(context: Context, producto: ProductoDTO) {
         viewModelScope.launch {
             // Eliminar imagen localmente si existe (esto se mantiene local)
             if (producto.imagenUrl != null) {

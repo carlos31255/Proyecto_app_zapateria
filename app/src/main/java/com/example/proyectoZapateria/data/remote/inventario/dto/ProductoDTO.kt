@@ -1,6 +1,6 @@
 package com.example.proyectoZapateria.data.remote.inventario.dto
 
-data class ModeloZapatoDTO(
+data class ProductoDTO(
     val id: Long,
     val nombre: String,
     val marcaId: Long,
@@ -8,3 +8,4 @@ data class ModeloZapatoDTO(
     val precioUnitario: Int = 0,
     val imagenUrl: String? = null
 )
+

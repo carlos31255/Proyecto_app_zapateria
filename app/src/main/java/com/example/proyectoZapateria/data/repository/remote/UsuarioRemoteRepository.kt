@@ -3,6 +3,7 @@ package com.example.proyectoZapateria.data.repository.remote
 import android.util.Log
 import com.example.proyectoZapateria.data.remote.usuario.UsuarioApiService
 import com.example.proyectoZapateria.data.remote.usuario.dto.UsuarioDTO
+import com.example.proyectoZapateria.utils.NetworkUtils
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,7 +14,16 @@ class UsuarioRemoteRepository @Inject constructor(
     // Obtener todos los usuarios
     suspend fun obtenerTodosLosUsuarios(): Result<List<UsuarioDTO>> {
         return try {
-            val usuarios = usuarioApi.obtenerTodosLosUsuarios()
+            val usuarios = try {
+                usuarioApi.obtenerTodosLosUsuarios()
+            } catch (e: Exception) {
+                return when (e) {
+                    is java.net.UnknownHostException -> Result.failure(Exception("Sin conexión: ${e.message}"))
+                    is java.net.SocketTimeoutException -> Result.failure(Exception("Timeout de conexión"))
+                    is java.io.IOException -> Result.failure(Exception("Error de red: ${e.message}"))
+                    else -> Result.failure(e)
+                }
+            }
             Result.success(usuarios)
         } catch (e: Exception) {
             Log.e("UsuarioRemoteRepo", "Error al obtener usuarios: ${e.message}", e)
@@ -24,12 +34,7 @@ class UsuarioRemoteRepository @Inject constructor(
     // Obtener usuario por ID de persona
     suspend fun obtenerUsuarioPorId(idPersona: Long): Result<UsuarioDTO?> {
         return try {
-            val response = usuarioApi.obtenerUsuarioPorId(idPersona)
-            if (response.isSuccessful) {
-                Result.success(response.body())
-            } else {
-                Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
-            }
+            NetworkUtils.safeApiCall { usuarioApi.obtenerUsuarioPorId(idPersona) }
         } catch (e: Exception) {
             Log.e("UsuarioRemoteRepo", "Error al obtener usuario por ID: ${e.message}", e)
             Result.failure(e)
@@ -39,7 +44,16 @@ class UsuarioRemoteRepository @Inject constructor(
     // Obtener usuarios por rol
     suspend fun obtenerUsuariosPorRol(idRol: Long): Result<List<UsuarioDTO>> {
         return try {
-            val usuarios = usuarioApi.obtenerUsuariosPorRol(idRol)
+            val usuarios = try {
+                usuarioApi.obtenerUsuariosPorRol(idRol)
+            } catch (e: Exception) {
+                return when (e) {
+                    is java.net.UnknownHostException -> Result.failure(Exception("Sin conexión: ${e.message}"))
+                    is java.net.SocketTimeoutException -> Result.failure(Exception("Timeout de conexión"))
+                    is java.io.IOException -> Result.failure(Exception("Error de red: ${e.message}"))
+                    else -> Result.failure(e)
+                }
+            }
             Result.success(usuarios)
         } catch (e: Exception) {
             Log.e("UsuarioRemoteRepo", "Error al obtener usuarios por rol: ${e.message}", e)
@@ -50,12 +64,7 @@ class UsuarioRemoteRepository @Inject constructor(
     // Crear nuevo usuario
     suspend fun crearUsuario(usuarioDTO: UsuarioDTO): Result<UsuarioDTO?> {
         return try {
-            val response = usuarioApi.crearUsuario(usuarioDTO)
-            if (response.isSuccessful) {
-                Result.success(response.body())
-            } else {
-                Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
-            }
+            NetworkUtils.safeApiCall { usuarioApi.crearUsuario(usuarioDTO) }
         } catch (e: Exception) {
             Log.e("UsuarioRemoteRepo", "Error al crear usuario: ${e.message}", e)
             Result.failure(e)
@@ -65,12 +74,7 @@ class UsuarioRemoteRepository @Inject constructor(
     // Actualizar rol de usuario
     suspend fun actualizarRolUsuario(idPersona: Long, nuevoIdRol: Long): Result<UsuarioDTO?> {
         return try {
-            val response = usuarioApi.actualizarRolUsuario(idPersona, nuevoIdRol)
-            if (response.isSuccessful) {
-                Result.success(response.body())
-            } else {
-                Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
-            }
+            NetworkUtils.safeApiCall { usuarioApi.actualizarRolUsuario(idPersona, nuevoIdRol) }
         } catch (e: Exception) {
             Log.e("UsuarioRemoteRepo", "Error al actualizar rol: ${e.message}", e)
             Result.failure(e)
@@ -81,7 +85,7 @@ class UsuarioRemoteRepository @Inject constructor(
     suspend fun eliminarUsuario(idPersona: Long): Result<Boolean> {
         return try {
             val response = usuarioApi.eliminarUsuario(idPersona)
-            Result.success(response.isSuccessful)
+            if (response.isSuccessful) Result.success(true) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
         } catch (e: Exception) {
             Log.e("UsuarioRemoteRepo", "Error al eliminar usuario: ${e.message}", e)
             Result.failure(e)

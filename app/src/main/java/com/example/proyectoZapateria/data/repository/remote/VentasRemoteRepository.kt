@@ -6,6 +6,7 @@ import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
 import com.example.proyectoZapateria.data.remote.ventas.dto.CambiarEstadoRequest
 import com.example.proyectoZapateria.data.remote.ventas.dto.CrearBoletaRequest
 import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.utils.NetworkUtils
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,28 +22,14 @@ class VentasRemoteRepository @Inject constructor(
     // ==================== BOLETAS ====================
 
     suspend fun obtenerTodasLasBoletas(): Result<List<BoletaDTO>> = try {
-        val response = api.obtenerTodasLasBoletas()
-        if (response.isSuccessful && response.body() != null) {
-            Result.success(response.body()!!)
-        } else {
-            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
-            Log.e(TAG, "obtenerTodasLasBoletas: $error")
-            Result.failure(Exception(error))
-        }
+        NetworkUtils.safeApiCall { api.obtenerTodasLasBoletas() }
     } catch (e: Exception) {
         Log.e(TAG, "obtenerTodasLasBoletas exception", e)
         Result.failure(e)
     }
 
     suspend fun obtenerBoletaPorId(id: Long): Result<BoletaDTO> = try {
-        val response = api.obtenerBoletaPorId(id)
-        if (response.isSuccessful && response.body() != null) {
-            Result.success(response.body()!!)
-        } else {
-            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
-            Log.e(TAG, "obtenerBoletaPorId: $error")
-            Result.failure(Exception(error))
-        }
+        NetworkUtils.safeApiCall { api.obtenerBoletaPorId(id) }
     } catch (e: Exception) {
         Log.e(TAG, "obtenerBoletaPorId exception", e)
         Result.failure(e)
@@ -51,39 +38,18 @@ class VentasRemoteRepository @Inject constructor(
     suspend fun obtenerBoletasPorCliente(clienteId: Long): Result<List<BoletaDTO>> {
         return try {
             Log.d(TAG, "obtenerBoletasPorCliente: clienteId=${'$'}clienteId")
-            val response = api.obtenerBoletasPorCliente(clienteId)
-            if (response.isSuccessful && response.body() != null) {
-                val boletas = response.body()!!
+            // Intentar llamada PATH
+            val res = NetworkUtils.safeApiCall { api.obtenerBoletasPorCliente(clienteId) }
+            if (res.isSuccess) {
+                val boletas = res.getOrNull() ?: emptyList()
                 Log.d(TAG, "obtenerBoletasPorCliente: encontradas ${'$'}{boletas.size} boletas")
-                Result.success(boletas)
-            } else {
-                // Si recibimos 404, intentar la variante por query param
-                val code = response.code()
-                val msg = response.message()
-                val errorBody = try { response.errorBody()?.string() } catch (_: Exception) { null }
-                Log.w(TAG, "obtenerBoletasPorCliente: ruta path devolvió $code - intentar query alternativa. body=${errorBody ?: "<empty>"}")
-                if (code == 404) {
-                    try {
-                        val resp2 = api.obtenerBoletasPorClienteQuery(clienteId)
-                        if (resp2.isSuccessful && resp2.body() != null) {
-                            val boletas2 = resp2.body()!!
-                            Log.d(TAG, "obtenerBoletasPorCliente (query): encontradas ${'$'}{boletas2.size} boletas")
-                            return Result.success(boletas2)
-                        } else {
-                            val eb2 = try { resp2.errorBody()?.string() } catch (_: Exception) { null }
-                            val err = "Error " + resp2.code() + ": " + resp2.message() + " - body=" + (eb2 ?: "<empty>")
-                            Log.e(TAG, "obtenerBoletasPorCliente (query) error: ${'$'}err")
-                            return Result.failure(Exception(err))
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "obtenerBoletasPorCliente (query) exception", e)
-                        return Result.failure(e)
-                    }
-                }
-                val error = "Error " + code + ": " + msg + " - body=" + (errorBody ?: "<empty>")
-                Log.e(TAG, "obtenerBoletasPorCliente: $error")
-                Result.failure(Exception(error))
+                return Result.success(boletas)
             }
+            // Si falla con 404 o similar, intentar variante query
+            Log.w(TAG, "obtenerBoletasPorCliente: intento path falló, intentaremos query: ${res.exceptionOrNull()?.message}")
+            val res2 = NetworkUtils.safeApiCall { api.obtenerBoletasPorClienteQuery(clienteId) }
+            if (res2.isSuccess) return Result.success(res2.getOrNull() ?: emptyList())
+            return res2
         } catch (e: Exception) {
             Log.e(TAG, "obtenerBoletasPorCliente exception", e)
             Result.failure(e)
@@ -92,16 +58,7 @@ class VentasRemoteRepository @Inject constructor(
 
     suspend fun crearBoleta(request: CrearBoletaRequest): Result<BoletaDTO> = try {
         Log.d(TAG, "crearBoleta: clienteId=${'$'}{request.clienteId}, total detalles=${'$'}{request.detalles.size}")
-        val response = api.crearBoleta(request)
-        if (response.isSuccessful && response.body() != null) {
-            val boleta = response.body()!!
-            Log.d(TAG, "crearBoleta: boleta creada con ID=${'$'}{boleta.id}")
-            Result.success(boleta)
-        } else {
-            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
-            Log.e(TAG, "crearBoleta: $error")
-            Result.failure(Exception(error))
-        }
+        NetworkUtils.safeApiCall { api.crearBoleta(request) }
     } catch (e: Exception) {
         Log.e(TAG, "crearBoleta exception", e)
         Result.failure(e)
@@ -109,16 +66,7 @@ class VentasRemoteRepository @Inject constructor(
 
     suspend fun cambiarEstadoBoleta(id: Long, nuevoEstado: String): Result<BoletaDTO> = try {
         Log.d(TAG, "cambiarEstadoBoleta: id=${'$'}id, nuevoEstado=${'$'}nuevoEstado")
-        val request = CambiarEstadoRequest(nuevoEstado)
-        val response = api.cambiarEstadoBoleta(id, request)
-        if (response.isSuccessful && response.body() != null) {
-            Log.d(TAG, "cambiarEstadoBoleta: estado actualizado exitosamente")
-            Result.success(response.body()!!)
-        } else {
-            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
-            Log.e(TAG, "cambiarEstadoBoleta: $error")
-            Result.failure(Exception(error))
-        }
+        NetworkUtils.safeApiCall { api.cambiarEstadoBoleta(id, CambiarEstadoRequest(nuevoEstado)) }
     } catch (e: Exception) {
         Log.e(TAG, "cambiarEstadoBoleta exception", e)
         Result.failure(e)
@@ -126,14 +74,12 @@ class VentasRemoteRepository @Inject constructor(
 
     suspend fun eliminarBoleta(id: Long): Result<Unit> = try {
         Log.d(TAG, "eliminarBoleta: id=${'$'}id")
-        val response = api.eliminarBoleta(id)
-        if (response.isSuccessful) {
+        val res = NetworkUtils.safeApiCall { api.eliminarBoleta(id) }
+        if (res.isSuccess) {
             Log.d(TAG, "eliminarBoleta: boleta eliminada exitosamente")
             Result.success(Unit)
         } else {
-            val error = "Error ${'$'}{response.code()}: ${'$'}{response.message()}"
-            Log.e(TAG, "eliminarBoleta: $error")
-            Result.failure(Exception(error))
+            Result.failure(res.exceptionOrNull() ?: Exception("Error eliminando boleta"))
         }
     } catch (e: Exception) {
         Log.e(TAG, "eliminarBoleta exception", e)

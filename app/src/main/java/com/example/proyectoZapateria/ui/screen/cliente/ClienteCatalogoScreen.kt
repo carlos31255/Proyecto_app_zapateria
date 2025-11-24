@@ -22,7 +22,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.proyectoZapateria.data.remote.inventario.dto.ModeloZapatoDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
+import com.example.proyectoZapateria.di.NetworkModule
 import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.cliente.ClienteCatalogoViewModel
@@ -106,9 +107,10 @@ fun ClienteCatalogoScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(modelos) { modelo ->
-                    ClienteProductoCard(modelo = modelo, onClick = {
-                        val rutaDetalle = Route.ClienteProductoDetail.path.replace("{idModelo}", modelo.id.toString())
+                items(modelos) { producto ->
+                    ClienteProductoCard(modelo = producto, onClick = {
+                        android.util.Log.d("ClienteCatalogoVM", "Producto seleccionado: id=${producto.id}, nombre=${producto.nombre}")
+                        val rutaDetalle = Route.ClienteProductoDetail.path.replace("{idModelo}", producto.id.toString())
                         navController.navigate(rutaDetalle)
                     }, colorScheme = colorScheme, context = context, priceFormatter = clpFormatter)
                 }
@@ -119,7 +121,7 @@ fun ClienteCatalogoScreen(
 
 @Composable
 fun ClienteProductoCard(
-    modelo: ModeloZapatoDTO,
+    modelo: ProductoDTO,
     onClick: () -> Unit,
     colorScheme: ColorScheme,
     context: android.content.Context,
@@ -158,13 +160,25 @@ fun ClienteProductoCard(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Icon(Icons.Default.Image, contentDescription = null,
-                                modifier = Modifier.size(48.dp).align(Alignment.Center), tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                            // Intentar cargar desde endpoint remoto si existe (imagen blob o streaming)
+                            val remoteUrl = NetworkModule.INVENTARIO_BASE_URL + "inventario/productos/${modelo.id}/imagen"
+                            Image(
+                                painter = rememberAsyncImagePainter(remoteUrl),
+                                contentDescription = "Imagen del producto",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
                 } else {
-                    Icon(Icons.Default.Image, contentDescription = null,
-                        modifier = Modifier.size(48.dp).align(Alignment.Center), tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                    // Si imagenUrl es null, intentar cargar desde el endpoint remoto también
+                    val remoteUrl = NetworkModule.INVENTARIO_BASE_URL + "inventario/productos/${modelo.id}/imagen"
+                    Image(
+                        painter = rememberAsyncImagePainter(remoteUrl),
+                        contentDescription = "Imagen del producto",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             }
             Column(modifier = Modifier

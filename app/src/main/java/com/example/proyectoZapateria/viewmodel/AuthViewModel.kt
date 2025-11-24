@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.model.UsuarioCompleto
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
 import com.example.proyectoZapateria.domain.validation.validateConfirm
 import com.example.proyectoZapateria.domain.validation.validateEmail
@@ -63,7 +63,7 @@ data class RegisterUiState(
 // ViewModel que usa microservicios remotos con Hilt
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
+    private val authRemoteRepository: AuthRemoteRepository,
     private val sessionPreferences: SessionPreferences,
     private val clienteRemoteRepository: ClienteRemoteRepository
 ) : ViewModel() {
@@ -76,11 +76,15 @@ class AuthViewModel @Inject constructor(
     val register: StateFlow<RegisterUiState> = _register
 
     // Estado para el usuario logueado - ahora usa UsuarioCompleto
-    val currentUser: StateFlow<UsuarioCompleto?> = authRepository.currentUser
+    val currentUser: StateFlow<UsuarioCompleto?> = authRemoteRepository.currentUser
 
     // Flag público que indica si se está restaurando la sesión al arrancar
     private val _isRestoringSession = MutableStateFlow(true)
     val isRestoringSession: StateFlow<Boolean> = _isRestoringSession
+
+    // Mensaje de error global al iniciar la app (por ejemplo: microservicio inaccesible)
+    private val _startupError = MutableStateFlow<String?>(null)
+    val startupError: StateFlow<String?> = _startupError
 
     // Ejecutar la restauración de sesión después de inicializar los StateFlows
     init {
@@ -119,16 +123,41 @@ class AuthViewModel @Inject constructor(
                 Log.d("AuthViewModel", "submitLogin: intentando login con username='$usernameInput'")
 
                 // Llamar al método login del AuthRepository que usa el microservicio
-                val result = authRepository.login(usernameInput, s.pass)
+                val result = authRemoteRepository.login(usernameInput, s.pass)
 
                 result.onSuccess { usuarioCompleto ->
-                    // Guardar la sesión en DataStore para persistencia
-                    sessionPreferences.saveSession(
-                        userId = usuarioCompleto.idPersona,
-                        username = usuarioCompleto.username,
-                        userRole = usuarioCompleto.nombreRol,
-                        userRoleId = usuarioCompleto.idRol
-                    )
+                    // Guardar la sesión en DataStore para persistencia (no bloquear login)
+                    // Lanzar un guardado en background para no bloquear el login (reintentos cortos)
+                    viewModelScope.launch(Dispatchers.IO) {
+                        try {
+                            val maxAttempts = 3
+                            var attempt = 0
+                            var ok = false
+                            while (attempt < maxAttempts && !ok) {
+                                attempt++
+                                val saved = try {
+                                    withTimeoutOrNull(2000L) {
+                                        sessionPreferences.saveSession(
+                                            userId = usuarioCompleto.idPersona,
+                                            username = usuarioCompleto.username,
+                                            userRole = usuarioCompleto.nombreRol,
+                                            userRoleId = usuarioCompleto.idRol
+                                        )
+                                        true
+                                    }
+                                } catch (_: Exception) {
+                                    null
+                                }
+                                if (saved == true) ok = true else {
+                                    Log.w("AuthViewModel", "saveSession intento $attempt falló o timeout")
+                                    delay(300L * attempt)
+                                }
+                            }
+                            if (!ok) Log.w("AuthViewModel", "No se pudo guardar la sesión en preferences tras $maxAttempts intentos")
+                        } catch (e: Exception) {
+                            Log.w("AuthViewModel", "Error asíncrono guardando sessionPreferences: ${e.message}", e)
+                        }
+                    }
 
                     Log.d("AuthViewModel", "submitLogin: login exitoso para id=${usuarioCompleto.idPersona}")
 
@@ -141,11 +170,12 @@ class AuthViewModel @Inject constructor(
                     }
                 }.onFailure { error ->
                     Log.e("AuthViewModel", "submitLogin: error en login: ${error.message}", error)
+                    val msg = mapErrorToUserMessage(error)
                     _login.update {
                         it.copy(
                             isLoading = false,
                             success = false,
-                            errorMsg = error.message ?: "Usuario o contraseña inválidos"
+                            errorMsg = msg
                         )
                     }
                 }
@@ -155,7 +185,7 @@ class AuthViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         success = false,
-                        errorMsg = "Error al iniciar sesión: ${e.message}"
+                        errorMsg = mapErrorToUserMessage(e)
                     )
                 }
             }
@@ -244,7 +274,7 @@ class AuthViewModel @Inject constructor(
                 }
 
                 // Llamar al método register del AuthRepository que usa el microservicio
-                val result = authRepository.register(
+                val result = authRemoteRepository.register(
                     nombre = nombre,
                     apellido = apellido,
                     email = s.email.trim(),
@@ -318,7 +348,7 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             // Limpiar sesión del repositorio
-            authRepository.logout()
+            authRemoteRepository.logout()
 
             // Limpiar sesión guardada en DataStore
             sessionPreferences.clearSession()
@@ -375,56 +405,92 @@ class AuthViewModel @Inject constructor(
                 Log.w("AuthViewModel", "cargarSesionGuardada: _isRestoringSession no inicializado: ${e.message}")
             }
             try {
-                // Intentar leer la sessionData una vez (timeout de 5s) en IO
-                val sessionData = withTimeoutOrNull(5000) {
-                    withContext(Dispatchers.IO) { sessionPreferences.sessionData.first() }
-                }
+                // Leer sessionData (no bloquear demasiado). Si no existe, sessionData será null y no intentamos nada.
+                val sessionData = withContext(Dispatchers.IO) { sessionPreferences.sessionData.first() }
 
                 if (sessionData != null) {
-                    // Cargar el usuario completo desde el microservicio
+                    // Intentar obtener el usuario remoto con reintentos cortos en vez de un timeout rígido
                     try {
-                        // Llamada al repositorio remoto en IO con timeout para evitar colgar la restauración
-                        val result = withTimeoutOrNull(5000) {
-                            withContext(Dispatchers.IO) { authRepository.obtenerUsuarioPorId(sessionData.userId) }
+                        val maxAttempts = 5
+                        var attempt = 0
+                        var result: kotlin.Result<com.example.proyectoZapateria.data.model.UsuarioCompleto>? = null
+
+                        while (attempt < maxAttempts) {
+                            attempt++
+                            try {
+                                // Llamada en IO con timeout por intento
+                                result = withContext(Dispatchers.IO) {
+                                    try {
+                                        withTimeoutOrNull(3000L) { authRemoteRepository.obtenerUsuarioPorId(sessionData.userId) }
+                                    } catch (_: Exception) { null }
+                                }
+                                if (result != null) break
+                            } catch (e: Exception) {
+                                Log.w("AuthViewModel", "cargarSesionGuardada: intento $attempt falló: ${e.message}")
+                            }
+                            // esperar antes de reintentar (exponencial corto)
+                            kotlinx.coroutines.delay(300L * attempt)
                         }
 
                         if (result == null) {
-                            Log.w("AuthViewModel", "cargarSesionGuardada: timeout al obtener usuario remoto")
-                            withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                            // No pudimos obtener el usuario remoto: asumimos problema de red temporal.
+                            Log.w("AuthViewModel", "cargarSesionGuardada: no se pudo obtener usuario remoto después de $maxAttempts intentos - manteniendo sesión local")
+                            // No borramos sessionPreferences para evitar perder la sesión por una falla temporal.
                         } else {
                             result.onSuccess { usuarioCompleto ->
                                 if (usuarioCompleto.estado == "activo" && usuarioCompleto.activo) {
-                                    // Restaurar el usuario en el repositorio
-                                    authRepository.setCurrentUser(usuarioCompleto)
+                                    // Restaurar el usuario en el repositorio sin bloquear la UI
+                                    authRemoteRepository.setCurrentUser(usuarioCompleto)
                                     Log.d("AuthViewModel", "cargarSesionGuardada: Sesión restaurada para: ${usuarioCompleto.username}")
                                 } else {
-                                    // Si el usuario está inactivo, limpiar la sesión
+                                    // Si el usuario está inactivo o backend indica invalidez, limpiar la sesión
                                     withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
-                                    Log.w("AuthViewModel", "cargarSesionGuardada: Usuario inactivo, sesión limpiada")
+                                    Log.w("AuthViewModel", "cargarSesionGuardada: Usuario inactivo o inválido, sesión limpiada")
                                 }
                             }.onFailure { error ->
-                                Log.e("AuthViewModel", "cargarSesionGuardada: Error al cargar usuario: ${error.message}")
-                                withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                                // No borrar session en errores de red o parseo; mostrar/loggear un mensaje amigable
+                                val userMsg = mapErrorToUserMessage(error)
+                                Log.e("AuthViewModel", "cargarSesionGuardada: Error al cargar usuario: ${error.message} -> $userMsg")
+                                // Exponer el error para que la UI pueda mostrarlo
+                                _startupError.value = userMsg
                             }
                         }
                     } catch (e: Exception) {
                         Log.e("AuthViewModel", "cargarSesionGuardada: Excepción: ${e.message}", e)
-                        withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                        _startupError.value = mapErrorToUserMessage(e)
+                        // No borrar session aquí; podríamos notificar al usuario si es necesario
                     }
                 } else {
-                    // No hay sessionData o timeout, no hacemos nada
-                    Log.d("AuthViewModel", "cargarSesionGuardada: no hay sessionData o timeout")
+                    Log.d("AuthViewModel", "cargarSesionGuardada: no hay sessionData")
                 }
             } catch (e: Exception) {
-                Log.e("AuthViewModel", "cargarSesionGuardada: excepción general: ${e.message}", e)
+                Log.e("AuthViewModel", "cargarSesionGuardada: excepción inesperada: ${e.message}", e)
+                _startupError.value = mapErrorToUserMessage(e)
             } finally {
-                // Marcar que terminamos el intento de restauración (éxito o no)
-                try {
-                    _isRestoringSession.value = false
-                } catch (e: Exception) {
-                    Log.w("AuthViewModel", "cargarSesionGuardada: _isRestoringSession no inicializado al finalizar: ${e.message}")
-                }
+                // Asegurar que la marca de restauración se apague al final
+                _isRestoringSession.value = false
             }
         }
+    }
+
+    // Añadir función auxiliar
+     private fun mapErrorToUserMessage(e: Throwable?): String {
+         val raw = e?.message ?: ""
+         return when {
+             raw.contains("JsonReader.setLenient", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)."
+             raw.contains("malform", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)."
+             raw.contains("Sin conexión", ignoreCase = true) -> "Sin conexión. Verifique su red."
+             raw.contains("Timeout de conexión", ignoreCase = true) -> "Tiempo de conexión agotado. Intente de nuevo."
+             raw.contains("Respuesta del servidor no es JSON válido", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)."
+             raw.contains("Timeout", ignoreCase = true) -> "Tiempo de conexión agotado."
+             raw.contains("Credenciales inválidas", ignoreCase = true) -> "Email o contraseña incorrectos"
+             raw.contains("Usuario inactivo", ignoreCase = true) -> "Su cuenta está desactivada"
+             else -> e?.message ?: "Error desconocido"
+         }
+     }
+
+    // Limpiar mensaje de error de inicio
+    fun clearStartupError() {
+        _startupError.value = null
     }
 }

@@ -5,19 +5,22 @@ import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.proyectoZapateria.data.local.cart.CartDao
-import com.example.proyectoZapateria.data.local.cart.CartItemEntity
+import com.example.proyectoZapateria.data.local.comuna.ComunaEntity
+import com.example.proyectoZapateria.data.local.movimientoinventario.MovimientoInventarioEntity
+import com.example.proyectoZapateria.data.local.region.RegionEntity
+import com.example.proyectoZapateria.data.local.tipomovimiento.TipoMovimientoEntity
 
 @Database(
     entities = [
-        CartItemEntity::class
+        RegionEntity::class,
+        ComunaEntity::class,
+        MovimientoInventarioEntity::class,
+        TipoMovimientoEntity::class
     ],
     version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-
-    abstract fun cartDao(): CartDao
 
     companion object {
         @Volatile
@@ -37,7 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
                     .build()
 
                 INSTANCE = instance
-                Log.d("AppDatabase", "Instancia de base de datos local (Carrito) creada")
+                Log.d("AppDatabase", "Instancia de base de datos local creada")
                 instance
             }
         }

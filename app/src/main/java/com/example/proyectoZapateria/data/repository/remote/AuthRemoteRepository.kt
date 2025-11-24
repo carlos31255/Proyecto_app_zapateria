@@ -1,22 +1,19 @@
-package com.example.proyectoZapateria.data.repository
+package com.example.proyectoZapateria.data.repository.remote
 
 import android.util.Log
+import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.model.UsuarioCompleto
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
 import com.example.proyectoZapateria.data.remote.usuario.dto.UsuarioDTO
-import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
-import com.example.proyectoZapateria.data.repository.remote.RolRemoteRepository
-import com.example.proyectoZapateria.data.repository.remote.UsuarioRemoteRepository
-import com.example.proyectoZapateria.data.localstorage.SessionPreferences
+import com.google.gson.JsonParseException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// Repositorio para manejar la autenticación y el usuario actual usando microservicios remotos
 @Singleton
-class AuthRepository @Inject constructor(
+class AuthRemoteRepository @Inject constructor(
     private val personaRemoteRepository: PersonaRemoteRepository,
     private val usuarioRemoteRepository: UsuarioRemoteRepository,
     private val rolRemoteRepository: RolRemoteRepository,
@@ -94,6 +91,11 @@ class AuthRepository @Inject constructor(
             Result.success(usuarioCompleto)
 
         } catch (e: Exception) {
+            // Detectar errores de parseo JSON (respuesta del servidor no es JSON válido)
+            if (e is JsonParseException || (e.message?.contains("JsonReader.setLenient", ignoreCase = true) == true)) {
+                Log.w("AuthRepository", "Respuesta del servidor no es JSON válido: ${e.message}")
+                return Result.failure(Exception("Respuesta del servidor no es JSON válido"))
+            }
             Log.e("AuthRepository", "Error en login: ${e.message}", e)
             Result.failure(e)
         }
@@ -242,6 +244,10 @@ class AuthRepository @Inject constructor(
             Result.success(usuarioCompleto)
 
         } catch (e: Exception) {
+            if (e is JsonParseException || (e.message?.contains("JsonReader.setLenient", ignoreCase = true) == true)) {
+                Log.w("AuthRepository", "Respuesta del servidor no es JSON válido al obtener usuario: ${e.message}")
+                return Result.failure(Exception("Respuesta del servidor no es JSON válido"))
+            }
             Log.e("AuthRepository", "Error al obtener usuario por ID: ${e.message}", e)
             Result.failure(e)
         }

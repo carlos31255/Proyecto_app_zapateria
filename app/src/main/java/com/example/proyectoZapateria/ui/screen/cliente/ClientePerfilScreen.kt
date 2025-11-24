@@ -2,6 +2,7 @@ package com.example.proyectoZapateria.ui.screen.cliente
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,6 +30,9 @@ import com.example.proyectoZapateria.navigation.Route
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun ClientePerfilScreen(
@@ -154,7 +158,16 @@ fun ClientePerfilScreen(
                     }
                 }
                 else -> {
-                    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val scrollState = rememberScrollState()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .imePadding()
+                            .navigationBarsPadding()
+                            .padding(bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         if (isEditing) {
                             OutlinedTextField(value = editNombre, onValueChange = { new -> viewModel.updateEditField(nombre = new) }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
                             OutlinedTextField(value = editApellido, onValueChange = { new -> viewModel.updateEditField(apellido = new) }, label = { Text("Apellido") }, modifier = Modifier.fillMaxWidth())

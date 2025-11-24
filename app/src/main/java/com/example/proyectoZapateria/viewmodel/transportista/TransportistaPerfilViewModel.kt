@@ -3,7 +3,7 @@ package com.example.proyectoZapateria.viewmodel.transportista
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.TransportistaRemoteRepository
@@ -35,7 +35,7 @@ class TransportistaPerfilViewModel @Inject constructor(
     private val transportistaRemoteRepository: TransportistaRemoteRepository,
     private val entregasRepository: EntregasRemoteRepository,
     private val ventasRepository: VentasRemoteRepository,
-    private val authRepository: AuthRepository
+    private val authRemoteRepository: AuthRemoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransportistaPerfilUiState())
@@ -50,7 +50,7 @@ class TransportistaPerfilViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                val currentUser = authRepository.currentUser.value
+                val currentUser = authRemoteRepository.currentUser.value
                 if (currentUser == null) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

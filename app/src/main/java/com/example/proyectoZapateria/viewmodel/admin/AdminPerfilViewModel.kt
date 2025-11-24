@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
 import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.domain.validation.validateProfileEmail
 import com.example.proyectoZapateria.domain.validation.validateProfileName
 import com.example.proyectoZapateria.domain.validation.validateProfilePhone
@@ -32,7 +32,7 @@ data class AdminPerfilUiState(
 @HiltViewModel
 class AdminPerfilViewModel @Inject constructor(
     private val personaRemoteRepository: PersonaRemoteRepository,
-    private val authRepository: AuthRepository
+    private val authRemoteRepository: AuthRemoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AdminPerfilUiState())
@@ -68,7 +68,7 @@ class AdminPerfilViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-                val currentUser = authRepository.currentUser.value
+                val currentUser = authRemoteRepository.currentUser.value
                 if (currentUser == null) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

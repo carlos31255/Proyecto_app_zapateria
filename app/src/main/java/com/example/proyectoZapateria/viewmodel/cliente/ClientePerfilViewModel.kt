@@ -3,7 +3,7 @@ package com.example.proyectoZapateria.viewmodel.cliente
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
@@ -25,7 +25,7 @@ import javax.inject.Inject
 class ClientePerfilViewModel @Inject constructor(
     private val clienteRemoteRepository: ClienteRemoteRepository,
     private val personaRemoteRepository: PersonaRemoteRepository,
-    private val authRepository: AuthRepository,
+    private val authRemoteRepository: AuthRemoteRepository,
     private val ventasRemoteRepository: VentasRemoteRepository,
     private val sessionPreferences: SessionPreferences
 ) : ViewModel() {
@@ -62,7 +62,7 @@ class ClientePerfilViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-                val currentUser = authRepository.currentUser.value
+                val currentUser = authRemoteRepository.currentUser.value
                 if (currentUser == null) {
                     _uiState.value = _uiState.value.copy(isLoading = false, error = "No hay sesión activa")
                     return@launch
@@ -205,12 +205,12 @@ class ClientePerfilViewModel @Inject constructor(
                 val res = personaRemoteRepository.actualizarPersona(persona.idPersona ?: 0, actualizado)
                 if (res.isSuccess) {
                     // Actualizar sesión si el usuario visible cambió (nombre/email)
-                    val current = authRepository.currentUser.value
+                    val current = authRemoteRepository.currentUser.value
                     if (current != null && current.idPersona == persona.idPersona) {
                         // Obtener usuario actualizado desde API
-                        val usuarioActualizadoResult = authRepository.obtenerUsuarioPorId(persona.idPersona)
+                        val usuarioActualizadoResult = authRemoteRepository.obtenerUsuarioPorId(persona.idPersona)
                         usuarioActualizadoResult.onSuccess { nuevoUsuario ->
-                            authRepository.setCurrentUser(nuevoUsuario)
+                            authRemoteRepository.setCurrentUser(nuevoUsuario)
                             // Actualizar DataStore/sessionPreferences con el nuevo username si cambió
                             try {
                                 sessionPreferences.saveSession(

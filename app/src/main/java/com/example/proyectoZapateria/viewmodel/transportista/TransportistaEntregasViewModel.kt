@@ -5,7 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
-import com.example.proyectoZapateria.data.repository.AuthRepository
+import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.TransportistaRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,7 +24,7 @@ data class TransportistaEntregasUiState(
 @HiltViewModel
 class TransportistaEntregasViewModel @Inject constructor(
     private val entregasRepository: EntregasRemoteRepository,
-    private val authRepository: AuthRepository,
+    private val authRemoteRepository: AuthRemoteRepository,
     private val transportistaRemoteRepository: TransportistaRemoteRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -52,7 +52,7 @@ class TransportistaEntregasViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                val personaId = authRepository.currentUser.value?.idPersona
+                val personaId = authRemoteRepository.currentUser.value?.idPersona
                 val idTransportistaRemoto: Long? = try {
                     if (personaId != null) {
                         val resp = transportistaRemoteRepository.obtenerPorPersona(personaId)
