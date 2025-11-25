@@ -7,25 +7,26 @@ import retrofit2.http.*
 
 interface CarritoApiService {
 
-    @GET("api/carrito/{clienteId}")
+    @GET("carrito/{clienteId}")
     suspend fun getCart(@Path("clienteId") clienteId: Long): Response<List<CartItemResponse>>
 
-    @POST("api/carrito")
-    suspend fun addOrUpdate(@Body req: CartItemRequest): Response<Long>
+    // El backend devuelve la lista consolidada en POST /api/carrito
+    @POST("carrito")
+    suspend fun addOrUpdate(@Body req: CartItemRequest): Response<List<CartItemResponse>>
 
-    // Variante que incluye clienteId como query param (backend acepta clienteId por query para mayor robustez)
-    @POST("api/carrito")
-    suspend fun addOrUpdate(@Query("clienteId") clienteId: Long, @Body req: CartItemRequest): Response<Long>
-
-    @GET("api/carrito/{clienteId}/count")
+    @GET("carrito/{clienteId}/count")
     suspend fun count(@Path("clienteId") clienteId: Long): Response<Int>
 
-    @DELETE("api/carrito/{clienteId}/items/{id}")
+    @DELETE("carrito/{clienteId}/items/{id}")
     suspend fun deleteItem(@Path("clienteId") clienteId: Long, @Path("id") id: Long): Response<Void>
 
-    @DELETE("api/carrito/{clienteId}")
+    @DELETE("carrito/{clienteId}")
     suspend fun clear(@Path("clienteId") clienteId: Long): Response<Void>
 
-    @GET("api/carrito/{clienteId}/item")
+    @GET("carrito/{clienteId}/item")
     suspend fun getItem(@Path("clienteId") clienteId: Long, @Query("modeloId") modeloId: Long, @Query("talla") talla: String): Response<CartItemResponse>
+
+    // El backend también soporta POST /api/carrito para agregar y devuelve el carrito completo
+    @POST("carrito")
+    suspend fun addToCart(@Query("clienteId") clienteId: Long? = null, @Body req: CartItemRequest): Response<List<CartItemResponse>>
 }

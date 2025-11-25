@@ -15,8 +15,15 @@ class ClienteRemoteRepository @Inject constructor(
     // Obtener todos los clientes
     suspend fun obtenerTodosLosClientes(): Result<List<ClienteDTO>> {
         return try {
-            val clientes = clienteApi.obtenerTodosLosClientes()
-            Result.success(clientes)
+            val response = clienteApi.obtenerTodosLosClientes()
+            if (response.isSuccessful) {
+                val clientes = response.body() ?: emptyList()
+                Result.success(clientes)
+            } else {
+                val msg = "Error ${response.code()}: ${response.message()} - body=${try { response.errorBody()?.string() } catch (_: Exception) { "<err>" }}"
+                Log.e("ClienteRemoteRepo", "obtenerTodos: $msg")
+                Result.failure(Exception(msg))
+            }
         } catch (e: Exception) {
             Log.e("ClienteRemoteRepo", "Error al obtener clientes: ${e.message}", e)
             Result.failure(e)
@@ -41,8 +48,15 @@ class ClienteRemoteRepository @Inject constructor(
     // Obtener clientes por categoría
     suspend fun obtenerClientesPorCategoria(categoria: String): Result<List<ClienteDTO>> {
         return try {
-            val clientes = clienteApi.obtenerClientesPorCategoria(categoria)
-            Result.success(clientes)
+            val response = clienteApi.obtenerClientesPorCategoria(categoria)
+            if (response.isSuccessful) {
+                val clientes = response.body() ?: emptyList()
+                Result.success(clientes)
+            } else {
+                val msg = "Error ${response.code()}: ${response.message()} - body=${try { response.errorBody()?.string() } catch (_: Exception) { "<err>" }}"
+                Log.e("ClienteRemoteRepo", "obtenerPorCategoria: $msg")
+                Result.failure(Exception(msg))
+            }
         } catch (e: Exception) {
             Log.e("ClienteRemoteRepo", "Error al obtener clientes por categoría: ${e.message}", e)
             Result.failure(e)

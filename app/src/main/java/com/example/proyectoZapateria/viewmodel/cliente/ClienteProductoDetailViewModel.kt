@@ -88,12 +88,26 @@ class ClienteProductoDetailViewModel @Inject constructor(
                 }
 
                 // 2. Cargar Tallas (para poder mapear el inventario correctamente)
-                val tallasResult = remoteRepository.getTallasLogged()
+                // Preferir las tallas asociadas al producto si el backend las expone
+                val tallasResult = try {
+                    remoteRepository.getTallasPorProducto(idModeloArg)
+                } catch (e: Exception) {
+                    Log.w(TAG, "getTallasPorProducto falló: ${e.message}; intentando global...")
+                    remoteRepository.getTallasLogged()
+                }
                 Log.d(TAG, "TallasResult success=${tallasResult.isSuccess} exception=${tallasResult.exceptionOrNull()?.message}")
                 if (tallasResult.isFailure) {
                     Log.w(TAG, "No se pudieron cargar tallas: ${tallasResult.exceptionOrNull()?.message}")
                 }
-                val listaTallas = if (tallasResult.isSuccess) tallasResult.getOrNull() ?: emptyList() else emptyList()
+                var listaTallas = if (tallasResult.isSuccess) tallasResult.getOrNull() ?: emptyList() else emptyList()
+
+                // Si las tallas del producto vienen vacías, intentar obtener las tallas globales
+                if (listaTallas.isEmpty()) {
+                    try {
+                        val global = remoteRepository.getTallasLogged()
+                        if (global.isSuccess) listaTallas = global.getOrNull() ?: emptyList()
+                    } catch (_: Exception) { /* ignore */ }
+                }
                 Log.d(TAG, "Tallas recibidas: count=${listaTallas.size} items=${listaTallas.take(5)}")
 
                 // Actualizar mapa de tallas para la UI
@@ -128,8 +142,8 @@ class ClienteProductoDetailViewModel @Inject constructor(
                     _mensaje.value = "No se pudo cargar inventario: ${invRes.exceptionOrNull()?.message}"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Excepción general cargando datos: ${e.message}", e)
-                _mensaje.value = "Error cargando datos: ${e.message}"
+                Log.e(TAG, "Excepción general cargando datos", e)
+                _mensaje.value = "Error cargando datos"
             } finally {
                 _isLoading.value = false
 
@@ -142,13 +156,37 @@ class ClienteProductoDetailViewModel @Inject constructor(
     fun refreshCartCount(idCliente: Long) {
         viewModelScope.launch {
             try {
-                val count = cartRepository.getCountByCliente(idCliente)
-                _cartCount.value = count
-            } catch (_: Exception) {
-                _cartCount.value = 0
-            }
-        }
-    }
+                // Preferir snapshot local inmediato
+                val snap = cartRepository.getCacheSnapshot(idCliente)
+                if (snap.isNotEmpty()) {
+                    _cartCount.value = snap.size
+                }
+
+                // Intentar obtener conteo remoto; solo aplicar si no hay cambios locales recientes/pending
+                try {
+                    val remoteCount = cartRepository.getCountByCliente(idCliente)
+                    val hadRecentLocal = cartRepository.hasRecentLocalUpdate(idCliente, 8000)
+                    val hasPending = cartRepository.hasPendingLocalChanges(idCliente)
+                    if (!hadRecentLocal && !hasPending) {
+                        // Si tenemos un snapshot local no vacío, evitamos bajar el conteo si el remote devuelve 0
+                        if (snap.isNotEmpty()) {
+                            _cartCount.value = maxOf(snap.size, remoteCount)
+                        } else {
+                            _cartCount.value = remoteCount
+                        }
+                    } else {
+                         // si hay cambios locales, preferir snapshot
+                         Log.w(TAG, "refreshCartCount: skipping remote update due to recent local change or pending (hadRecentLocal=$hadRecentLocal hasPending=$hasPending)")
+                     }
+                 } catch (e: Exception) {
+                     Log.w(TAG, "refreshCartCount: fallo al obtener count remoto: ${e.message}")
+                 }
+
+             } catch (_: Exception) {
+                 _cartCount.value = 0
+             }
+         }
+     }
 
     // Agregar al carrito con validaciones
     fun addToCart(idInventario: Long, cantidad: Int, idCliente: Long) {
@@ -181,14 +219,23 @@ class ClienteProductoDetailViewModel @Inject constructor(
                 }
 
                 // 3. Comprobar cuántas unidades ya existen en el carrito (remoto)
+                // Normalizar talla desde el inventario UI
+                val tallaRaw = invLocal.talla
+                val tallaNorm = tallaRaw.trim()
+                if (tallaNorm.isBlank() || tallaNorm.equals("null", ignoreCase = true)) {
+                    Log.w(TAG, "addToCart: talla inválida (blank/null) para idInventario=$idInventario")
+                    _mensaje.value = "Seleccione talla antes de agregar al carrito"
+                    return@launch
+                }
+
                 val itemEnCarrito: CartItemResponse? = try {
                     // Refrescar lista remota para evitar datos stale en inMemoryCache
                     val currentList = cartRepository.getCartForCliente(idCliente).first()
-                    currentList.firstOrNull { it.modeloId == idModeloArg && (it.talla.trim().equals(invLocal.talla.trim(), ignoreCase = true)) }
+                    currentList.firstOrNull { it.modeloId == idModeloArg && it.talla.trim().equals(tallaNorm, ignoreCase = true) }
                 } catch (e: Exception) {
                     Log.w(TAG, "addToCart: fallo al obtener item en carrito (fallback getItem): ${e.message}")
                     try {
-                        cartRepository.getItem(idCliente, idModeloArg, invLocal.talla)
+                        cartRepository.getItem(idCliente, idModeloArg, tallaNorm)
                     } catch (e2: Exception) {
                         Log.w(TAG, "addToCart: fallback getItem también falló: ${e2.message}")
                         null
@@ -240,16 +287,43 @@ class ClienteProductoDetailViewModel @Inject constructor(
                     id = itemEnCarrito?.id,
                     clienteId = idCliente,
                     modeloId = idModeloArg,
-                    talla = invLocal.talla.trim(),
+                    talla = tallaNorm,
                     cantidad = cantidadTotal,
                     precioUnitario = productoActual.precioUnitario,
                     nombreProducto = productoActual.nombre
                 )
 
                 try {
-                    val idRes = cartRepository.addOrUpdate(req, idCliente)
-                    Log.d(TAG, "addToCart: addOrUpdate returned id=$idRes")
+                    if (itemEnCarrito?.id != null && itemEnCarrito.id != 0L) {
+                        val idRes = cartRepository.addOrUpdate(req)
+                        Log.d(TAG, "addToCart: addOrUpdate returned id=$idRes")
+                        // actualizar contador inmediatamente desde snapshot
+                        try {
+                            val snap = cartRepository.getCacheSnapshot(idCliente)
+                            _cartCount.value = snap.size
+                        } catch (e: Exception) {
+                            Log.w(TAG, "addToCart: failed to update cart count after update: ${e.message}")
+                        }
+                    } else {
+                        // Crear item y obtener carrito consolidado
+                        val newList = cartRepository.addAndReturnCart(req, idCliente)
+                        Log.d(TAG, "addToCart: addAndReturnCart returned listSize=${newList.size}")
+                        // actualizar contador inmediato para que el icono aparezca
+                        try {
+                            _cartCount.value = newList.size
+                        } catch (e: Exception) {
+                            Log.w(TAG, "addToCart: failed to set cart count from newList: ${e.message}")
+                        }
+                    }
                     _mensaje.value = "Producto agregado al carrito"
+
+                    // REFRESH: actualizar contador del carrito para que la UI muestre el icono flotante / badge
+                    try {
+                        refreshCartCount(idCliente)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "addToCart: failed to refresh cart count: ${e.message}")
+                    }
+
                 } catch (e: Exception) {
                     Log.e(TAG, "addToCart: error al agregar al carrito: ${e.message}", e)
                     _mensaje.value = "Error al agregar al carrito: ${e.message}"

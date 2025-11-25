@@ -12,8 +12,11 @@ import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
 import com.example.proyectoZapateria.data.repository.remote.InventarioRemoteRepository
 import com.example.proyectoZapateria.utils.ImageHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.ResponseBody
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,6 +35,9 @@ class InventarioViewModel @Inject constructor(
 
     private val _inventarioPorModelo = MutableStateFlow<List<InventarioUi>>(emptyList())
     val inventarioPorModelo: StateFlow<List<InventarioUi>> = _inventarioPorModelo
+
+    private val _imagenes = MutableStateFlow<Map<Long, ByteArray?>>(emptyMap())
+    val imagenes: StateFlow<Map<Long, ByteArray?>> = _imagenes
 
     // cache local de productos remotos (InventarioDTO)
     private var cacheInventarioRemoto: List<InventarioDTO> = emptyList()
@@ -195,6 +201,26 @@ class InventarioViewModel @Inject constructor(
                 inventarioRemoteRepository.searchModelos(query).onSuccess { dtos ->
                     _productos.value = dtos?.sortedBy { it.nombre } ?: emptyList()
                 }
+            }
+        }
+    }
+
+    fun loadImagenProducto(idProducto: Long) {
+        // No volver a pedir si ya existe (aunque sea null para indicar no hay bytes)
+        if (_imagenes.value.containsKey(idProducto)) return
+
+        viewModelScope.launch {
+            try {
+                val res = inventarioRemoteRepository.obtenerImagenProducto(idProducto)
+                if (res.isSuccess) {
+                    val bytes = res.getOrNull()
+                    _imagenes.update { map -> map + (idProducto to bytes) }
+                } else {
+                    // Indicar explícitamente que no hay imagen bytes (null se usa pero guardamos clave)
+                    _imagenes.update { map -> map + (idProducto to null) }
+                }
+            } catch (e: Exception) {
+                _imagenes.update { map -> map + (idProducto to null) }
             }
         }
     }

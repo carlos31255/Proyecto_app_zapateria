@@ -163,6 +163,15 @@ fun ClienteCartScreen(
                                     .background(colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
+                                // Si el item trae bytes de imagen (descargados desde el servicio), mostrarlos primero
+                                if (itemUi.imageBytes != null) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(itemUi.imageBytes),
+                                        contentDescription = "Imagen de ${producto?.nombre}",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else
                                 if (producto?.imagenUrl != null) {
                                     // Primero intentar cargar desde drawable
                                     val drawableId = ImageHelper.getDrawableResourceId(context, producto.imagenUrl)

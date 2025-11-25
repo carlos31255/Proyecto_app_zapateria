@@ -9,46 +9,46 @@ interface PersonaApiService {
     // ========== ENDPOINTS DE PERSONAS ==========
 
     // Obtener todas las personas
-    @GET("api/personas")
-    suspend fun obtenerTodasLasPersonas(): List<PersonaDTO>
+    @GET("personas")
+    suspend fun obtenerTodasLasPersonas(): Response<List<PersonaDTO>>
 
     // Obtener persona por ID
-    @GET("api/personas/{id}")
+    @GET("personas/{id}")
     suspend fun obtenerPersonaPorId(@Path("id") id: Long): Response<PersonaDTO>
 
     // Obtener persona por RUT
-    @GET("api/personas/rut/{rut}")
+    @GET("personas/rut/{rut}")
     suspend fun obtenerPersonaPorRut(@Path("rut") rut: String): Response<PersonaDTO>
 
     // Obtener persona por username
-    @GET("api/personas/username/{username}")
+    @GET("personas/username/{username}")
     suspend fun obtenerPersonaPorUsername(@Path("username") username: String): Response<PersonaDTO>
 
     // Buscar personas por nombre (búsqueda parcial)
-    @GET("api/personas/buscar")
-    suspend fun buscarPersonasPorNombre(@Query("nombre") nombre: String): List<PersonaDTO>
+    @GET("personas/buscar")
+    suspend fun buscarPersonasPorNombre(@Query("nombre") nombre: String): Response<List<PersonaDTO>>
 
     // Obtener personas por estado (activo/inactivo)
-    @GET("api/personas/estado/{estado}")
-    suspend fun obtenerPersonasPorEstado(@Path("estado") estado: String): List<PersonaDTO>
+    @GET("personas/estado/{estado}")
+    suspend fun obtenerPersonasPorEstado(@Path("estado") estado: String): Response<List<PersonaDTO>>
 
     // Crear nueva persona
-    @POST("api/personas")
+    @POST("personas")
     suspend fun crearPersona(@Body personaDTO: PersonaDTO): Response<PersonaDTO>
 
     // Actualizar persona
-    @PUT("api/personas/{id}")
+    @PUT("personas/{id}")
     suspend fun actualizarPersona(
         @Path("id") id: Long,
         @Body personaDTO: PersonaDTO
     ): Response<PersonaDTO>
 
     // Desactivar persona (borrado lógico - cambia estado a inactivo)
-    @DELETE("api/personas/{id}")
+    @DELETE("personas/{id}")
     suspend fun eliminarPersona(@Path("id") id: Long): Response<Void>
 
     // Verificar credenciales para autenticación
-    @POST("api/personas/verificar-credenciales")
+    @POST("personas/verificar-credenciales")
     suspend fun verificarCredenciales(
         @Query("username") username: String,
         @Query("password") password: String

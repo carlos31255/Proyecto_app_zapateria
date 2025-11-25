@@ -13,7 +13,6 @@ import com.example.proyectoZapateria.data.repository.remote.ProductoRemoteReposi
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.InventarioRemoteRepository
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
-import com.example.proyectoZapateria.data.repository.remote.CartRemoteRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -65,9 +64,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDetalleBoletaRepository(
-        ventasRemoteRepository: VentasRemoteRepository
+        ventasRemoteRepository: VentasRemoteRepository,
+        inventarioRemoteRepository: InventarioRemoteRepository
     ): DetalleBoletaRemoteRepository {
-        return DetalleBoletaRemoteRepository(ventasRemoteRepository)
+        return DetalleBoletaRemoteRepository(ventasRemoteRepository, inventarioRemoteRepository)
     }
 
     @Provides

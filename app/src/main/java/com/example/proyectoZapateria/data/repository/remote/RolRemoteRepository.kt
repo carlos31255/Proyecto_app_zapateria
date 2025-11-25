@@ -3,7 +3,6 @@ package com.example.proyectoZapateria.data.repository.remote
 import android.util.Log
 import com.example.proyectoZapateria.data.remote.usuario.RolApiService
 import com.example.proyectoZapateria.data.remote.usuario.dto.RolDTO
-import com.example.proyectoZapateria.utils.NetworkUtils
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,17 +13,15 @@ class RolRemoteRepository @Inject constructor(
     // Obtener todos los roles
     suspend fun obtenerTodosLosRoles(): Result<List<RolDTO>> {
         return try {
-            val roles = try {
-                rolApi.obtenerTodosLosRoles()
-            } catch (e: Exception) {
-                return when (e) {
-                    is java.net.UnknownHostException -> Result.failure(Exception("Sin conexión: ${e.message}"))
-                    is java.net.SocketTimeoutException -> Result.failure(Exception("Timeout de conexión"))
-                    is java.io.IOException -> Result.failure(Exception("Error de red: ${e.message}"))
-                    else -> Result.failure(e)
-                }
+            val response = rolApi.obtenerTodosLosRoles()
+            if (response.isSuccessful) {
+                Result.success(response.body() ?: emptyList())
+            } else {
+                val err = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                val msg = "Error ${response.code()}: ${response.message()} - body=${err ?: "<empty>"}"
+                Log.e("RolRemoteRepo", msg)
+                Result.failure(Exception(msg))
             }
-            Result.success(roles)
         } catch (e: Exception) {
             Log.e("RolRemoteRepo", "Error al obtener roles: ${e.message}", e)
             Result.failure(e)
@@ -34,7 +31,8 @@ class RolRemoteRepository @Inject constructor(
     // Obtener rol por ID
     suspend fun obtenerRolPorId(id: Long): Result<RolDTO?> {
         return try {
-            NetworkUtils.safeApiCall { rolApi.obtenerRolPorId(id) }
+            val response = rolApi.obtenerRolPorId(id)
+            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
         } catch (e: Exception) {
             Log.e("RolRemoteRepo", "Error al obtener rol por ID: ${e.message}", e)
             Result.failure(e)
@@ -44,7 +42,8 @@ class RolRemoteRepository @Inject constructor(
     // Obtener rol por nombre
     suspend fun obtenerRolPorNombre(nombreRol: String): Result<RolDTO?> {
         return try {
-            NetworkUtils.safeApiCall { rolApi.obtenerRolPorNombre(nombreRol) }
+            val response = rolApi.obtenerRolPorNombre(nombreRol)
+            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
         } catch (e: Exception) {
             Log.e("RolRemoteRepo", "Error al obtener rol por nombre: ${e.message}", e)
             Result.failure(e)
@@ -54,7 +53,8 @@ class RolRemoteRepository @Inject constructor(
     // Crear nuevo rol
     suspend fun crearRol(rolDTO: RolDTO): Result<RolDTO?> {
         return try {
-            NetworkUtils.safeApiCall { rolApi.crearRol(rolDTO) }
+            val response = rolApi.crearRol(rolDTO)
+            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
         } catch (e: Exception) {
             Log.e("RolRemoteRepo", "Error al crear rol: ${e.message}", e)
             Result.failure(e)
@@ -64,7 +64,8 @@ class RolRemoteRepository @Inject constructor(
     // Actualizar rol
     suspend fun actualizarRol(id: Long, rolDTO: RolDTO): Result<RolDTO?> {
         return try {
-            NetworkUtils.safeApiCall { rolApi.actualizarRol(id, rolDTO) }
+            val response = rolApi.actualizarRol(id, rolDTO)
+            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
         } catch (e: Exception) {
             Log.e("RolRemoteRepo", "Error al actualizar rol: ${e.message}", e)
             Result.failure(e)

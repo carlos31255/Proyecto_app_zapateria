@@ -31,6 +31,8 @@ import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.utils.ImageHelper
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 import com.example.proyectoZapateria.viewmodel.InventarioViewModel
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.asImageBitmap
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -172,7 +174,8 @@ fun AdminInventarioScreen(
                             mostrarDialogoEliminar = true
                         },
                         context = context,
-                        colorScheme = colorScheme
+                        colorScheme = colorScheme,
+                        inventarioViewModel = inventarioViewModel // pasar viewModel aquí
                     )
                 }
 
@@ -269,8 +272,18 @@ fun ProductoCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     context: android.content.Context,
-    colorScheme: ColorScheme
+    colorScheme: ColorScheme,
+    inventarioViewModel: InventarioViewModel // new param
 ) {
+    // solicitar carga de imagen si no está imagenUrl
+    LaunchedEffect(producto.id) {
+        if (producto.imagenUrl.isNullOrBlank()) {
+            inventarioViewModel.loadImagenProducto(producto.id)
+        }
+    }
+
+    val imagenes by inventarioViewModel.imagenes.collectAsState()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -291,7 +304,8 @@ fun ProductoCard(
                     .fillMaxHeight()
                     .background(colorScheme.surfaceVariant)
             ) {
-                if (producto.imagenUrl != null) {
+                val bytes = imagenes[producto.id]
+                if (!producto.imagenUrl.isNullOrBlank()) {
                     // Primero intentar cargar desde drawable
                     val drawableId = ImageHelper.getDrawableResourceId(context, producto.imagenUrl)
                     if (drawableId != null) {
@@ -321,6 +335,28 @@ fun ProductoCard(
                                 tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                             )
                         }
+                    }
+                } else if (bytes != null) {
+                    // convertir bytes a Bitmap y mostrar
+                    val bmp = remember(bytes) {
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    }
+                    if (bmp != null) {
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = "Imagen remota",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .align(Alignment.Center),
+                            tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        )
                     }
                 } else {
                     Icon(

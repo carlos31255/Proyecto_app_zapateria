@@ -7,30 +7,30 @@ import retrofit2.http.*
 interface ClienteApiService {
     // ========== ENDPOINTS DE CLIENTES ==========
     // Obtener todos los clientes
-    @GET("api/clientes")
-    suspend fun obtenerTodosLosClientes(): List<ClienteDTO>
+    @GET("clientes")
+    suspend fun obtenerTodosLosClientes(): Response<List<ClienteDTO>>
 
     // Obtener cliente por ID de persona
-    @GET("api/clientes/{idPersona}")
+    @GET("clientes/{idPersona}")
     suspend fun obtenerClientePorId(@Path("idPersona") idPersona: Long): Response<ClienteDTO>
 
     // Obtener clientes por categoría (VIP, premium, regular)
-    @GET("api/clientes/categoria/{categoria}")
-    suspend fun obtenerClientesPorCategoria(@Path("categoria") categoria: String): List<ClienteDTO>
+    @GET("clientes/categoria/{categoria}")
+    suspend fun obtenerClientesPorCategoria(@Path("categoria") categoria: String): Response<List<ClienteDTO>>
 
     // Crear nuevo cliente
-    @POST("api/clientes")
+    @POST("clientes")
     suspend fun crearCliente(@Body clienteDTO: ClienteDTO): Response<ClienteDTO>
 
     // Actualizar categoría de cliente
-    @PUT("api/clientes/{idPersona}/categoria")
+    @PUT("clientes/{idPersona}/categoria")
     suspend fun actualizarCategoria(
         @Path("idPersona") idPersona: Long,
         @Query("nuevaCategoria") nuevaCategoria: String
     ): Response<ClienteDTO>
 
     // Desactivar cliente (borrado lógico - marca como inactivo)
-    @DELETE("api/clientes/{idPersona}")
+    @DELETE("clientes/{idPersona}")
     suspend fun eliminarCliente(@Path("idPersona") idPersona: Long): Response<Void>
 
 }

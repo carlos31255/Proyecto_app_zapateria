@@ -7,6 +7,8 @@ import com.example.proyectoZapateria.data.remote.inventario.dto.InventarioDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.MarcaDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 import retrofit2.Response
@@ -36,6 +38,8 @@ class InventarioRemoteRepository @Inject constructor(
     suspend fun searchModelos(query: String): Result<List<ProductoDTO>> = safeApiCall { productoApi.buscarProductos(query) }
 
     suspend fun crearModelo(producto: ProductoDTO) = safeApiCall { productoApi.crearProducto(producto) }
+
+    suspend fun crearModeloConImagen(productoJson: RequestBody, imagen: MultipartBody.Part?) = safeApiCall { productoApi.crearProductoMultipart(productoJson, imagen) }
 
     suspend fun actualizarModelo(id: Long, producto: ProductoDTO) = safeApiCall { productoApi.actualizarProducto(id, producto) }
 
@@ -93,37 +97,93 @@ class InventarioRemoteRepository @Inject constructor(
 
     suspend fun getInventarioPorModeloLogged(modeloId: Long) = run {
         Log.d(TAG, "Invocando obtenerInventarioPorModelo modeloId=$modeloId")
-        var res = getInventarioPorModelo(modeloId)
-        // Si la llamada falló, probar rutas alternativas
-        if (res.isFailure) {
-            Log.w(TAG, "Ruta principal falló, intentando ruta alternativa modelo/$modeloId. Err=${res.exceptionOrNull()?.message}")
-            res = try { getInventarioPorModeloAlt(modeloId) } catch (e: Exception) { Result.failure(e) }
-        }
+        // Intentar varias rutas en orden de preferencia (usar nombres exactos del servicio)
+        val attempts = listOf<suspend () -> Result<List<InventarioDTO>>>(
+            { getInventarioPorModelo(modeloId) }, // inventario/producto/{id}
+            { safeApiCall { inventarioApi.obtenerInventarioPorModeloAlt_NoApi(modeloId) } }, // inventario/modelo/{id}
+            { safeApiCall { inventarioApi.obtenerInventarioPorModeloAlt(modeloId) } }, // api/inventario/modelo/{id}
+            { safeApiCall { inventarioApi.obtenerInventarioPorModelo_Api(modeloId) } }, // api/inventario/producto/{id}
+            { getInventarioPorQuery(modeloId) }, // inventario?modeloId=...
+            { safeApiCall { inventarioApi.obtenerInventarioPorQuery_Api(modeloId) } } // api/inventario?modeloId=...
+        )
 
-        // Si la llamada fue exitosa pero la lista está vacía, también intentamos endpoints alternativos
-        val bodyEmpty = try {
-            val body = res.getOrNull()
-            (body is Collection<*>) && body.isEmpty()
-        } catch (_: Exception) { false }
-
-        if (bodyEmpty) {
-            Log.w(TAG, "Ruta principal devolvió lista vacía, intentando ruta alternativa modelo/$modeloId")
-            val altRes = try { getInventarioPorModeloAlt(modeloId) } catch (e: Exception) { Result.failure<List<InventarioDTO>>(e) }
-            if (altRes.isSuccess && !(altRes.getOrNull() as? Collection<*>)?.isEmpty()!!) {
-                res = altRes
-            } else {
-                Log.w(TAG, "Ruta alternativa también vacía o falló, intentando query con parametro")
-                val qRes = try { getInventarioPorQuery(modeloId) } catch (e: Exception) { Result.failure<List<InventarioDTO>>(e) }
-                if (qRes.isSuccess && !(qRes.getOrNull() as? Collection<*>)?.isEmpty()!!) {
-                    res = qRes
+        var lastFailure: Result<List<InventarioDTO>>? = null
+        for (attempt in attempts) {
+            try {
+                val res = attempt()
+                Log.d(TAG, "Intento ruta: success=${res.isSuccess} size=${(res.getOrNull() as? Collection<*>)?.size ?: -1} err=${res.exceptionOrNull()?.message}")
+                if (res.isSuccess) {
+                    val body = res.getOrNull()
+                    if (body is Collection<*> && body.isNotEmpty()) {
+                        Log.d(TAG, "Resultado obtenerInventarioPorModelo (final): success=true size=${body.size}")
+                        return@run res
+                    } else if (body is Collection<*> && body.isEmpty()) {
+                        lastFailure = res
+                    } else {
+                        return@run res
+                    }
                 } else {
-                    // dejar res como estaba (vacío) si alternativas no dieron datos
-                    Log.w(TAG, "Alternativas no devolvieron datos validos")
+                    lastFailure = res
                 }
+            } catch (e: Exception) {
+                lastFailure = Result.failure(e)
+                Log.w(TAG, "Attempt threw: ${e.message}")
             }
         }
 
-        Log.d(TAG, "Resultado obtenerInventarioPorModelo (final): success=${res.isSuccess} err=${res.exceptionOrNull()?.message}")
-        res
+        Log.d(TAG, "Resultado obtenerInventarioPorModelo (final): success=${lastFailure?.isSuccess} err=${lastFailure?.exceptionOrNull()?.message}")
+        lastFailure ?: Result.failure(Exception("No se pudo ejecutar llamadas"))
+    }
+
+    suspend fun obtenerImagenProducto(id: Long): Result<ByteArray?> {
+        return try {
+            val response = productoApi.obtenerImagenProducto(id)
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                try {
+                    val bytes = body.bytes()
+                    Result.success(bytes)
+                } catch (e: Exception) {
+                    Result.failure(Exception("Error leyendo bytes de la imagen: ${e.message}"))
+                }
+            } else {
+                // si no hay imagen o error 404, retornar success con null para indicar ausencia
+                if (response.code() == 404 || response.code() == 204) {
+                    Result.success(null)
+                } else {
+                    val err = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                    Result.failure(Exception("Error ${response.code()}: ${response.message()} - body=${err ?: "<empty>"}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getTallasPorProducto(productoId: Long): Result<List<TallaDTO>> {
+        Log.d(TAG, "Invocando obtenerTallasPorProducto productoId=$productoId")
+        // Primero intentar ruta específica del producto
+        val specific = safeApiCall { productoApi.obtenerTallasPorProducto(productoId) }
+        if (specific.isSuccess) {
+            val list = specific.getOrNull() ?: emptyList()
+            if (list.isNotEmpty()) {
+                Log.d(TAG, "obtenerTallasPorProducto: éxito específico count=${list.size}")
+                return Result.success(list)
+            } else {
+                Log.w(TAG, "obtenerTallasPorProducto: ruta específica devolvió lista vacía, intentaremos tallas globales")
+            }
+        } else {
+            Log.w(TAG, "obtenerTallasPorProducto: fallo ruta específica: ${specific.exceptionOrNull()?.message}")
+        }
+
+        // Fallback: obtener todas las tallas globales
+        val global = safeApiCall { productoApi.obtenerTodasLasTallas() }
+        if (global.isSuccess) {
+            Log.d(TAG, "getTallasPorProducto: fallback a tallas globales success=${global.getOrNull()?.size ?: 0}")
+            return global
+        }
+        Log.w(TAG, "getTallasPorProducto: fallback también falló: ${global.exceptionOrNull()?.message}")
+        // devolver el primer error (specific) si fue failure, sino el global
+        return specific.takeIf { it.isFailure } ?: global
     }
 }

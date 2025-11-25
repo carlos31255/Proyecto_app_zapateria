@@ -15,6 +15,10 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 data class TallaConStock(
     val talla: TallaDTO,
@@ -152,7 +156,21 @@ class ProductoViewModel @Inject constructor(
                     imagenUrl = null
                 )
 
-                val resultModelo = inventarioRemoteRepository.crearModelo(nuevoProducto)
+                val resultModelo = if (s.imagenFile != null) {
+                    // preparar multipart: producto JSON + file
+                    val gson = com.google.gson.Gson()
+                    val json = gson.toJson(nuevoProducto)
+                    val reqBody = json.toRequestBody("application/json".toMediaType())
+
+                    // crear MultipartBody.Part desde el File
+                    val bytes = s.imagenFile!!.readBytes()
+                    val reqFile = bytes.toRequestBody("image/jpeg".toMediaType())
+                    val part = MultipartBody.Part.createFormData("imagen", s.imagenFile!!.name, reqFile)
+
+                    inventarioRemoteRepository.crearModeloConImagen(reqBody, part)
+                } else {
+                    inventarioRemoteRepository.crearModelo(nuevoProducto)
+                }
 
                 if (resultModelo.isSuccess) {
                     val modeloCreado = resultModelo.getOrNull()!! // Este objeto viene del Backend con el ID generado

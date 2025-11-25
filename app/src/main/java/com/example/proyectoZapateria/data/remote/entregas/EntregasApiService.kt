@@ -6,31 +6,31 @@ import retrofit2.http.*
 
 interface EntregasApiService {
 
-    @GET("api/entregas")
+    @GET("entregas")
     suspend fun obtenerTodasLasEntregas(): Response<List<EntregaDTO>>
 
-    @GET("api/entregas/{id}")
+    @GET("entregas/{id}")
     suspend fun obtenerEntregaPorId(@Path("id") id: Long): Response<EntregaDTO>
 
-    @GET("api/entregas/transportista/{transportistaId}")
+    @GET("entregas/transportista/{transportistaId}")
     suspend fun obtenerEntregasPorTransportista(@Path("transportistaId") transportistaId: Long): Response<List<EntregaDTO>>
 
-    @GET("api/entregas/estado/{estado}")
+    @GET("entregas/estado/{estado}")
     suspend fun obtenerEntregasPorEstado(@Path("estado") estado: String): Response<List<EntregaDTO>>
 
-    @PUT("api/entregas/{id}/asignar")
+    @PUT("entregas/{id}/asignar")
     suspend fun asignarTransportista(
         @Path("id") id: Long,
         @Query("transportistaId") transportistaId: Long
     ): Response<EntregaDTO>
 
-    @PUT("api/entregas/{id}/completar")
+    @PUT("entregas/{id}/completar")
     suspend fun completarEntrega(
         @Path("id") id: Long,
         @Body observacion: String?
     ): Response<EntregaDTO>
 
-    @PUT("api/entregas/{id}/estado")
+    @PUT("entregas/{id}/estado")
     suspend fun cambiarEstadoEntrega(
         @Path("id") id: Long,
         @Query("nuevoEstado") nuevoEstado: String

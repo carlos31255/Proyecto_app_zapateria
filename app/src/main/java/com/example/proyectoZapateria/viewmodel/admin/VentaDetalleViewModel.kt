@@ -3,20 +3,24 @@
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
 import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
 import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
-import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.DetalleBoletaRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class VentaDetalleUiState(
     val boleta: BoletaDTO? = null,
     val detalles: List<DetalleBoletaDTO> = emptyList(),
+    val productos: List<ProductoDetalle> = emptyList(),
     val nombreCliente: String = "",
     val isLoading: Boolean = false,
     val error: String? = null
@@ -26,6 +30,7 @@ data class VentaDetalleUiState(
 class VentaDetalleViewModel @Inject constructor(
     private val ventasRepository: VentasRemoteRepository,
     private val clienteRepository: ClienteRemoteRepository,
+    private val detalleBoletaRepository: DetalleBoletaRemoteRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -39,6 +44,15 @@ class VentaDetalleViewModel @Inject constructor(
 
     init {
         cargarDetalle()
+        viewModelScope.launch {
+            try {
+                detalleBoletaRepository.getProductos(idBoleta).collectLatest { productos ->
+                    _uiState.value = _uiState.value.copy(productos = productos)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Error al cargar productos detallados: ${e.message}")
+            }
+        }
     }
 
     private fun cargarDetalle() {
