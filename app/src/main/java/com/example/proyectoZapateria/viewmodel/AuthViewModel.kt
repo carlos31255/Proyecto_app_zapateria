@@ -236,8 +236,17 @@ class AuthViewModel @Inject constructor(
     }
 
     fun onRegisterPhoneChange(value: String) {
-        val digitsOnly = value.filter { it.isDigit() }
-        _register.update { it.copy(phone = digitsOnly, phoneError = validatePhoneDigitsOnly(digitsOnly)) }
+        // Permitir + solo al inicio, seguido de dígitos, con límite de 15 caracteres
+        val filtered = if (value.startsWith("+")) {
+            "+" + value.substring(1).filter { it.isDigit() }
+        } else {
+            value.filter { it.isDigit() }
+        }
+
+        // Aplicar límite de 15 caracteres
+        val limited = if (filtered.length > 15) filtered.take(15) else filtered
+
+        _register.update { it.copy(phone = limited, phoneError = validatePhoneDigitsOnly(limited)) }
         recomputeRegisterCanSubmit()
     }
 

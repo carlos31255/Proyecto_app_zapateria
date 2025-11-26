@@ -93,11 +93,10 @@ class InventarioRemoteRepositoryTest {
                 id = 1L,
                 productoId = 100L,
                 nombre = "StepStyle Classic",
+                tallaId = null,
                 talla = "38",
                 cantidad = 10,
-                stockMinimo = 1,
-                modeloId = null,
-                tallaId = null
+                stockMinimo = 1
             )
         )
 

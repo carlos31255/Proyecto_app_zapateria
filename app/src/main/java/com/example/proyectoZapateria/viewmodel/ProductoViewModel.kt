@@ -196,11 +196,10 @@ class ProductoViewModel @Inject constructor(
                             id = null,
                             productoId = modeloId,
                             nombre = modeloCreado.nombre,
+                            tallaId = idTalla,
                             talla = tallaString,
                             cantidad = tallaConStock.stock.toIntOrNull() ?: 0,
-                            stockMinimo = 5,
-                            modeloId = modeloId,
-                            tallaId = idTalla
+                            stockMinimo = 5
                         )
                         inventarioRemoteRepository.crearInventario(inventarioDto)
                     }

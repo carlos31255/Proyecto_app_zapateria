@@ -17,12 +17,21 @@ fun validateNameLettersOnly(name: String): String? {
     return if (!regex.matches(name)) "Solo letras y espacios" else null //mensaje si
 }
 
-// validar que el teléfono tenga solo dígitos y una longitud razonable
+// validar que el teléfono tenga solo dígitos (y opcionalmente + al inicio) y una longitud razonable
 fun validatePhoneDigitsOnly(phone: String): String? {
-    if (phone.isBlank()) return "El teléfono es obligatorio" // no vacio
-    if (!phone.all { it.isDigit() }) return "Solo números" // todos dígitos
-    if (phone.length !in 8..15) return "Debe tener entre 8 y 15 dígitos" //tamaño razonable
-    return null //o
+    if (phone.isBlank()) return "El teléfono es obligatorio"
+
+    // Validar formato: puede empezar con + seguido de dígitos, o solo dígitos
+    val hasPlus = phone.startsWith("+")
+    val digitsOnly = if (hasPlus) phone.substring(1) else phone
+
+    if (!digitsOnly.all { it.isDigit() }) return "Solo números (opcionalmente + al inicio)"
+
+    // Validar longitud total (incluye el + si existe)
+    if (phone.length > 15) return "Máximo 15 caracteres"
+    if (digitsOnly.length < 8) return "Mínimo 8 dígitos"
+
+    return null
 }
 
 // validar seguridad de la contraseña (mín. 8, mayús, minús, número y símbolo; sin espacios)

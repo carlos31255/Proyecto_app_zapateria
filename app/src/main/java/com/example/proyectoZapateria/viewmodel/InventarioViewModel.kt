@@ -179,9 +179,9 @@ class InventarioViewModel @Inject constructor(
                     val tallaObj = _tallas.value.find { it.id == idTallaLocal } ?: return@forEach
                     val tallaString = tallaObj.valor
 
-                    // Verificamos si ya existe en el backend (por talla string y modeloId)
+                    // Verificamos si ya existe en el backend (por talla string y productoId)
                     val remoto = cacheInventarioRemoto.find {
-                        it.talla == tallaString && (it.modeloId == idModelo || it.productoId == idModelo)
+                        it.talla == tallaString && it.productoId == idModelo
                     }
 
                     if (nuevoStock <= 0) {
@@ -194,11 +194,10 @@ class InventarioViewModel @Inject constructor(
                             id = remoto?.id,
                             productoId = idModelo,
                             nombre = nombreModelo,
+                            tallaId = idTallaLocal,
                             talla = tallaString,
                             cantidad = nuevoStock,
-                            stockMinimo = 5,
-                            modeloId = idModelo,
-                            tallaId = idTallaLocal
+                            stockMinimo = 5
                         )
 
                         if (remoto != null && remoto.id != null) {

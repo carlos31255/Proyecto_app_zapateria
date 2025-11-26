@@ -187,7 +187,7 @@ class ClienteCartViewModel @Inject constructor(
                                     val listaRemota = invResult.getOrNull()
                                     Log.d("ClienteCartVM", "invResult success=${invResult.isSuccess} size=${listaRemota?.size ?: 0} for modelo=${item.modeloId}")
                                     listaRemota?.take(5)?.forEach { inv ->
-                                        Log.d("ClienteCartVM", "  inv[id=${inv.id} productoId=${inv.productoId} modeloId=${inv.modeloId} talla='${inv.talla}' cantidad=${inv.cantidad} nombre='${inv.nombre}']")
+                                        Log.d("ClienteCartVM", "  inv[id=${inv.id} productoId=${inv.productoId} talla='${inv.talla}' cantidad=${inv.cantidad} nombre='${inv.nombre}']")
                                     }
                                 } catch (_: Exception) {}
 
@@ -195,7 +195,7 @@ class ClienteCartViewModel @Inject constructor(
                                     val list = invResult.getOrNull() ?: emptyList()
                                     val primary = list.firstOrNull { inv ->
                                         val invTalla = inv.talla
-                                        val invModeloKey = inv.modeloId ?: inv.productoId
+                                        val invModeloKey = inv.productoId
                                         val nameMatch = if (inv.nombre.isNotBlank() && !item.nombreProducto.isNullOrBlank()) {
                                             inv.nombre.trim().equals(item.nombreProducto.trim(), ignoreCase = true)
                                         } else false
@@ -205,7 +205,7 @@ class ClienteCartViewModel @Inject constructor(
                                         // fallback: match only by talla
                                         val byTalla = list.firstOrNull { it.talla.trim().equals(talla, ignoreCase = true) }
                                         if (byTalla != null) {
-                                            Log.w("ClienteCartVM", "Fallback match by talla para modelo=${item.modeloId}: encontrada entrada invId=${byTalla.id} productoId=${byTalla.productoId} modeloId=${byTalla.modeloId}")
+                                            Log.w("ClienteCartVM", "Fallback match by talla para modelo=${item.modeloId}: encontrada entrada invId=${byTalla.id} productoId=${byTalla.productoId}")
                                         }
                                         byTalla
                                     }
@@ -290,7 +290,7 @@ class ClienteCartViewModel @Inject constructor(
                 val inventarioRemoto = try {
                     result.getOrNull()?.firstOrNull { inv ->
                         val invTalla = inv.talla
-                        val invModeloKey = inv.modeloId ?: inv.productoId
+                        val invModeloKey = inv.productoId
                         invModeloKey == item.modeloId && invTalla.trim().equals(item.talla.trim(), ignoreCase = true)
                     }
                 } catch (e: Exception) { null }
@@ -446,7 +446,7 @@ class ClienteCartViewModel @Inject constructor(
                     val remoto = try {
                         invResult.getOrNull()?.firstOrNull { inv ->
                             val invTalla = inv.talla
-                            val invModeloKey = inv.modeloId ?: inv.productoId
+                            val invModeloKey = inv.productoId
                             val nameMatch = if (inv.nombre.isNotBlank() && !item.nombreProducto.isNullOrBlank()) {
                                 inv.nombre.trim().equals(item.nombreProducto.trim(), ignoreCase = true)
                             } else false
@@ -464,7 +464,7 @@ class ClienteCartViewModel @Inject constructor(
                     val remotoFinal = try {
                         invFinal.getOrNull()?.firstOrNull { inv ->
                             val invTalla = inv.talla
-                            val invModeloKey = inv.modeloId ?: inv.productoId
+                            val invModeloKey = inv.productoId
                             val nameMatch = if (inv.nombre.isNotBlank() && !item.nombreProducto.isNullOrBlank()) {
                                 inv.nombre.trim().equals(item.nombreProducto.trim(), ignoreCase = true)
                             } else false
