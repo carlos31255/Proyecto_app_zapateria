@@ -60,6 +60,7 @@ fun RegisterScreenVm(
         name = state.name,
         email = state.email,
         phone = state.phone,
+        rut = state.rut,
         pass = state.pass,
         confirm = state.confirm,
         calle = state.calle,
@@ -67,6 +68,7 @@ fun RegisterScreenVm(
         nameError = state.nameError,
         emailError = state.emailError,
         phoneError = state.phoneError,
+        rutError = state.rutError,
         passError = state.passError,
         confirmError = state.confirmPassError,
         calleError = state.calleError,
@@ -89,6 +91,7 @@ fun RegisterScreenVm(
         onNameChange = authViewModel::onRegisterNameChange,
         onEmailChange = authViewModel::onRegisterEmailChange,
         onPhoneChange = authViewModel::onRegisterPhoneChange,
+        onRutChange = authViewModel::onRegisterRutChange,
         onPassChange = authViewModel::onRegisterPassChange,
         onConfirmChange = authViewModel::onConfirmChange,
         onCalleChange = authViewModel::onRegisterCalleChange,
@@ -103,6 +106,7 @@ internal fun RegisterScreen( // internal por que la funcion es privada
     name: String,
     email: String,
     phone: String,
+    rut: String,
     pass: String,
     confirm: String,
     calle: String,
@@ -110,6 +114,7 @@ internal fun RegisterScreen( // internal por que la funcion es privada
     nameError: String?,
     emailError: String?,
     phoneError: String?,
+    rutError: String?,
     passError: String?,
     confirmError: String?,
     calleError: String?,
@@ -132,6 +137,7 @@ internal fun RegisterScreen( // internal por que la funcion es privada
     onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
+    onRutChange: (String) -> Unit,
     onPassChange: (String) -> Unit,
     onConfirmChange: (String) -> Unit,
     onCalleChange: (String) -> Unit,
@@ -264,6 +270,30 @@ internal fun RegisterScreen( // internal por que la funcion es privada
                     modifier = Modifier.fillMaxWidth())
                 if (phoneError != null) {
                     Text(phoneError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Campo RUT
+                OutlinedTextField(
+                    value = rut,
+                    onValueChange = onRutChange,
+                    label = { Text("RUT") },
+                    placeholder = { Text("12345678-9") },
+                    singleLine = true,
+                    isError = rutError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = colorScheme.onSurface,
+                        unfocusedTextColor = colorScheme.onSurface,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedBorderColor = colorScheme.outline,
+                        cursorColor = colorScheme.primary,
+                        focusedLabelColor = colorScheme.primary,
+                        unfocusedLabelColor = colorScheme.onSurfaceVariant),
+                    modifier = Modifier.fillMaxWidth())
+                if (rutError != null) {
+                    Text(rutError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
 
                 Spacer(Modifier.height(12.dp))

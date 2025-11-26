@@ -42,6 +42,7 @@ data class RegisterUiState(
     val name: String = "",
     val email: String = "",
     val phone: String = "",
+    val rut: String = "",
     val pass: String = "",
     val confirm: String = "",
     val calle: String = "",
@@ -53,6 +54,7 @@ data class RegisterUiState(
     val nameError: String? = null,
     val emailError: String? = null,
     val phoneError: String? = null,
+    val rutError: String? = null,
     val passError: String? = null,
     val confirmPassError: String? = null,
     val calleError: String? = null,
@@ -250,6 +252,16 @@ class AuthViewModel @Inject constructor(
         recomputeRegisterCanSubmit()
     }
 
+    fun onRegisterRutChange(value: String) {
+        // Formato RUT: 12345678-9 (permitir solo dígitos y guión)
+        val filtered = value.filter { it.isDigit() || it == '-' }
+        val rutError = if (filtered.isNotBlank() && !filtered.matches(Regex("^\\d{7,8}-[\\dkK]$"))) {
+            "RUT inválido (Ej: 12345678-9)"
+        } else null
+        _register.update { it.copy(rut = filtered, rutError = rutError) }
+        recomputeRegisterCanSubmit()
+    }
+
     fun onRegisterPassChange(value: String) {
         _register.update {
             it.copy(
@@ -344,6 +356,7 @@ class AuthViewModel @Inject constructor(
                     apellido = apellido,
                     email = s.email.trim(),
                     telefono = s.phone.trim(),
+                    rut = s.rut.trim().ifBlank { null },
                     password = s.pass,
                     idComuna = s.idComuna,
                     calle = s.calle.trim(),

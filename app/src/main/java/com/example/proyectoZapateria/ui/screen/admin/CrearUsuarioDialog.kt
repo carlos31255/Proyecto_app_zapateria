@@ -99,14 +99,20 @@ fun CrearUsuarioDialog(
                     singleLine = true
                 )
 
-                // RUT
+                // RUT (Obligatorio)
                 OutlinedTextField(
                     value = state.rut,
                     onValueChange = { viewModel.actualizarRut(it) },
                     label = { Text("RUT *") },
                     modifier = Modifier.fillMaxWidth(),
                     isError = state.rutError != null,
-                    supportingText = state.rutError?.let { { Text(it) } },
+                    supportingText = state.rutError?.let { { Text(it) } } ?: {
+                        Text(
+                            "Formato: 12345678-9",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
                     leadingIcon = { Icon(Icons.Default.Badge, null) },
                     enabled = !state.isLoading,
                     singleLine = true,
@@ -271,6 +277,197 @@ fun CrearUsuarioDialog(
                         singleLine = true,
                         placeholder = { Text("Ej: Camioneta Toyota") }
                     )
+                }
+
+                // Dirección
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = "Dirección (opcional)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+
+                // Calle
+                OutlinedTextField(
+                    value = state.calle,
+                    onValueChange = { viewModel.actualizarCalle(it) },
+                    label = { Text("Calle") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Home, null) },
+                    enabled = !state.isLoading,
+                    singleLine = true,
+                    placeholder = { Text("Ej: Av. Libertador B. O'Higgins") }
+                )
+
+                // Número Puerta
+                OutlinedTextField(
+                    value = state.numeroPuerta,
+                    onValueChange = { viewModel.actualizarNumeroPuerta(it) },
+                    label = { Text("N° Puerta") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Home, null) },
+                    enabled = !state.isLoading,
+                    singleLine = true,
+                    placeholder = { Text("Ej: 1234, 123-A") }
+                )
+
+                // Región
+                val regiones by viewModel.regiones.collectAsStateWithLifecycle()
+                val ciudades by viewModel.ciudades.collectAsStateWithLifecycle()
+                val comunas by viewModel.comunas.collectAsStateWithLifecycle()
+                val loadingRegiones by viewModel.loadingRegiones.collectAsStateWithLifecycle()
+                val loadingCiudades by viewModel.loadingCiudades.collectAsStateWithLifecycle()
+                val loadingComunas by viewModel.loadingComunas.collectAsStateWithLifecycle()
+
+                var expandedRegion by remember { mutableStateOf(false) }
+                var expandedCiudad by remember { mutableStateOf(false) }
+                var expandedComuna by remember { mutableStateOf(false) }
+
+                val selectedRegionName = regiones.firstOrNull { it.id == state.idRegion }?.nombre ?: "Seleccionar región"
+                val selectedCiudadName = ciudades.firstOrNull { it.id == state.idCiudad }?.nombre ?: "Seleccionar ciudad"
+                val selectedComunaName = comunas.firstOrNull { it.id == state.idComuna }?.nombre ?: "Seleccionar comuna"
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedRegion,
+                    onExpandedChange = { expandedRegion = !expandedRegion && !state.isLoading && !loadingRegiones }
+                ) {
+                    OutlinedTextField(
+                        value = selectedRegionName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Región") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, enabled = !state.isLoading),
+                        leadingIcon = { Icon(Icons.Default.LocationOn, null) },
+                        trailingIcon = {
+                            if (loadingRegiones) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            } else {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRegion)
+                            }
+                        },
+                        enabled = !state.isLoading && !loadingRegiones,
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expandedRegion,
+                        onDismissRequest = { expandedRegion = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("No especificar") },
+                            onClick = {
+                                viewModel.seleccionarRegion(null)
+                                expandedRegion = false
+                            }
+                        )
+                        regiones.forEach { region ->
+                            DropdownMenuItem(
+                                text = { Text(region.nombre) },
+                                onClick = {
+                                    viewModel.seleccionarRegion(region.id)
+                                    expandedRegion = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Ciudad
+                ExposedDropdownMenuBox(
+                    expanded = expandedCiudad,
+                    onExpandedChange = { expandedCiudad = !expandedCiudad && ciudades.isNotEmpty() && !state.isLoading && !loadingCiudades }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCiudadName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Ciudad") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, enabled = ciudades.isNotEmpty() && !state.isLoading),
+                        leadingIcon = { Icon(Icons.Default.LocationCity, null) },
+                        trailingIcon = {
+                            if (loadingCiudades) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            } else {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCiudad)
+                            }
+                        },
+                        enabled = ciudades.isNotEmpty() && !state.isLoading && !loadingCiudades,
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expandedCiudad,
+                        onDismissRequest = { expandedCiudad = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("No especificar") },
+                            onClick = {
+                                viewModel.seleccionarCiudad(null)
+                                expandedCiudad = false
+                            }
+                        )
+                        ciudades.forEach { ciudad ->
+                            DropdownMenuItem(
+                                text = { Text(ciudad.nombre) },
+                                onClick = {
+                                    viewModel.seleccionarCiudad(ciudad.id)
+                                    expandedCiudad = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Comuna
+                ExposedDropdownMenuBox(
+                    expanded = expandedComuna,
+                    onExpandedChange = { expandedComuna = !expandedComuna && comunas.isNotEmpty() && !state.isLoading && !loadingComunas }
+                ) {
+                    OutlinedTextField(
+                        value = selectedComunaName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Comuna") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, enabled = comunas.isNotEmpty() && !state.isLoading),
+                        leadingIcon = { Icon(Icons.Default.Place, null) },
+                        trailingIcon = {
+                            if (loadingComunas) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            } else {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedComuna)
+                            }
+                        },
+                        enabled = comunas.isNotEmpty() && !state.isLoading && !loadingComunas,
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expandedComuna,
+                        onDismissRequest = { expandedComuna = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("No especificar") },
+                            onClick = {
+                                viewModel.seleccionarComuna(null)
+                                expandedComuna = false
+                            }
+                        )
+                        comunas.forEach { comuna ->
+                            DropdownMenuItem(
+                                text = { Text(comuna.nombre) },
+                                onClick = {
+                                    viewModel.seleccionarComuna(comuna.id)
+                                    expandedComuna = false
+                                }
+                            )
+                        }
+                    }
                 }
 
                 Text(

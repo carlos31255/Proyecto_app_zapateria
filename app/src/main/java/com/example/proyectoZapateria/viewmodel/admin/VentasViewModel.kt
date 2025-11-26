@@ -75,6 +75,11 @@ class VentasViewModel @Inject constructor(
         val query = _searchQuery.value.lowercase().trim()
         val fechaSeleccionada = _fechaFiltro.value
 
+        android.util.Log.d("VentasViewModel", "=== Aplicando filtros ===")
+        android.util.Log.d("VentasViewModel", "Query: '$query'")
+        android.util.Log.d("VentasViewModel", "Fecha seleccionada: ${fechaSeleccionada?.let { java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(it)) }}")
+        android.util.Log.d("VentasViewModel", "Total ventas: ${_ventas.value.size}")
+
         _ventasFiltradas.value = _ventas.value.filter { boleta ->
             val coincideTexto = if (query.isEmpty()) {
                 true
@@ -85,24 +90,73 @@ class VentasViewModel @Inject constructor(
             }
 
             val coincideFecha = if (fechaSeleccionada != null) {
-                esMismaFecha(parseFecha(boleta.fechaVenta), fechaSeleccionada)
+                val fechaBoletaTimestamp = parseFecha(boleta.fechaVenta)
+                val resultado = esMismaFecha(fechaBoletaTimestamp, fechaSeleccionada)
+
+                android.util.Log.d("VentasViewModel", "Boleta ${boleta.id}:")
+                android.util.Log.d("VentasViewModel", "  - Fecha string: '${boleta.fechaVenta}'")
+                android.util.Log.d("VentasViewModel", "  - Fecha parseada: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(fechaBoletaTimestamp))}")
+                android.util.Log.d("VentasViewModel", "  - Fecha filtro: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(fechaSeleccionada))}")
+                android.util.Log.d("VentasViewModel", "  - Coincide: $resultado")
+
+                resultado
             } else {
                 true
             }
 
             coincideTexto && coincideFecha
         }
+
+        android.util.Log.d("VentasViewModel", "Ventas filtradas: ${_ventasFiltradas.value.size}")
     }
 
     private fun parseFecha(fechaStr: String): Long {
         return try {
-            java.time.Instant.parse(fechaStr).toEpochMilli()
+            android.util.Log.d("VentasViewModel", "Parseando fecha: '$fechaStr'")
+
+            // Intentar varios formatos de fecha
+            val formatos = listOf(
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", java.util.Locale.getDefault()),
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                },
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()),
+                java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()),
+                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            )
+
+            var timestamp = 0L
+            var parseado = false
+
+            for (formato in formatos) {
+                try {
+                    timestamp = formato.parse(fechaStr)?.time ?: 0L
+                    if (timestamp > 0L) {
+                        parseado = true
+                        android.util.Log.d("VentasViewModel", "Fecha parseada exitosamente con formato: ${formato.toPattern()}")
+                        break
+                    }
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+
+            if (!parseado) {
+                android.util.Log.e("VentasViewModel", "No se pudo parsear la fecha con ningún formato: '$fechaStr'")
+            }
+
+            timestamp
         } catch (e: Exception) {
+            android.util.Log.e("VentasViewModel", "Error al parsear fecha '$fechaStr': ${e.message}")
             0L
         }
     }
 
     private fun esMismaFecha(timestamp1: Long, timestamp2: Long): Boolean {
+        if (timestamp1 == 0L || timestamp2 == 0L) {
+            return false
+        }
+
         val cal1 = java.util.Calendar.getInstance().apply {
             timeInMillis = timestamp1
         }

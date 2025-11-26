@@ -446,11 +446,11 @@ fun AppNavGraph(
                         )
                     }
 
-//                composable(Route.AdminVentas.path) {
-//                    AdminVentasScreen(
-//                        navController = navController
-//                    )
-//                }
+                composable(Route.AdminVentas.path) {
+                    AdminVentasScreen(
+                        navController = navController
+                    )
+                }
 
                     composable(
                         route = Route.VentaDetalle.path,

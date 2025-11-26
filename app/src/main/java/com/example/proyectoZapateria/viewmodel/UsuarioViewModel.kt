@@ -31,6 +31,13 @@ data class CrearUsuarioState(
     val confirmPassword: String = "",
     val rolSeleccionado: RolDTO? = null,
 
+    // Dirección
+    val calle: String = "",
+    val numeroPuerta: String = "",
+    val idRegion: Long? = null,
+    val idCiudad: Long? = null,
+    val idComuna: Long? = null,
+
     // Campos específicos para transportista
     val licencia: String = "",
     val vehiculo: String = "",
@@ -44,6 +51,8 @@ data class CrearUsuarioState(
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
     val rolError: String? = null,
+    val calleError: String? = null,
+    val numeroPuertaError: String? = null,
     val licenciaError: String? = null,
     val vehiculoError: String? = null,
 
@@ -58,7 +67,8 @@ class UsuarioViewModel @Inject constructor(
     private val personaRemoteRepository: PersonaRemoteRepository,
     private val rolRemoteRepository: RolRemoteRepository,
     private val clienteRemoteRepository: ClienteRemoteRepository,
-    private val transportistaRemoteRepository: TransportistaRemoteRepository
+    private val transportistaRemoteRepository: TransportistaRemoteRepository,
+    private val geografiaRemoteRepository: com.example.proyectoZapateria.data.repository.remote.GeografiaRemoteRepository
 ) : ViewModel() {
 
     // Lista de todos los usuarios (ahora desde API)
@@ -81,6 +91,25 @@ class UsuarioViewModel @Inject constructor(
     private val _crearUsuarioState = MutableStateFlow(CrearUsuarioState())
     val crearUsuarioState: StateFlow<CrearUsuarioState> = _crearUsuarioState.asStateFlow()
 
+    // Geografía para dirección
+    private val _regiones = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.RegionDTO>>(emptyList())
+    val regiones: StateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.RegionDTO>> = _regiones.asStateFlow()
+
+    private val _ciudades = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.CiudadDTO>>(emptyList())
+    val ciudades: StateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.CiudadDTO>> = _ciudades.asStateFlow()
+
+    private val _comunas = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.ComunaDTO>>(emptyList())
+    val comunas: StateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.ComunaDTO>> = _comunas.asStateFlow()
+
+    private val _loadingRegiones = MutableStateFlow(false)
+    val loadingRegiones: StateFlow<Boolean> = _loadingRegiones.asStateFlow()
+
+    private val _loadingCiudades = MutableStateFlow(false)
+    val loadingCiudades: StateFlow<Boolean> = _loadingCiudades.asStateFlow()
+
+    private val _loadingComunas = MutableStateFlow(false)
+    val loadingComunas: StateFlow<Boolean> = _loadingComunas.asStateFlow()
+
     // Estado de carga general
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -96,6 +125,7 @@ class UsuarioViewModel @Inject constructor(
     init {
         cargarRoles()
         cargarUsuarios()
+        cargarRegiones()
     }
 
     private fun cargarUsuarios() {
@@ -219,6 +249,52 @@ class UsuarioViewModel @Inject constructor(
         )
     }
 
+    fun actualizarCalle(calle: String) {
+        _crearUsuarioState.value = _crearUsuarioState.value.copy(
+            calle = calle,
+            calleError = null
+        )
+    }
+
+    fun actualizarNumeroPuerta(numeroPuerta: String) {
+        _crearUsuarioState.value = _crearUsuarioState.value.copy(
+            numeroPuerta = numeroPuerta,
+            numeroPuertaError = null
+        )
+    }
+
+    fun seleccionarRegion(regionId: Long?) {
+        _crearUsuarioState.value = _crearUsuarioState.value.copy(
+            idRegion = regionId,
+            idCiudad = null,
+            idComuna = null
+        )
+        if (regionId != null) {
+            cargarCiudades(regionId)
+        } else {
+            _ciudades.value = emptyList()
+            _comunas.value = emptyList()
+        }
+    }
+
+    fun seleccionarCiudad(ciudadId: Long?) {
+        _crearUsuarioState.value = _crearUsuarioState.value.copy(
+            idCiudad = ciudadId,
+            idComuna = null
+        )
+        if (ciudadId != null) {
+            cargarComunas(ciudadId)
+        } else {
+            _comunas.value = emptyList()
+        }
+    }
+
+    fun seleccionarComuna(comunaId: Long?) {
+        _crearUsuarioState.value = _crearUsuarioState.value.copy(
+            idComuna = comunaId
+        )
+    }
+
     fun actualizarVehiculo(vehiculo: String) {
         _crearUsuarioState.value = _crearUsuarioState.value.copy(
             vehiculo = vehiculo,
@@ -323,9 +399,9 @@ class UsuarioViewModel @Inject constructor(
                     rut = state.rut,
                     telefono = state.telefono.ifBlank { null },
                     email = state.email.ifBlank { null },
-                    idComuna = null,
-                    calle = null,
-                    numeroPuerta = null,
+                    idComuna = state.idComuna,
+                    calle = state.calle.ifBlank { null },
+                    numeroPuerta = state.numeroPuerta.ifBlank { null },
                     username = state.username,
                     fechaRegistro = System.currentTimeMillis(),
                     estado = "activo"
@@ -424,5 +500,57 @@ class UsuarioViewModel @Inject constructor(
 
     fun resetearFormulario() {
         _crearUsuarioState.value = CrearUsuarioState()
+    }
+
+    // Métodos de geografía
+    private fun cargarRegiones() {
+        viewModelScope.launch {
+            _loadingRegiones.value = true
+            try {
+                val result = geografiaRemoteRepository.obtenerTodasLasRegiones()
+                if (result.isSuccess) {
+                    _regiones.value = result.getOrNull() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e("UsuarioVM", "Error al cargar regiones: ${e.message}")
+            } finally {
+                _loadingRegiones.value = false
+            }
+        }
+    }
+
+    private fun cargarCiudades(regionId: Long) {
+        viewModelScope.launch {
+            _loadingCiudades.value = true
+            _ciudades.value = emptyList()
+            _comunas.value = emptyList()
+            try {
+                val result = geografiaRemoteRepository.obtenerCiudadesPorRegion(regionId)
+                if (result.isSuccess) {
+                    _ciudades.value = result.getOrNull() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e("UsuarioVM", "Error al cargar ciudades: ${e.message}")
+            } finally {
+                _loadingCiudades.value = false
+            }
+        }
+    }
+
+    private fun cargarComunas(ciudadId: Long) {
+        viewModelScope.launch {
+            _loadingComunas.value = true
+            _comunas.value = emptyList()
+            try {
+                val result = geografiaRemoteRepository.obtenerComunasPorCiudad(ciudadId)
+                if (result.isSuccess) {
+                    _comunas.value = result.getOrNull() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e("UsuarioVM", "Error al cargar comunas: ${e.message}")
+            } finally {
+                _loadingComunas.value = false
+            }
+        }
     }
 }

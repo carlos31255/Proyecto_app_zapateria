@@ -122,7 +122,7 @@ fun AdminVentasScreen(
                     value = searchQuery,
                     onValueChange = { viewModel.actualizarBusqueda(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar por cliente o nÃºmero...") },
+                    placeholder = { Text("Buscar por cliente o numero...") },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = "Buscar")
                     },
