@@ -38,6 +38,9 @@ fun RegisterScreenVm(
     val regiones by authViewModel.regiones.collectAsStateWithLifecycle()
     val ciudades by authViewModel.ciudades.collectAsStateWithLifecycle()
     val comunas by authViewModel.comunas.collectAsStateWithLifecycle()
+    val loadingRegiones by authViewModel.loadingRegiones.collectAsStateWithLifecycle()
+    val loadingCiudades by authViewModel.loadingCiudades.collectAsStateWithLifecycle()
+    val loadingComunas by authViewModel.loadingComunas.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Limpiar el formulario cuando se vuelve a la pantalla de registro
@@ -74,6 +77,9 @@ fun RegisterScreenVm(
         regiones = regiones,
         ciudades = ciudades,
         comunas = comunas,
+        loadingRegiones = loadingRegiones,
+        loadingCiudades = loadingCiudades,
+        loadingComunas = loadingComunas,
         selectedRegionId = state.idRegion,
         selectedCiudadId = state.idCiudad,
         selectedComunaId = state.idComuna,
@@ -93,7 +99,7 @@ fun RegisterScreenVm(
 }
 
 @Composable
-private fun RegisterScreen(
+internal fun RegisterScreen( // internal por que la funcion es privada
     name: String,
     email: String,
     phone: String,
@@ -114,6 +120,9 @@ private fun RegisterScreen(
     regiones: List<RegionDTO>,
     ciudades: List<CiudadDTO>,
     comunas: List<ComunaDTO>,
+    loadingRegiones: Boolean,
+    loadingCiudades: Boolean,
+    loadingComunas: Boolean,
     selectedRegionId: Long?,
     selectedCiudadId: Long?,
     selectedComunaId: Long?,
@@ -407,13 +416,21 @@ private fun RegisterScreen(
                     label = { Text("Región") },
                     readOnly = true,
                     trailingIcon = {
-                        IconButton(onClick = { expandedRegion = !expandedRegion }) {
-                            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                        if (loadingRegiones) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = colorScheme.primary
+                            )
+                        } else {
+                            IconButton(onClick = { expandedRegion = !expandedRegion }) {
+                                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                            }
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { expandedRegion = true },
+                        .clickable { if (!loadingRegiones) expandedRegion = true },
                 )
                 DropdownMenu(expanded = expandedRegion, onDismissRequest = { expandedRegion = false }) {
                     DropdownMenuItem(text = { Text("No especificar") }, onClick = {
@@ -437,14 +454,22 @@ private fun RegisterScreen(
                     label = { Text("Ciudad") },
                     readOnly = true,
                     trailingIcon = {
-                        IconButton(onClick = { if (ciudades.isNotEmpty()) expandedCiudad = !expandedCiudad }) {
-                            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                        if (loadingCiudades) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = colorScheme.primary
+                            )
+                        } else {
+                            IconButton(onClick = { if (ciudades.isNotEmpty()) expandedCiudad = !expandedCiudad }) {
+                                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                            }
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { if (ciudades.isNotEmpty()) expandedCiudad = true },
-                    enabled = ciudades.isNotEmpty()
+                        .clickable { if (ciudades.isNotEmpty() && !loadingCiudades) expandedCiudad = true },
+                    enabled = ciudades.isNotEmpty() && !loadingCiudades
                 )
                 DropdownMenu(expanded = expandedCiudad, onDismissRequest = { expandedCiudad = false }) {
                     DropdownMenuItem(text = { Text("No especificar") }, onClick = {
@@ -468,14 +493,22 @@ private fun RegisterScreen(
                     label = { Text("Comuna") },
                     readOnly = true,
                     trailingIcon = {
-                        IconButton(onClick = { if (comunas.isNotEmpty()) expandedComuna = !expandedComuna }) {
-                            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                        if (loadingComunas) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = colorScheme.primary
+                            )
+                        } else {
+                            IconButton(onClick = { if (comunas.isNotEmpty()) expandedComuna = !expandedComuna }) {
+                                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                            }
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { if (comunas.isNotEmpty()) expandedComuna = true },
-                    enabled = comunas.isNotEmpty()
+                        .clickable { if (comunas.isNotEmpty() && !loadingComunas) expandedComuna = true },
+                    enabled = comunas.isNotEmpty() && !loadingComunas
                 )
                 DropdownMenu(expanded = expandedComuna, onDismissRequest = { expandedComuna = false }) {
                     DropdownMenuItem(text = { Text("No especificar") }, onClick = {

@@ -101,6 +101,16 @@ class AuthViewModel @Inject constructor(
     private val _comunas = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.ComunaDTO>>(emptyList())
     val comunas: StateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.ComunaDTO>> = _comunas
 
+    // Estados de carga para la geografía
+    private val _loadingRegiones = MutableStateFlow(false)
+    val loadingRegiones: StateFlow<Boolean> = _loadingRegiones
+
+    private val _loadingCiudades = MutableStateFlow(false)
+    val loadingCiudades: StateFlow<Boolean> = _loadingCiudades
+
+    private val _loadingComunas = MutableStateFlow(false)
+    val loadingComunas: StateFlow<Boolean> = _loadingComunas
+
     // Ejecutar la restauración de sesión después de inicializar los StateFlows
     init {
         cargarSesionGuardada()
@@ -524,14 +534,19 @@ class AuthViewModel @Inject constructor(
      private fun mapErrorToUserMessage(e: Throwable?): String {
          val raw = e?.message ?: ""
          return when {
-             raw.contains("JsonReader.setLenient", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)."
-             raw.contains("malform", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)."
-             raw.contains("Sin conexión", ignoreCase = true) -> "Sin conexión. Verifique su red."
-             raw.contains("Timeout de conexión", ignoreCase = true) -> "Tiempo de conexión agotado. Intente de nuevo."
-             raw.contains("Respuesta del servidor no es JSON válido", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)."
-             raw.contains("Timeout", ignoreCase = true) -> "Tiempo de conexión agotado."
+             raw.contains("JsonReader.setLenient", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)"
+             raw.contains("malform", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)"
+             raw.contains("Sin conexión", ignoreCase = true) -> "Sin conexión. Verifique su red"
+             raw.contains("Timeout de conexión", ignoreCase = true) -> "Tiempo de conexión agotado. Intente de nuevo"
+             raw.contains("Respuesta del servidor no es JSON válido", ignoreCase = true) -> "Error en el servidor (respuesta inesperada)"
+             raw.contains("Timeout", ignoreCase = true) -> "Tiempo de conexión agotado"
              raw.contains("Credenciales inválidas", ignoreCase = true) -> "Email o contraseña incorrectos"
+             raw.contains("Usuario no encontrado", ignoreCase = true) -> "Usuario no encontrado"
              raw.contains("Usuario inactivo", ignoreCase = true) -> "Su cuenta está desactivada"
+             raw.contains("Error 401", ignoreCase = true) -> "Email o contraseña incorrectos"
+             raw.contains("401", ignoreCase = true) -> "Email o contraseña incorrectos"
+             raw.contains("Error 500", ignoreCase = true) -> "Error en el servidor. Intente más tarde"
+             raw.contains("Error 404", ignoreCase = true) -> "Usuario no encontrado"
              else -> e?.message ?: "Error desconocido"
          }
      }
@@ -544,27 +559,33 @@ class AuthViewModel @Inject constructor(
     // Cargar regiones
     fun loadRegiones() {
         viewModelScope.launch {
+            _loadingRegiones.value = true
             val res = geografiaRemoteRepository.obtenerTodasLasRegiones()
             res.onSuccess { _regiones.value = it }
             res.onFailure { Log.w("AuthViewModel", "loadRegiones: ${it.message}") }
+            _loadingRegiones.value = false
         }
     }
 
     // Cargar ciudades por región seleccionada
     fun loadCiudadesPorRegion(regionId: Long) {
         viewModelScope.launch {
+            _loadingCiudades.value = true
             val res = geografiaRemoteRepository.obtenerCiudadesPorRegion(regionId)
             res.onSuccess { _ciudades.value = it }
             res.onFailure { Log.w("AuthViewModel", "loadCiudadesPorRegion: ${it.message}") }
+            _loadingCiudades.value = false
         }
     }
 
     // Cargar comunas por ciudad seleccionada
     fun loadComunasPorCiudad(ciudadId: Long) {
         viewModelScope.launch {
+            _loadingComunas.value = true
             val res = geografiaRemoteRepository.obtenerComunasPorCiudad(ciudadId)
             res.onSuccess { _comunas.value = it }
             res.onFailure { Log.w("AuthViewModel", "loadComunasPorCiudad: ${it.message}") }
+            _loadingComunas.value = false
         }
     }
 

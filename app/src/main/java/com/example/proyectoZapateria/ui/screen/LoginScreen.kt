@@ -63,7 +63,7 @@ fun LoginScreenVm(
 }
 
 @Composable
-private fun LoginScreen(
+internal fun LoginScreen(
     email: String,
     pass: String,
     emailError: String?,

@@ -124,7 +124,18 @@ class PersonaRemoteRepository @Inject constructor(
     suspend fun verificarCredenciales(username: String, password: String): Result<PersonaDTO?> {
         return try {
             val response = personaApi.verificarCredenciales(username, password)
-            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            if (response.isSuccessful) {
+                Result.success(response.body())
+            } else {
+                // Manejo de errores específicos con mensajes amigables
+                val errorMessage = when (response.code()) {
+                    401 -> "Credenciales inválidas. Verifique su email y contraseña"
+                    404 -> "Usuario no encontrado"
+                    500 -> "Error en el servidor. Intente más tarde"
+                    else -> "Error al iniciar sesión. Código: ${response.code()}"
+                }
+                Result.failure(Exception(errorMessage))
+            }
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al verificar credenciales: ${e.message}", e)
             Result.failure(e)
