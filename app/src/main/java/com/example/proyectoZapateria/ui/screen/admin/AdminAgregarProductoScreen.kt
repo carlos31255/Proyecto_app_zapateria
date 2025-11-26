@@ -98,19 +98,20 @@ fun AdminAgregarProductoScreen(
         }
     }
 
-    // Mostrar mensaje de éxito
-    LaunchedEffect(formState.success) {
-        if (formState.success) {
-            Toast.makeText(context, "Producto agregado exitosamente", Toast.LENGTH_SHORT).show()
-            productoViewModel.clearSuccess()
-        }
-    }
-
-    // Nuevo: Mostrar toast específico cuando la imagen se subió correctamente
+    // Mostrar toast específico cuando la imagen se subió correctamente
     LaunchedEffect(formState.imagenUploaded) {
         if (formState.imagenUploaded) {
             Toast.makeText(context, "Imagen subida correctamente", Toast.LENGTH_SHORT).show()
             productoViewModel.clearImagenUploaded()
+        }
+    }
+
+    // Mostrar mensaje de éxito y volver a la pantalla anterior
+    LaunchedEffect(formState.success) {
+        if (formState.success) {
+            Toast.makeText(context, "Producto agregado exitosamente", Toast.LENGTH_SHORT).show()
+            productoViewModel.clearSuccess()
+            navController.navigateUp()
         }
     }
 

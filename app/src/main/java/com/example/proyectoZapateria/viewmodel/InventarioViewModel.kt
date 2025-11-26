@@ -124,25 +124,30 @@ class InventarioViewModel @Inject constructor(
         viewModelScope.launch {
             val dto = ProductoDTO(
                 id = producto.id,
-                nombre = nuevoNombre,
+                nombre = nuevoNombre.trim(),
                 marcaId = nuevoIdMarca,
-                descripcion = nuevaDescripcion,
+                descripcion = nuevaDescripcion?.trim()?.ifBlank { null },
                 precioUnitario = nuevoPrecio,
                 imagenUrl = producto.imagenUrl
             )
 
-            // Manejar caso null-safe: si producto.id es null -> crear, si no -> actualizar
             val modeloIdNullable = producto.id
             if (modeloIdNullable == null) {
-                // Crear nuevo modelo en backend
                 inventarioRemoteRepository.crearModelo(dto)
-                    .onSuccess { cargarProductos() }
-                    .onFailure { /* opcional: manejar error */ }
+                    .onSuccess {
+                        cargarProductos()
+                    }
+                    .onFailure { error ->
+                        android.util.Log.e("InventarioVM", "Error crear: ${error.message}")
+                    }
             } else {
-                // Actualizar modelo existente
                 inventarioRemoteRepository.actualizarModelo(modeloIdNullable, dto)
-                    .onSuccess { cargarProductos() }
-                    .onFailure { /* opcional: manejar error */ }
+                    .onSuccess {
+                        cargarProductos()
+                    }
+                    .onFailure { error ->
+                        android.util.Log.e("InventarioVM", "Error actualizar: ${error.message}")
+                    }
             }
         }
     }

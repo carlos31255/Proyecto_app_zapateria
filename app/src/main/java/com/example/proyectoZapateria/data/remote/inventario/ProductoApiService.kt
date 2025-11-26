@@ -46,8 +46,16 @@ interface ProductoApiService {
     @POST("/inventario/productos/crear")
     suspend fun crearProducto(@Body producto: ProductoDTO): Response<ProductoDTO>
 
-    @PUT("/inventario/productos/{id}")
+    @PUT("/inventario/productos/editar/{id}")
     suspend fun actualizarProducto(@Path("id") id: Long, @Body producto: ProductoDTO): Response<ProductoDTO>
+
+    @Multipart
+    @PUT("/inventario/productos/editar/{id}")
+    suspend fun actualizarProductoConImagen(
+        @Path("id") id: Long,
+        @Part("producto") productoJson: RequestBody,
+        @Part imagen: MultipartBody.Part?
+    ): Response<ProductoDTO>
 
     @DELETE("/inventario/productos/{id}")
     suspend fun eliminarProducto(@Path("id") id: Long): Response<Void>

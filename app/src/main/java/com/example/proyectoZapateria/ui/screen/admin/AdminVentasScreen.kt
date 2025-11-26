@@ -469,12 +469,7 @@ fun VentaCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = try {
-                            val instant = Instant.parse(venta.fechaVenta)
-                            dateFormat.format(Date.from(instant))
-                        } catch (e: Exception) {
-                            venta.fechaVenta
-                        },
+                        text = formatearFecha(venta.fechaVenta, dateFormat),
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant
                     )
@@ -490,3 +485,32 @@ fun VentaCard(
         }
     }
 }
+
+private fun formatearFecha(fechaStr: String, formatter: SimpleDateFormat): String {
+    return try {
+        if (fechaStr.isBlank()) return "Fecha no disponible"
+
+        // Intentar parsear como ISO-8601
+        try {
+            val instant = Instant.parse(fechaStr)
+            formatter.format(Date.from(instant))
+        } catch (e: Exception) {
+            // Intentar parsear como LocalDateTime
+            try {
+                val localDateTime = java.time.LocalDateTime.parse(fechaStr)
+                val instant = localDateTime.atZone(java.time.ZoneId.systemDefault()).toInstant()
+                formatter.format(Date.from(instant))
+            } catch (e2: Exception) {
+                // Si ya está en formato legible, devolverlo tal cual
+                if (fechaStr.contains("/") || fechaStr.contains("-")) {
+                    fechaStr
+                } else {
+                    "Fecha no disponible"
+                }
+            }
+        }
+    } catch (e: Exception) {
+        "Fecha no disponible"
+    }
+}
+

@@ -42,6 +42,8 @@ class InventarioRemoteRepository @Inject constructor(
 
     suspend fun actualizarModelo(id: Long, producto: ProductoDTO) = safeApiCall { productoApi.actualizarProducto(id, producto) }
 
+    suspend fun actualizarModeloConImagen(id: Long, productoJson: RequestBody, imagen: MultipartBody.Part?) = safeApiCall { productoApi.actualizarProductoConImagen(id, productoJson, imagen) }
+
     suspend fun eliminarModelo(id: Long) = safeApiCall { productoApi.eliminarProducto(id) }
 
     // ==========================================
