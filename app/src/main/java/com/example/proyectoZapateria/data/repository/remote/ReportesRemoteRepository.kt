@@ -2,13 +2,15 @@ package com.example.proyectoZapateria.data.repository.remote
 
 import com.example.proyectoZapateria.data.remote.reportes.ReportesApiService
 import com.example.proyectoZapateria.data.remote.reportes.dto.*
+import com.example.proyectoZapateria.data.remote.ventas.ReportesVentasApiService
 import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ReportesRemoteRepository @Inject constructor(
-    private val api: ReportesApiService
+    private val api: ReportesApiService,
+    private val ventasApi: ReportesVentasApiService
 ) {
 
     private suspend fun <T> safe(call: suspend () -> Response<T>): Result<T> {
@@ -51,4 +53,9 @@ class ReportesRemoteRepository @Inject constructor(
     suspend fun fetchTopStock(limit: Int = 10): Result<List<TopProductoDTO>> {
         return safe { api.obtenerTopStock(limit) }
     }
+
+    suspend fun generarReporte(filtro: FiltroReporteRequest): Result<ReporteVentasDTO> {
+        return safe { ventasApi.generarReporte(filtro) }
+    }
+
 }

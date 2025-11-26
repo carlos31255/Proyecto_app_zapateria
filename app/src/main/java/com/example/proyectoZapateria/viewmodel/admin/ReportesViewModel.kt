@@ -4,89 +4,72 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.repository.remote.ReportesRemoteRepository
 import com.example.proyectoZapateria.data.remote.reportes.dto.ReporteVentasDTO
+import com.example.proyectoZapateria.data.remote.reportes.dto.FiltroReporteRequest
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 import java.util.Calendar
 import javax.inject.Inject
 
+sealed class ReportesUiState {
+    object Initial : ReportesUiState()
+    object Loading : ReportesUiState()
+    data class Success(val reporte: ReporteVentasDTO) : ReportesUiState()
+    data class Error(val message: String) : ReportesUiState()
+}
+
 @HiltViewModel
 class ReportesViewModel @Inject constructor(
-    private val reportesRemoteRepository: ReportesRemoteRepository
+    private val reportesRepository: ReportesRemoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ReportesUiState>(ReportesUiState.Initial)
-    val uiState: StateFlow<ReportesUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<ReportesUiState> = _uiState
 
-    private val _estadisticasGenerales = MutableStateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.EstadisticasGeneralesDTO?>(null)
-    val estadisticasGenerales: StateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.EstadisticasGeneralesDTO?> = _estadisticasGenerales.asStateFlow()
+    private val _anioSeleccionado = MutableStateFlow(Calendar.getInstance().get(Calendar.YEAR))
+    val anioSeleccionado: StateFlow<Int> = _anioSeleccionado
 
-    private val _stockBajo = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.StockBajoItemDTO>>(emptyList())
-    val stockBajo: StateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.StockBajoItemDTO>> = _stockBajo.asStateFlow()
+    private val _mesSeleccionado = MutableStateFlow<Int?>(null)
+    val mesSeleccionado: StateFlow<Int?> = _mesSeleccionado
 
-    private val _topStock = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.TopProductoDTO>>(emptyList())
-    val topStock: StateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.TopProductoDTO>> = _topStock.asStateFlow()
-
-    private val _movimientosEstadisticas = MutableStateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.MovimientosEstadisticasDTO?>(null)
-    val movimientosEstadisticas: StateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.MovimientosEstadisticasDTO?> = _movimientosEstadisticas.asStateFlow()
-
-    init {
-        cargarReportes()
-    }
-
-    fun cargarReportes() {
+    fun generarReporte() {
         viewModelScope.launch {
             _uiState.value = ReportesUiState.Loading
-
             try {
-                // Cargar estadísticas generales
-                val estadisticasResult = reportesRemoteRepository.fetchEstadisticasGenerales()
-                if (estadisticasResult.isSuccess) {
-                    _estadisticasGenerales.value = estadisticasResult.getOrNull()
+                val filtro = FiltroReporteRequest(
+                    anio = _anioSeleccionado.value,
+                    mes = _mesSeleccionado.value
+                )
+                val resultado = reportesRepository.generarReporte(filtro)
+                resultado.onSuccess { reporte ->
+                    _uiState.value = ReportesUiState.Success(reporte)
+                }.onFailure { error ->
+                    val errorMessage = when {
+                        error.message?.contains("404") == true -> "Funcionalidad no disponible. (Error 404)"
+                        else -> error.message ?: "Error desconocido"
+                    }
+                    _uiState.value = ReportesUiState.Error(errorMessage)
                 }
-
-                // Cargar stock bajo
-                val stockBajoResult = reportesRemoteRepository.fetchStockBajo()
-                if (stockBajoResult.isSuccess) {
-                    _stockBajo.value = stockBajoResult.getOrNull() ?: emptyList()
-                }
-
-                // Cargar top stock
-                val topStockResult = reportesRemoteRepository.fetchTopStock(10)
-                if (topStockResult.isSuccess) {
-                    _topStock.value = topStockResult.getOrNull() ?: emptyList()
-                }
-
-                // Cargar estadísticas de movimientos
-                val movimientosResult = reportesRemoteRepository.fetchMovimientosEstadisticas()
-                if (movimientosResult.isSuccess) {
-                    _movimientosEstadisticas.value = movimientosResult.getOrNull()
-                }
-
-                // Si todo fue exitoso
-                if (estadisticasResult.isSuccess) {
-                    _uiState.value = ReportesUiState.Success
-                } else {
-                    _uiState.value = ReportesUiState.Error(
-                        estadisticasResult.exceptionOrNull()?.message ?: "Error al cargar reportes"
-                    )
-                }
-
             } catch (e: Exception) {
-                _uiState.value = ReportesUiState.Error(e.message ?: "Error al cargar reportes")
+                _uiState.value = ReportesUiState.Error(e.message ?: "Error inesperado")
             }
         }
     }
 
+    fun seleccionarAnio(anio: Int) {
+        _anioSeleccionado.value = anio
+    }
+
+    fun seleccionarMes(mes: Int?) {
+        _mesSeleccionado.value = mes
+    }
 
     fun obtenerAniosDisponibles(): List<Int> {
         val anioActual = Calendar.getInstance().get(Calendar.YEAR)
-        // Mostrar desde 2020 hasta el año actual
-        return (2020..anioActual).toList().reversed()
+        return (anioActual downTo 2020).toList()
     }
 
     fun obtenerNombreMes(mes: Int): String {
@@ -106,11 +89,4 @@ class ReportesViewModel @Inject constructor(
             else -> ""
         }
     }
-}
-
-sealed class ReportesUiState {
-    object Initial : ReportesUiState()
-    object Loading : ReportesUiState()
-    object Success : ReportesUiState()
-    data class Error(val message: String) : ReportesUiState()
 }

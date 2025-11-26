@@ -2,23 +2,23 @@ package com.example.proyectoZapateria.data.remote.reportes.dto
 
 // Estadísticas generales simples
 data class EstadisticasGeneralesDTO(
-    val totalProductos: Int,
-    val totalMovimientos: Int,
+    val totalProductos: Long,
+    val totalMovimientos: Long,
     val stockTotal: Int,
-    val productosConStockBajo: Int,
-    val productosSinStock: Int,
-    val promedioStockPorProducto: Double
+    val productosStockBajo: Long,
+    val productosSinStock: Long,
+    val promedioStock: Double
 )
 
 // Item para lista de stock bajo (debe coincidir con ProductoResumenDTO del backend)
 data class StockBajoItemDTO(
-    val id: Long,
-    val productoId: Long,
-    val nombre: String,
-    val talla: String,
-    val cantidadActual: Int,
+    val id: Long?,
+    val productoId: Long?,
+    val nombre: String?,
+    val talla: String?,
+    val cantidad: Int,
     val stockMinimo: Int,
-    val diferencia: Int
+    val faltante: Int
 )
 
 // Alias para compatibilidad con el backend
@@ -29,9 +29,9 @@ data class MovimientosEstadisticasDTO(
     val totalMovimientos: Long,
     val movimientosEntrada: Long,
     val movimientosSalida: Long,
-    val cantidadTotalEntradas: Int,
-    val cantidadTotalSalidas: Int,
-    val saldoMovimientos: Int
+    val totalEntradas: Int,
+    val totalSalidas: Int,
+    val saldoNeto: Int
 )
 
 // Estadísticas por producto
@@ -40,25 +40,22 @@ data class ProductoEstadisticasDTO(
     val nombreProducto: String,
     val totalTallas: Int,
     val stockTotal: Int,
-    val detallePorTalla: List<DetalleTallaDTO>,
+    val detalleTallas: List<TallaDetalleDTO>,
     val totalMovimientos: Long
 )
 
-data class DetalleTallaDTO(
-    val talla: String,
+data class TallaDetalleDTO(
+    val talla: String?,
     val cantidad: Int,
     val stockMinimo: Int,
-    val alertaStockBajo: Boolean
+    val alerta: Boolean
 )
-
-// Alias para compatibilidad con el backend
-typealias TallaDetalleDTO = DetalleTallaDTO
 
 // DTO para top productos por stock
 data class TopProductoDTO(
     val productoId: Long,
-    val nombre: String,
-    val talla: String,
+    val nombre: String?,
+    val talla: String?,
     val cantidad: Int
 )
 
@@ -85,6 +82,6 @@ data class DetalleVentaDTO(
 )
 
 data class FiltroReporteRequest(
-    val mes: Int? = null,
-    val anio: Int
+    val anio: Int,
+    val mes: Int?
 )

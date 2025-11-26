@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.di
 
+import com.example.proyectoZapateria.data.remote.carrito.CarritoApiService
 import com.example.proyectoZapateria.data.remote.usuario.ClienteApiService
 import com.example.proyectoZapateria.data.remote.usuario.PersonaApiService
 import com.example.proyectoZapateria.data.remote.usuario.RolApiService
@@ -8,6 +9,7 @@ import com.example.proyectoZapateria.data.remote.entregas.EntregasApiService
 import com.example.proyectoZapateria.data.remote.inventario.InventarioApiService
 import com.example.proyectoZapateria.data.remote.inventario.ProductoApiService
 import com.example.proyectoZapateria.data.remote.ventas.VentasApiService
+import com.example.proyectoZapateria.data.remote.ventas.ReportesVentasApiService
 import com.example.proyectoZapateria.data.remote.reportes.ReportesApiService
 import dagger.Module
 import dagger.Provides
@@ -160,8 +162,14 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideCarritoApiService(@VentasRetrofit retrofit: Retrofit): com.example.proyectoZapateria.data.remote.carrito.CarritoApiService {
-        return retrofit.create(com.example.proyectoZapateria.data.remote.carrito.CarritoApiService::class.java)
+    fun provideReportesVentasApiService(@VentasRetrofit retrofit: Retrofit): ReportesVentasApiService {
+        return retrofit.create(ReportesVentasApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCarritoApiService(@VentasRetrofit retrofit: Retrofit): CarritoApiService {
+        return retrofit.create(CarritoApiService::class.java)
     }
 
     //ENTREGAS
@@ -192,6 +200,7 @@ object NetworkModule {
     fun provideReportesApiService(@InventarioRetrofit retrofit: Retrofit): ReportesApiService {
         return retrofit.create(ReportesApiService::class.java)
     }
+
 
     // GEOGRAFÍA
     @Provides
