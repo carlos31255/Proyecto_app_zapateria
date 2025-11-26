@@ -16,11 +16,8 @@ import retrofit2.Response
 
 class InventarioRemoteRepositoryTest {
 
-    // 1. Mocks de las APIs
     private val inventarioApi = mockk<InventarioApiService>()
     private val productoApi = mockk<ProductoApiService>()
-
-    // 2. Instancia del repositorio bajo prueba
     private val repository = InventarioRemoteRepository(inventarioApi, productoApi)
 
     @Test

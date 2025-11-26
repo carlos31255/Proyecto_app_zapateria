@@ -56,3 +56,26 @@ data class TopProductoDTO(
     val cantidad: Int
 )
 
+// ==========================================
+// DTOs para Reportes de Ventas
+// ==========================================
+
+data class ReporteVentasDTO(
+    val numeroVentasRealizadas: Int,
+    val numeroVentasCanceladas: Int,
+    val ingresosTotal: Int,
+    val detallesVentas: List<DetalleVentaDTO> = emptyList()
+)
+
+data class DetalleVentaDTO(
+    val numeroBoleta: String,
+    val fecha: Long,
+    val nombreCliente: String,
+    val montoTotal: Int,
+    val estado: String
+)
+
+data class FiltroReporteRequest(
+    val mes: Int? = null,
+    val anio: Int
+)

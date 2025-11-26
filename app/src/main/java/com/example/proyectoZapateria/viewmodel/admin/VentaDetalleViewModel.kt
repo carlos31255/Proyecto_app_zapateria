@@ -3,9 +3,9 @@
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
 import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
 import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDetalleUi
 import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.DetalleBoletaRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
@@ -20,7 +20,7 @@ import javax.inject.Inject
 data class VentaDetalleUiState(
     val boleta: BoletaDTO? = null,
     val detalles: List<DetalleBoletaDTO> = emptyList(),
-    val productos: List<ProductoDetalle> = emptyList(),
+    val productos: List<ProductoDetalleUi> = emptyList(),
     val nombreCliente: String = "",
     val isLoading: Boolean = false,
     val error: String? = null

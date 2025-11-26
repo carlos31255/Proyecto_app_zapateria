@@ -202,7 +202,6 @@ class InventarioViewModel @Inject constructor(
                 onSuccess()
 
             } catch (e: Exception) {
-                Log.e("InventarioViewModel", "actualizarInventario error", e)
                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
@@ -259,7 +258,7 @@ class InventarioViewModel @Inject constructor(
                     _imagenes.update { map -> map + (idProducto to null) }
                 }
             } catch (e: Exception) {
-                Log.e("InventarioViewModel", "loadImagenProducto error", e)
+                // loadImagenProducto error: ${e.message}
                 // Guardar clave con null para evitar reintentos continuos
                 _imagenes.update { map -> map + (idProducto to null) }
             }

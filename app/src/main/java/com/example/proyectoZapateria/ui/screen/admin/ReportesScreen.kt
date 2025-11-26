@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.proyectoZapateria.domain.model.ReporteVentas
+import com.example.proyectoZapateria.data.remote.reportes.dto.ReporteVentasDTO
 import com.example.proyectoZapateria.viewmodel.admin.ReportesViewModel
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
@@ -330,7 +330,7 @@ fun ReportesScreen(
 
 @Composable
 fun ReporteContent(
-    reporte: ReporteVentas,
+    reporte: ReporteVentasDTO,
     onDescargar: () -> Unit
 ) {
     val locale = Locale.Builder().setLanguage("es").setRegion("CL").build()
@@ -436,13 +436,10 @@ fun ReporteContent(
     }
 }
 
-/**
- * Guarda un CSV simple en la carpeta Downloads y muestra un Toast con el resultado.
- * Se maneja Android Q+ mediante MediaStore.
- */
+// guardar csv en almacenamiento externo
 fun descargarReporte(
     context: Context,
-    reporte: ReporteVentas,
+    reporte: ReporteVentasDTO,
     anio: Int,
     mes: Int?
 ) {

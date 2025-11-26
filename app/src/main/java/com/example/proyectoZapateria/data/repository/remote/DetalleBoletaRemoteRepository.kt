@@ -1,8 +1,7 @@
 package com.example.proyectoZapateria.data.repository.remote
 
-import android.util.Log
-import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
 import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDetalleUi
 import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -17,32 +16,33 @@ class DetalleBoletaRemoteRepository @Inject constructor(
     private val productoCache = mutableMapOf<Long, ProductoDTO?>()
     private val inventarioCache = mutableMapOf<Long, com.example.proyectoZapateria.data.remote.inventario.dto.InventarioDTO?>()
 
-    fun getProductos(idBoleta: Long): Flow<List<ProductoDetalle>> = flow {
-        val productos = try {
+    fun getProductos(idBoleta: Long): Flow<List<ProductoDetalleUi>> = flow {
+        val productosUi = try {
             val res = ventasRemoteRepository.obtenerDetallesDeBoleta(idBoleta)
             if (res.isSuccess) {
                 val detalles: List<DetalleBoletaDTO> = res.getOrNull() ?: emptyList()
                 detalles.map { d ->
-                    // Talla: preferir la del detalle, si no, buscar en inventario
+                    // Normalizar talla
                     var tallaVal = d.talla?.trim()
                     if (tallaVal.isNullOrBlank() || tallaVal.equals("null", ignoreCase = true)) {
-                        tallaVal = ""
+                        tallaVal = "-"
                         try {
                             if (d.inventarioId > 0L) {
                                 val inv = inventarioCache.getOrPut(d.inventarioId) {
                                     inventarioRemoteRepository.getInventarioById(d.inventarioId).getOrNull()
                                 }
-                                if (inv != null && inv.talla.isNotBlank()) {
+                                if (inv != null && !inv.talla.isNullOrBlank()) {
                                     tallaVal = inv.talla.trim()
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.w("DetalleBoletaRepo", "Error obteniendo inventario ${d.inventarioId} para talla: ${e.message}")
+                            // Ignorar error
                         }
                     }
 
-                    // Marca: buscar en producto
-                    var marcaName = ""
+                    // Resolver producto y marca
+                    var marcaName = "Desconocida"
+                    var productoDto: ProductoDTO? = null
                     try {
                         val invId = d.inventarioId
                         if (invId > 0L) {
@@ -51,44 +51,38 @@ class DetalleBoletaRemoteRepository @Inject constructor(
                             }
                             val productoId = inv?.productoId
                             if (productoId != null) {
-                                val producto = productoCache.getOrPut(productoId) {
+                                productoDto = productoCache.getOrPut(productoId) {
                                     inventarioRemoteRepository.getProductoById(productoId).getOrNull()
                                 }
-                                val marcaId = producto?.marcaId
+                                val marcaId = productoDto?.marcaId
                                 if (marcaId != null) {
                                     marcaName = marcaCache.getOrPut(marcaId) {
-                                        inventarioRemoteRepository.getMarcaById(marcaId).getOrNull()?.nombre ?: ""
+                                        inventarioRemoteRepository.getMarcaById(marcaId).getOrNull()?.nombre ?: "Desconocida"
                                     }
                                 }
                             }
                         }
                     } catch (e: Exception) {
-                        Log.w("DetalleBoletaRepo", "Error resolviendo marca para inventario ${d.inventarioId}: ${e.message}")
+                        // Ignorar error
                     }
 
-                    if (marcaName.isBlank()) marcaName = "Desconocida"
-                    val finalTalla = if (tallaVal.isBlank()) "-" else tallaVal
-
-                    ProductoDetalle(
-                        nombreZapato = d.nombreProducto ?: "",
-                        talla = finalTalla,
+                    ProductoDetalleUi(
+                        producto = productoDto ?: ProductoDTO(id = null, nombre = d.nombreProducto ?: "-", marcaId = -1L, descripcion = null, precioUnitario = 0, imagenUrl = null),
                         cantidad = d.cantidad,
-                        marca = marcaName
+                        talla = tallaVal ?: "-",
+                        marcaName = if (marcaName.isBlank()) "Desconocida" else marcaName
                     )
                 }
             } else {
-                Log.w("DetalleBoletaRepo", "Error al obtener detalles remotos: ${res.exceptionOrNull()?.message}")
                 emptyList()
             }
         } catch (e: Exception) {
-            Log.e("DetalleBoletaRepo", "Exception al obtener detalles remotos: ${e.message}")
             emptyList()
         }
-        emit(productos)
+        emit(productosUi)
     }
 
-    fun getProductosPorNumeroBoleta(numeroBoleta: String): Flow<List<ProductoDetalle>> = flow {
-        Log.w("DetalleBoletaRepo", "getProductosPorNumeroBoleta: no implementado en backend (numero=$numeroBoleta)")
+    fun getProductosPorNumeroBoleta(numeroBoleta: String): Flow<List<ProductoDetalleUi>> = flow {
         emit(emptyList())
     }
 }

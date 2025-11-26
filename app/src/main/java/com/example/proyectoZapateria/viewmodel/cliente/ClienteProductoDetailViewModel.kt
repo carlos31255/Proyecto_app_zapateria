@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.viewmodel.cliente
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -68,10 +67,10 @@ class ClienteProductoDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                Log.d(TAG, "cargarDatos: iniciando para idModelo=$idModeloArg")
+                // cargarDatos: iniciando para idModelo=$idModeloArg
                 if (idModeloArg <= 0L) {
                     _mensaje.value = "ID de producto inválido"
-                    Log.w(TAG, "idModelo inválido: $idModeloArg")
+                    // idModelo inválido: $idModeloArg
                     return@launch
                 }
                 // 1. Cargar Detalle del Modelo (Producto)
@@ -92,12 +91,12 @@ class ClienteProductoDetailViewModel @Inject constructor(
                 val tallasResult = try {
                     remoteRepository.getTallasPorProducto(idModeloArg)
                 } catch (e: Exception) {
-                    Log.w(TAG, "getTallasPorProducto falló: ${e.message}; intentando global...")
+                    // getTallasPorProducto falló: ${e.message}; intentando global...
                     remoteRepository.getTallasLogged()
                 }
-                Log.d(TAG, "TallasResult success=${tallasResult.isSuccess} exception=${tallasResult.exceptionOrNull()?.message}")
+                // TallasResult success=${tallasResult.isSuccess} exception=${tallasResult.exceptionOrNull()?.message}
                 if (tallasResult.isFailure) {
-                    Log.w(TAG, "No se pudieron cargar tallas: ${tallasResult.exceptionOrNull()?.message}")
+                    // No se pudieron cargar tallas: ${tallasResult.exceptionOrNull()?.message}
                 }
                 var listaTallas = if (tallasResult.isSuccess) tallasResult.getOrNull() ?: emptyList() else emptyList()
 
@@ -108,17 +107,17 @@ class ClienteProductoDetailViewModel @Inject constructor(
                         if (global.isSuccess) listaTallas = global.getOrNull() ?: emptyList()
                     } catch (_: Exception) { /* ignore */ }
                 }
-                Log.d(TAG, "Tallas recibidas: count=${listaTallas.size} items=${listaTallas.take(5)}")
+                // Tallas recibidas: count=${listaTallas.size} items=${listaTallas.take(5)}
 
                 // Actualizar mapa de tallas para la UI
                 _tallasMap.value = listaTallas.associate { it.id to it.valor }
 
                 // 3. Cargar Inventario del Modelo
                 val invRes = remoteRepository.getInventarioPorModeloLogged(idModeloArg)
-                Log.d(TAG, "InventarioResult success=${invRes.isSuccess} exception=${invRes.exceptionOrNull()?.message}")
+                // InventarioResult success=${invRes.isSuccess} exception=${invRes.exceptionOrNull()?.message}
                 if (invRes.isSuccess) {
                     val dtos = invRes.getOrNull() ?: emptyList()
-                    Log.d(TAG, "Inventario recibido: count=${dtos.size} sample=${dtos.take(5)}")
+                    // Inventario recibido: count=${dtos.size} sample=${dtos.take(5)}
                     try {
                         // No filtrar por falta de mapping de talla: mostrar todas las tallas remotas
                         val listaLocal = dtos.map { dto ->
@@ -132,17 +131,17 @@ class ClienteProductoDetailViewModel @Inject constructor(
                             )
                         }
                         _inventario.value = listaLocal
-                        Log.d(TAG, "Inventario mapeado localmente: size=${listaLocal.size}")
+                        // Inventario mapeado localmente: size=${listaLocal.size}
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error mapeando inventario: ${e.message}", e)
+                        // Error mapeando inventario: ${e.message}
                         _mensaje.value = "Error procesando inventario"
                     }
                 } else {
-                    Log.e(TAG, "Error al obtener inventario: ${invRes.exceptionOrNull()?.message}")
+                    // Error al obtener inventario: ${invRes.exceptionOrNull()?.message}
                     _mensaje.value = "No se pudo cargar inventario: ${invRes.exceptionOrNull()?.message}"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Excepción general cargando datos", e)
+                // Excepción general cargando datos: ${e.message}
                 _mensaje.value = "Error cargando datos"
             } finally {
                 _isLoading.value = false
@@ -176,10 +175,10 @@ class ClienteProductoDetailViewModel @Inject constructor(
                         }
                     } else {
                          // si hay cambios locales, preferir snapshot
-                         Log.w(TAG, "refreshCartCount: skipping remote update due to recent local change or pending (hadRecentLocal=$hadRecentLocal hasPending=$hasPending)")
+                         // refreshCartCount: skipping remote update due to recent local change or pending (hadRecentLocal=$hadRecentLocal hasPending=$hasPending)
                      }
                  } catch (e: Exception) {
-                     Log.w(TAG, "refreshCartCount: fallo al obtener count remoto: ${e.message}")
+                     // refreshCartCount: fallo al obtener count remoto: ${e.message}
                  }
 
              } catch (_: Exception) {
@@ -206,7 +205,7 @@ class ClienteProductoDetailViewModel @Inject constructor(
 
                 if (invLocal == null) {
                     // Si el usuario seleccionó una talla que no existe en el inventario mapeado, rechazamos
-                    Log.w(TAG, "addToCart: inventario local no encontrado para idInventario=$idInventario")
+                    // addToCart: inventario local no encontrado para idInventario=$idInventario
                     _mensaje.value = "Talla inválida o no cargada. Intente refrescar la página."
                     return@launch
                 }
@@ -223,7 +222,7 @@ class ClienteProductoDetailViewModel @Inject constructor(
                 val tallaRaw = invLocal.talla
                 val tallaNorm = tallaRaw.trim()
                 if (tallaNorm.isBlank() || tallaNorm.equals("null", ignoreCase = true)) {
-                    Log.w(TAG, "addToCart: talla inválida (blank/null) para idInventario=$idInventario")
+                    // addToCart: talla inválida (blank/null) para idInventario=$idInventario
                     _mensaje.value = "Seleccione talla antes de agregar al carrito"
                     return@launch
                 }
@@ -233,11 +232,11 @@ class ClienteProductoDetailViewModel @Inject constructor(
                     val currentList = cartRepository.getCartForCliente(idCliente).first()
                     currentList.firstOrNull { it.modeloId == idModeloArg && it.talla.trim().equals(tallaNorm, ignoreCase = true) }
                 } catch (e: Exception) {
-                    Log.w(TAG, "addToCart: fallo al obtener item en carrito (fallback getItem): ${e.message}")
+                    // addToCart: fallo al obtener item en carrito (fallback getItem): ${e.message}
                     try {
                         cartRepository.getItem(idCliente, idModeloArg, tallaNorm)
                     } catch (e2: Exception) {
-                        Log.w(TAG, "addToCart: fallback getItem también falló: ${e2.message}")
+                        // addToCart: fallback getItem también falló: ${e2.message}
                         null
                     }
                 }
@@ -257,18 +256,18 @@ class ClienteProductoDetailViewModel @Inject constructor(
                             // Use remoto como verificación adicional solo si reporta stock positivo
                             if (remotoMatch.cantidad > 0) {
                                 disponibleAutoritativo = remotoMatch.cantidad
-                                Log.d(TAG, "addToCart: remote verification found qty=${remotoMatch.cantidad} for idInventario=$idInventario")
+                                // addToCart: remote verification found qty=${remotoMatch.cantidad} for idInventario=$idInventario
                             } else {
-                                Log.w(TAG, "addToCart: remote verification returned non-positive qty=${remotoMatch.cantidad} — keeping UI stock=$stockUi")
+                                // addToCart: remote verification returned non-positive qty=${remotoMatch.cantidad} — keeping UI stock=$stockUi
                             }
                         } else {
-                            Log.w(TAG, "addToCart: remote verification no match for idInventario=$idInventario, falling back to UI stock")
+                            // addToCart: remote verification no match for idInventario=$idInventario, falling back to UI stock
                         }
                     } else {
-                        Log.w(TAG, "addToCart: fallo al obtener inventario remoto para verificación: ${inventarioResult.exceptionOrNull()?.message}")
+                        // addToCart: fallo al obtener inventario remoto para verificación: ${inventarioResult.exceptionOrNull()?.message}
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "addToCart: excepción al verificar inventario remoto: ${e.message}", e)
+                    // addToCart: excepción al verificar inventario remoto: ${e.message}
                 }
 
                 // 5. Validaciones finales antes de agregar al carrito
@@ -296,23 +295,23 @@ class ClienteProductoDetailViewModel @Inject constructor(
                 try {
                     if (itemEnCarrito?.id != null && itemEnCarrito.id != 0L) {
                         val idRes = cartRepository.addOrUpdate(req)
-                        Log.d(TAG, "addToCart: addOrUpdate returned id=$idRes")
+                        // addToCart: addOrUpdate returned id=$idRes
                         // actualizar contador inmediatamente desde snapshot
                         try {
                             val snap = cartRepository.getCacheSnapshot(idCliente)
                             _cartCount.value = snap.size
                         } catch (e: Exception) {
-                            Log.w(TAG, "addToCart: failed to update cart count after update: ${e.message}")
+                            // addToCart: failed to update cart count after update: ${e.message}
                         }
                     } else {
                         // Crear item y obtener carrito consolidado
                         val newList = cartRepository.addAndReturnCart(req, idCliente)
-                        Log.d(TAG, "addToCart: addAndReturnCart returned listSize=${newList.size}")
+                        // addToCart: addAndReturnCart returned listSize=${newList.size}
                         // actualizar contador inmediato para que el icono aparezca
                         try {
                             _cartCount.value = newList.size
                         } catch (e: Exception) {
-                            Log.w(TAG, "addToCart: failed to set cart count from newList: ${e.message}")
+                            // addToCart: failed to set cart count from newList: ${e.message}
                         }
                     }
                     _mensaje.value = "Producto agregado al carrito"
@@ -321,15 +320,15 @@ class ClienteProductoDetailViewModel @Inject constructor(
                     try {
                         refreshCartCount(idCliente)
                     } catch (e: Exception) {
-                        Log.w(TAG, "addToCart: failed to refresh cart count: ${e.message}")
+                        // addToCart: failed to refresh cart count: ${e.message}
                     }
 
                 } catch (e: Exception) {
-                    Log.e(TAG, "addToCart: error al agregar al carrito: ${e.message}", e)
+                    // addToCart: error al agregar al carrito: ${e.message}
                     _mensaje.value = "Error al agregar al carrito: ${e.message}"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Excepción en addToCart: ${e.message}", e)
+                // Excepción en addToCart: ${e.message}
                 _mensaje.value = "Error al agregar al carrito: ${e.message}"
             } finally {
                 _comprando.value = false

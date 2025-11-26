@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.viewmodel.transportista
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -43,17 +42,17 @@ class TransportistaEntregasViewModel @Inject constructor(
     }
 
     init {
-        Log.d("TransportistaEntregasVM", "ViewModel inicializado")
+        // ViewModel inicializado
         cargarEntregas()
 
         // Suscribirse a actualizaciones globales de entregas para recargar automáticamente
         viewModelScope.launch {
             entregasRepository.updatesFlow.collect {
-                Log.d("TransportistaEntregasVM", "Detectada actualización de entregas -> recargando")
+                // Detectada actualización de entregas -> recargando
                 try {
                     cargarEntregas()
                 } catch (e: Exception) {
-                    Log.w("TransportistaEntregasVM", "Error recargando entregas tras update: ${e.message}")
+                    // Error recargando entregas tras update: ${e.message}
                 }
             }
         }
@@ -71,14 +70,14 @@ class TransportistaEntregasViewModel @Inject constructor(
                         resp.getOrNull()?.idTransportista
                     } else null
                 } catch (ex: Exception) {
-                    Log.w("TransportistaEntregasVM", "Error consultando transportista remoto: ${ex.message}")
+                    // Error consultando transportista remoto: ${ex.message}
                     null
                 }
 
                 val idTransportista = transportistaId ?: idTransportistaRemoto ?: personaId
 
                 if (idTransportista == null) {
-                    Log.e("TransportistaEntregasVM", "No se pudo obtener el ID del transportista")
+                    // No se pudo obtener el ID del transportista
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = "No se pudo obtener el ID del transportista"
@@ -86,7 +85,7 @@ class TransportistaEntregasViewModel @Inject constructor(
                     return@launch
                 }
 
-                Log.d("TransportistaEntregasVM", "Cargando entregas para transportista ID: $idTransportista")
+                // Cargando entregas para transportista ID: $idTransportista
 
                 val result = entregasRepository.obtenerEntregasPorTransportista(idTransportista)
 
@@ -97,7 +96,7 @@ class TransportistaEntregasViewModel @Inject constructor(
                     val entregadas = entregas.count { it.estadoEntrega.lowercase() == "entregada" }
                     val completadas = entregas.count { it.estadoEntrega.lowercase() == "completada" }
 
-                    Log.d("TransportistaEntregasVM", "Entregas cargadas: ${entregas.size} (Pendientes: $pendientes, Entregadas: $entregadas, Completadas: $completadas)")
+                    // Entregas cargadas: ${entregas.size} (Pendientes: $pendientes, Entregadas: $entregadas, Completadas: $completadas)
 
                     _uiState.value = TransportistaEntregasUiState(
                         entregas = entregas,
@@ -107,14 +106,14 @@ class TransportistaEntregasViewModel @Inject constructor(
                     )
                 } else {
                     val errorMsg = result.exceptionOrNull()?.message ?: "Error desconocido"
-                    Log.e("TransportistaEntregasVM", "Error al cargar entregas: $errorMsg")
+                    // Error al cargar entregas: $errorMsg
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = errorMsg
                     )
                 }
             } catch (e: Exception) {
-                Log.e("TransportistaEntregasVM", "Error al cargar entregas: ${e.message}", e)
+                // Error al cargar entregas: ${e.message}
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.message ?: "Error desconocido"

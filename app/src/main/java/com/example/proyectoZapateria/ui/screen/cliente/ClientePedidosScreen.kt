@@ -31,7 +31,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.CheckCircle
-import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDetalleUi
+import java.util.Date
 
 @Composable
 fun ClientePedidosScreen(
@@ -143,12 +144,12 @@ fun ClientePedidosScreen(
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(text = "Boleta: ${boleta.id ?: "#?"}", style = MaterialTheme.typography.titleMedium, color = colorScheme.onSurface)
                                                 Spacer(modifier = Modifier.height(6.dp))
-                                                Text(text = "Fecha: ${try {
-                                                    val instant = Instant.parse(boleta.fechaVenta)
-                                                    dateFormatter.format(java.util.Date.from(instant))
-                                                } catch (e: Exception) {
-                                                    boleta.fechaVenta
-                                                }}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+
+                                                val fechaTexto = runCatching {
+                                                    Instant.parse(boleta.fechaVenta).let { dateFormatter.format(Date.from(it)) }
+                                                }.getOrDefault("-")
+
+                                                Text(text = "Fecha: $fechaTexto", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
 
                                                 // Mostrar estado de entrega
                                                 if (entrega != null) {
@@ -190,19 +191,19 @@ fun ClientePedidosScreen(
 
                                         if (expanded) {
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            // Consumir el flow de productos para esta boleta (ProductoDetalle)
+                                            // Consumir el flow de productos para esta boleta (ProductoDetalleUi)
                                             val productosFlow = viewModel.getProductosForBoleta(boleta.id ?: 0L)
-                                            val productos by productosFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                                            val productos by productosFlow.collectAsStateWithLifecycle(initialValue = emptyList<ProductoDetalleUi>())
 
                                             if (productos.isEmpty()) {
                                                 Text(text = "(Sin detalles de productos)", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
                                             } else {
                                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    productos.forEach { p: ProductoDetalle ->
+                                                    productos.forEach { p ->
                                                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                                             Column(modifier = Modifier.weight(1f)) {
-                                                                Text(text = p.nombreZapato, style = MaterialTheme.typography.bodyMedium)
-                                                                Text(text = "Talla: ${p.talla} • Marca: ${p.marca}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                                                                Text(text = p.producto?.nombre ?: "-", style = MaterialTheme.typography.bodyMedium)
+                                                                Text(text = "Talla: ${p.talla} • Marca: ${p.marcaName}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
                                                             }
                                                             Text(text = "x${p.cantidad}", style = MaterialTheme.typography.bodyMedium, color = colorScheme.primary)
                                                         }

@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.viewmodel.cliente
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.ventas.dto.BoletaDTO
@@ -46,11 +45,11 @@ class ClientePedidosViewModel @Inject constructor(
         // Suscribirse a actualizaciones globales de entregas para recargar pedidos cuando cambie algo
         viewModelScope.launch {
             entregasRepository.updatesFlow.collect {
-                Log.d(TAG, "Detectada actualización en entregas -> recargando pedidos")
+                // Detectada actualización en entregas -> recargando pedidos
                 try {
                     loadPedidos()
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error recargando pedidos tras update: ${e.message}")
+                    // Error recargando pedidos tras update: ${e.message}
                 }
             }
         }
@@ -68,11 +67,11 @@ class ClientePedidosViewModel @Inject constructor(
 
                 val idPersona = current.idPersona
 
-                Log.d(TAG, "Cargando boletas para idPersona=$idPersona")
+                // Cargando boletas para idPersona=$idPersona
                 val boletasResult = ventasRepository.obtenerBoletasPorCliente(idPersona)
 
                 if (boletasResult.isFailure) {
-                    Log.e(TAG, "Error fetching boletas: ${boletasResult.exceptionOrNull()?.message}")
+                    // Error fetching boletas: ${boletasResult.exceptionOrNull()?.message}
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = "Error al cargar pedidos: ${boletasResult.exceptionOrNull()?.message}"
@@ -81,28 +80,28 @@ class ClientePedidosViewModel @Inject constructor(
                 }
 
                 val boletas = boletasResult.getOrNull() ?: emptyList()
-                Log.d(TAG, "Boletas obtenidas: ${boletas.size}")
+                // Boletas obtenidas: ${boletas.size}
 
-                Log.d(TAG, "Cargando todas las entregas")
+                // Cargando todas las entregas
                 val todasLasEntregasResult = entregasRepository.obtenerTodasLasEntregas()
                 val todasLasEntregas = if (todasLasEntregasResult.isSuccess) {
                     todasLasEntregasResult.getOrNull() ?: emptyList()
                 } else {
-                    Log.e(TAG, "Error fetching entregas: ${todasLasEntregasResult.exceptionOrNull()?.message}")
+                    // Error fetching entregas: ${todasLasEntregasResult.exceptionOrNull()?.message}
                     emptyList()
                 }
-                Log.d(TAG, "Entregas obtenidas: ${todasLasEntregas.size}")
+                // Entregas obtenidas: ${todasLasEntregas.size}
 
                 val pedidosConEntrega = boletas.map { boleta ->
                     val entrega = todasLasEntregas.find { it.idBoleta == boleta.id }
-                    Log.d(TAG, "Boleta ${boleta.id} - Entrega: ${entrega?.estadoEntrega ?: "SIN ENTREGA"}")
+                    // Boleta ${boleta.id} - Entrega: ${entrega?.estadoEntrega ?: "SIN ENTREGA"}
                     PedidoConEntrega(boleta, entrega)
                 }
 
                 _uiState.value = _uiState.value.copy(isLoading = false, pedidos = pedidosConEntrega)
-                Log.d(TAG, "Total pedidos cargados: ${pedidosConEntrega.size}")
+                // Total pedidos cargados: ${pedidosConEntrega.size}
             } catch (e: Exception) {
-                Log.e(TAG, "Error al cargar pedidos: ${e.message}", e)
+                // Error al cargar pedidos: ${e.message}
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message ?: "Error desconocido")
             }
         }
@@ -121,7 +120,7 @@ class ClientePedidosViewModel @Inject constructor(
                 }
 
                 val entrega = entregaResult.getOrNull()
-                Log.d(TAG, "Confirmar entrega $idEntrega - Estado actual: ${entrega?.estadoEntrega}")
+                // Confirmar entrega $idEntrega - Estado actual: ${entrega?.estadoEntrega}
 
                 if (entrega == null) {
                     callback(false, "Entrega no encontrada")
@@ -129,7 +128,7 @@ class ClientePedidosViewModel @Inject constructor(
                 }
 
                 if (entrega.estadoEntrega != "entregada") {
-                    Log.w(TAG, "Estado incorrecto: ${entrega.estadoEntrega}, se esperaba 'entregada'")
+                    // Estado incorrecto: ${entrega.estadoEntrega}, se esperaba 'entregada'
                     callback(false, "El pedido debe estar entregado primero (Estado actual: ${entrega.estadoEntrega})")
                     return@launch
                 }
@@ -137,7 +136,7 @@ class ClientePedidosViewModel @Inject constructor(
                 val result = entregasRepository.cambiarEstadoEntrega(idEntrega, "completada", null)
 
                 if (result.isSuccess) {
-                    Log.d(TAG, "Entrega $idEntrega actualizada a 'completada'")
+                    // Entrega $idEntrega actualizada a 'completada'
                     // recargar pedidos para reflejar cambios
                     loadPedidos()
                     callback(true, null)
@@ -145,7 +144,7 @@ class ClientePedidosViewModel @Inject constructor(
                     callback(false, "Error al actualizar entrega: ${result.exceptionOrNull()?.message}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error al confirmar pedido: ${e.message}", e)
+                // Error al confirmar pedido: ${e.message}
                 callback(false, e.message ?: "Error al confirmar el pedido")
             }
         }

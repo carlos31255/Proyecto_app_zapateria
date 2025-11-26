@@ -16,7 +16,6 @@ class ZapateriaApplication : Application() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
-                Log.e("UncaughtException", "Unhandled exception in thread ${thread.name}", throwable)
 
                 // Guardar en archivo interno para poder recuperarlo con adb
                 try {
@@ -29,7 +28,6 @@ class ZapateriaApplication : Application() {
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("UncaughtException", "Error writing crash file", e)
                 }
             } catch (ignored: Throwable) {
                 // Evitar crash en el manejador

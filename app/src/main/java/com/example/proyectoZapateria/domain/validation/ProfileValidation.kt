@@ -1,10 +1,5 @@
 package com.example.proyectoZapateria.domain.validation
 
-/**
- * Validadores específicos para edición de perfil de usuario (cliente/transportista).
- * Cada función devuelve null si el valor es válido, o una cadena con el mensaje de error.
- */
-
 // Simple validación de email. Devuelve mensaje de error o null.
 fun validateProfileEmail(email: String): String? {
     val trimmed = email.trim()

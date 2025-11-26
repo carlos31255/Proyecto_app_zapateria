@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.data.repository.remote
 
-import android.util.Log
 import com.example.proyectoZapateria.data.remote.entregas.EntregasApiService
 import com.example.proyectoZapateria.data.remote.entregas.dto.ActualizarEstadoRequest
 import com.example.proyectoZapateria.data.remote.entregas.dto.CompletarEntregaRequest
@@ -18,9 +17,6 @@ class EntregasRemoteRepository @Inject constructor(
     private val api: EntregasApiService
 ) {
 
-    companion object {
-        private const val TAG = "EntregasRemoteRepository"
-    }
 
     // SharedFlow que emite cuando hay cambios en entregas (para que ViewModels se refresquen)
     private val _updates = MutableSharedFlow<Unit>(replay = 0)
@@ -29,69 +25,56 @@ class EntregasRemoteRepository @Inject constructor(
     suspend fun obtenerTodasLasEntregas(): Result<List<EntregaDTO>> = try {
         NetworkUtils.safeApiCall { api.obtenerTodasLasEntregas() }
     } catch (e: Exception) {
-        Log.e(TAG, "obtenerTodasLasEntregas exception", e)
         Result.failure(e)
     }
 
     suspend fun obtenerEntregaPorId(id: Long): Result<EntregaDTO> = try {
         NetworkUtils.safeApiCall { api.obtenerEntregaPorId(id) }
     } catch (e: Exception) {
-        Log.e(TAG, "obtenerEntregaPorId exception", e)
         Result.failure(e)
     }
 
     suspend fun obtenerEntregasPorTransportista(transportistaId: Long): Result<List<EntregaDTO>> = try {
-        Log.d(TAG, "obtenerEntregasPorTransportista: transportistaId=$transportistaId")
         NetworkUtils.safeApiCall { api.obtenerEntregasPorTransportista(transportistaId) }
     } catch (e: Exception) {
-        Log.e(TAG, "obtenerEntregasPorTransportista exception", e)
         Result.failure(e)
     }
 
     suspend fun obtenerEntregasPorEstado(estado: String): Result<List<EntregaDTO>> = try {
-        Log.d(TAG, "obtenerEntregasPorEstado: estado=$estado")
         NetworkUtils.safeApiCall { api.obtenerEntregasPorEstado(estado) }
     } catch (e: Exception) {
-        Log.e(TAG, "obtenerEntregasPorEstado exception", e)
         Result.failure(e)
     }
 
     suspend fun asignarTransportista(entregaId: Long, transportistaId: Long): Result<EntregaDTO> = try {
-        Log.d(TAG, "asignarTransportista: entregaId=$entregaId, transportistaId=$transportistaId")
         val res = NetworkUtils.safeApiCall { api.asignarTransportista(entregaId, transportistaId) }
         if (res.isSuccess) {
-            // notificar cambios
             try { _updates.emit(Unit) } catch (_: Throwable) {}
         }
         res
     } catch (e: Exception) {
-        Log.e(TAG, "asignarTransportista exception", e)
         Result.failure(e)
     }
 
     suspend fun completarEntrega(entregaId: Long, observacion: String?): Result<EntregaDTO> = try {
         val req = CompletarEntregaRequest(observacion ?: "")
-        Log.d(TAG, "completarEntrega: entregaId=$entregaId, observacion=${req.observacion}")
         val res = NetworkUtils.safeApiCall { api.completarEntrega(entregaId, req) }
         if (res.isSuccess) {
             try { _updates.emit(Unit) } catch (_: Throwable) {}
         }
         res
     } catch (e: Exception) {
-        Log.e(TAG, "completarEntrega exception", e)
         Result.failure(e)
     }
 
     suspend fun cambiarEstadoEntrega(entregaId: Long, nuevoEstado: String, observacion: String? = null): Result<EntregaDTO> = try {
         val req = ActualizarEstadoRequest(estadoEntrega = nuevoEstado, observacion = observacion)
-        Log.d(TAG, "cambiarEstadoEntrega: entregaId=$entregaId, nuevoEstado=$nuevoEstado, observacion=${observacion}")
         val res = NetworkUtils.safeApiCall { api.cambiarEstadoEntrega(entregaId, req) }
         if (res.isSuccess) {
             try { _updates.emit(Unit) } catch (_: Throwable) {}
         }
         res
     } catch (e: Exception) {
-        Log.e(TAG, "cambiarEstadoEntrega exception", e)
         Result.failure(e)
     }
 
@@ -106,7 +89,6 @@ class EntregasRemoteRepository @Inject constructor(
                 ?: Result.failure(Exception("Error desconocido"))
         }
     } catch (e: Exception) {
-        Log.e(TAG, "contarEntregasPendientes exception", e)
         Result.failure(e)
     }
 
@@ -121,7 +103,6 @@ class EntregasRemoteRepository @Inject constructor(
                 ?: Result.failure(Exception("Error desconocido"))
         }
     } catch (e: Exception) {
-        Log.e(TAG, "contarEntregasCompletadas exception", e)
         Result.failure(e)
     }
 

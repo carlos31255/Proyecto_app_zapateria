@@ -25,5 +25,10 @@ interface ReportesApiService {
 
     @GET("reportes/productos/top-stock")
     suspend fun obtenerTopStock(@Query("limit") limit: Int = 10): Response<List<TopProductoDTO>>
-}
 
+    @GET("reportes/ventas")
+    suspend fun obtenerReporteVentas(
+        @Query("mes") mes: Int?,
+        @Query("anio") anio: Int
+    ): Response<ReporteVentasDTO>
+}

@@ -1,14 +1,14 @@
 package com.example.proyectoZapateria.viewmodel.transportista
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
-import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
+import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDetalleUi
 import com.example.proyectoZapateria.data.repository.remote.DetalleBoletaRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
-import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +18,7 @@ import javax.inject.Inject
 
 data class DetalleEntregaUiState(
     val entrega: EntregaDTO? = null,
-    val productos: List<ProductoDetalle> = emptyList(),
+    val productos: List<ProductoDetalleUi> = emptyList(),
     val observacionInput: String = "",
     val isLoading: Boolean = true,
     val isConfirming: Boolean = false,
@@ -29,7 +29,6 @@ data class DetalleEntregaUiState(
 @HiltViewModel
 class ConfirmarEntregaViewModel @Inject constructor(
     private val entregasRepository: EntregasRemoteRepository,
-    private val ventasRepository: VentasRemoteRepository,
     private val detalleBoletaRepository: DetalleBoletaRemoteRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -41,6 +40,19 @@ class ConfirmarEntregaViewModel @Inject constructor(
 
     init {
         cargarDetallesEntrega()
+    }
+
+    private fun toUiDetalle(obj: Any): ProductoDetalleUi {
+        return when (obj) {
+            is ProductoDetalleUi -> obj
+            is DetalleBoletaDTO -> ProductoDetalleUi(
+                producto = ProductoDTO(id = null, nombre = obj.nombreProducto ?: "-", marcaId = -1L, descripcion = null, precioUnitario = obj.precioUnitario, imagenUrl = null),
+                cantidad = obj.cantidad,
+                talla = obj.talla ?: "-",
+                marcaName = "Desconocida"
+            )
+            else -> ProductoDetalleUi()
+        }
     }
 
     private fun cargarDetallesEntrega() {
@@ -70,15 +82,7 @@ class ConfirmarEntregaViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Obtener productos usando DetalleBoletaRemoteRepository (mapea a ProductoDetalle)
-                val productosFlow = detalleBoletaRepository.getProductos(entrega.idBoleta ?: 0L)
-                val productosList = try {
-                    productosFlow
-                } catch (e: Exception) {
-                    emptyList<ProductoDetalle>()
-                }
-
-                // Para evitar bloquear, obtenemos detalles mediante el repo y actualizamos el estado cuando lleguen
+                // Para evitar bloquear, obtenemos detalles mediante el repo y actualizamos el estado cuando el flow emita
                 _uiState.update {
                     it.copy(
                         entrega = entrega,
@@ -92,11 +96,12 @@ class ConfirmarEntregaViewModel @Inject constructor(
                 // Lanzar una coroutine para recolectar el flow y actualizar productos
                 viewModelScope.launch {
                     try {
-                        detalleBoletaRepository.getProductos(entrega.idBoleta ?: 0L).collect { lista ->
-                            _uiState.update { it.copy(productos = lista) }
+                        detalleBoletaRepository.getProductos(entrega.idBoleta).collect { lista ->
+                            val mapped = lista.map { toUiDetalle(it as Any) }
+                            _uiState.update { it.copy(productos = mapped) }
                         }
                     } catch (e: Exception) {
-                        Log.e("ConfirmarEntregaVM", "Error cargando productos: ${e.message}")
+                        _uiState.update { it.copy(error = "Error cargando productos: ${e.message}") }
                     }
                 }
             } catch (e: Exception) {

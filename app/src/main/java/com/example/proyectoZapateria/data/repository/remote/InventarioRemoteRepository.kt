@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.data.repository.remote
 
-import android.util.Log
 import com.example.proyectoZapateria.data.remote.inventario.InventarioApiService
 import com.example.proyectoZapateria.data.remote.inventario.ProductoApiService
 import com.example.proyectoZapateria.data.remote.inventario.dto.InventarioDTO
@@ -16,7 +15,7 @@ import retrofit2.Response
 @Singleton
 class InventarioRemoteRepository @Inject constructor(
     private val inventarioApi: InventarioApiService,
-    private val productoApi: ProductoApiService // Inyectamos el nuevo servicio
+    private val productoApi: ProductoApiService
 ) {
 
     // ==========================================
@@ -98,21 +97,11 @@ class InventarioRemoteRepository @Inject constructor(
         }
     }
 
-    companion object {
-        private const val TAG = "InventarioRemoteRepo"
-    }
-
     suspend fun getTallasLogged(): Result<List<TallaDTO>> {
-        Log.d(TAG, "Invocando obtenerTodasLasTallas()")
-        val res = getTallas()
-        Log.d(TAG, "Resultado obtenerTodasLasTallas: success=${res.isSuccess} err=${res.exceptionOrNull()?.message}")
-        return res
+        return getTallas()
     }
 
-    //  usar los helpers del propio repo
     suspend fun getInventarioPorModeloLogged(modeloId: Long): Result<List<InventarioDTO>> = run {
-        Log.d(TAG, "Invocando obtenerInventarioPorModelo modeloId=$modeloId")
-
         val attempts = listOf<suspend () -> Result<List<InventarioDTO>>>(
             { getInventarioPorModelo(modeloId) },
             { getInventarioPorModeloAlt(modeloId) },
@@ -124,13 +113,10 @@ class InventarioRemoteRepository @Inject constructor(
         for (attempt in attempts) {
             try {
                 val res = attempt()
-                val size = (res.getOrNull() as? Collection<*>)?.size ?: -1
-                Log.d(TAG, "Intento ruta: success=${res.isSuccess} size=$size err=${res.exceptionOrNull()?.message}")
                 if (res.isSuccess) {
                     val body = res.getOrNull()
                     if (body is Collection<*>) {
                         if (body.isNotEmpty()) {
-                            Log.d(TAG, "Resultado obtenerInventarioPorModelo (final): success=true size=${body.size}")
                             return@run res
                         } else {
                             lastFailure = res
@@ -143,11 +129,9 @@ class InventarioRemoteRepository @Inject constructor(
                 }
             } catch (e: Exception) {
                 lastFailure = Result.failure(e)
-                Log.w(TAG, "Attempt threw: ${e.message}")
             }
         }
 
-        Log.d(TAG, "Resultado obtenerInventarioPorModelo (final): success=${lastFailure?.isSuccess} err=${lastFailure?.exceptionOrNull()?.message}")
         lastFailure ?: Result.failure(Exception("No se pudo ejecutar llamadas"))
     }
 
@@ -177,29 +161,18 @@ class InventarioRemoteRepository @Inject constructor(
     }
 
     suspend fun getTallasPorProducto(productoId: Long): Result<List<TallaDTO>> {
-        Log.d(TAG, "Invocando obtenerTallasPorProducto productoId=$productoId")
-        // Primero intentar ruta específica del producto
         val specific = safeApiCall { productoApi.obtenerTallasPorProducto(productoId) }
         if (specific.isSuccess) {
             val list = specific.getOrNull() ?: emptyList()
             if (list.isNotEmpty()) {
-                Log.d(TAG, "obtenerTallasPorProducto: éxito específico count=${list.size}")
                 return Result.success(list)
-            } else {
-                Log.w(TAG, "obtenerTallasPorProducto: ruta específica devolvió lista vacía, intentaremos tallas globales")
             }
-        } else {
-            Log.w(TAG, "obtenerTallasPorProducto: fallo ruta específica: ${specific.exceptionOrNull()?.message}")
         }
 
-        // Fallback: obtener todas las tallas globales
         val global = safeApiCall { productoApi.obtenerTodasLasTallas() }
         if (global.isSuccess) {
-            Log.d(TAG, "getTallasPorProducto: fallback a tallas globales success=${global.getOrNull()?.size ?: 0}")
             return global
         }
-        Log.w(TAG, "getTallasPorProducto: fallback también falló: ${global.exceptionOrNull()?.message}")
-        // devolver el primer error (specific) si fue failure, sino el global
         return specific.takeIf { it.isFailure } ?: global
     }
 
