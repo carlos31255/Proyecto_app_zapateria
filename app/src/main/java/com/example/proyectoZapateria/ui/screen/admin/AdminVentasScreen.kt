@@ -489,7 +489,18 @@ private fun formatearFecha(fechaStr: String, formatter: SimpleDateFormat): Strin
     return try {
         if (fechaStr.isBlank()) return "Fecha no disponible"
 
-        // Lista de formatos de entrada posibles
+        // Primero intentar convertir como timestamp en milisegundos
+        val timestamp = fechaStr.toLongOrNull()
+        if (timestamp != null) {
+            return formatter.format(Date(timestamp))
+        }
+
+        // Si ya está en formato legible (dd/MM/yyyy), devolverlo tal cual
+        if (fechaStr.matches(Regex("\\d{2}/\\d{2}/\\d{4}.*"))) {
+            return fechaStr
+        }
+
+        // Lista de formatos de entrada posibles para strings ISO
         val inputFormats = listOf(
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault()),
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
@@ -513,10 +524,6 @@ private fun formatearFecha(fechaStr: String, formatter: SimpleDateFormat): Strin
             }
         }
 
-        // Si ya está en formato legible (dd/MM/yyyy), devolverlo tal cual
-        if (fechaStr.matches(Regex("\\d{2}/\\d{2}/\\d{4}.*"))) {
-            return fechaStr
-        }
 
         // Si no se pudo parsear con ningún formato, mostrar mensaje
         "Fecha no disponible"

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,49 +49,92 @@ fun VentaDetalleScreen(
         }
     }
 
-    when {
-        uiState.isLoading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Header con diseño
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colorScheme.primaryContainer)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                CircularProgressIndicator(color = colorScheme.primary)
-            }
-        }
-        uiState.error != null -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp)
+                Surface(
+                    shape = CircleShape,
+                    color = colorScheme.primaryContainer,
+                    tonalElevation = 2.dp
                 ) {
-                    Icon(
-                        Icons.Default.Error,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = uiState.error ?: "Error desconocido",
-                        color = colorScheme.error,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { navController.navigateUp() }) {
-                        Text("Volver")
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
                     }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Boletas",
+                        color = colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Detalle de la boleta",
+                        color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
-        uiState.boleta != null -> {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = colorScheme.primary)
+                }
+            }
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = uiState.error ?: "Error desconocido",
+                            color = colorScheme.error,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { navController.navigateUp() }) {
+                            Text("Volver")
+                        }
+                    }
+                }
+            }
+            uiState.boleta != null -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -211,8 +255,15 @@ fun VentaDetalleScreen(
                                     )
                                     Text(
                                         text = try {
-                                            val instant = Instant.parse(uiState.boleta!!.fechaVenta)
-                                            dateFormat.format(Date.from(instant))
+                                            // La fecha viene como timestamp en milisegundos o como string ISO
+                                            val timestamp = uiState.boleta!!.fechaVenta.toLongOrNull()
+                                            if (timestamp != null) {
+                                                dateFormat.format(Date(timestamp))
+                                            } else {
+                                                // Intentar parsear como ISO
+                                                val instant = Instant.parse(uiState.boleta!!.fechaVenta)
+                                                dateFormat.format(Date.from(instant))
+                                            }
                                         } catch (e: Exception) {
                                             uiState.boleta!!.fechaVenta
                                         },
@@ -268,6 +319,7 @@ fun VentaDetalleScreen(
                             Text("Cancelar Venta")
                         }
                     }
+                }
                 }
             }
         }
@@ -396,4 +448,3 @@ fun ProductoDetalleCard(producto: DetalleBoletaDTO) {
         }
     }
 }
-

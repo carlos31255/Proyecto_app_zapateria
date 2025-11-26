@@ -49,34 +49,61 @@ fun ClienteDetalleScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Detalle del Cliente") },
-                navigationIcon = {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Header con diseño
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colorScheme.primaryContainer)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = colorScheme.primaryContainer,
+                    tonalElevation = 2.dp
+                ) {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
                     }
                 }
-            )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Clientes",
+                        color = colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Detalle del cliente",
+                        color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
         }
-    ) { padding ->
+
         when {
             isLoading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = colorScheme.primary)
                 }
             }
             errorMessage != null -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -100,9 +127,7 @@ fun ClienteDetalleScreen(
             }
             clienteSeleccionado != null -> {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -464,6 +489,14 @@ fun ProductoItemRow(producto: DetalleBoletaDTO) {
 
 private fun formatDate(fechaStr: String): String {
     return try {
+        // Primero intentar como timestamp en milisegundos
+        val timestamp = fechaStr.toLongOrNull()
+        if (timestamp != null) {
+            val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            return sdf.format(Date(timestamp))
+        }
+
+        // Si no es timestamp, intentar parsear como ISO
         val instant = Instant.parse(fechaStr)
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         sdf.format(Date.from(instant))
