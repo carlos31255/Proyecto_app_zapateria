@@ -91,7 +91,7 @@ class InventarioViewModel @Inject constructor(
         viewModelScope.launch {
             // marcar que estamos cargando este modelo
             _isLoadingInventario.value = idModelo
-             inventarioRemoteRepository.getInventarioPorModelo(idModelo).onSuccess { dtos ->
+             inventarioRemoteRepository.getInventarioPorModeloLogged(idModelo).onSuccess { dtos ->
                  cacheInventarioRemoto = dtos
                  val listaUi = dtos.map { dto ->
                      val tallaLocal = _tallas.value.find { it.valor == dto.talla }
@@ -119,7 +119,8 @@ class InventarioViewModel @Inject constructor(
         nuevoNombre: String,
         nuevoPrecio: Int,
         nuevaDescripcion: String?,
-        nuevoIdMarca: Long
+        nuevoIdMarca: Long,
+        onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
             val dto = ProductoDTO(
@@ -134,16 +135,18 @@ class InventarioViewModel @Inject constructor(
             val modeloIdNullable = producto.id
             if (modeloIdNullable == null) {
                 inventarioRemoteRepository.crearModelo(dto)
-                    .onSuccess {
+                    .onSuccess { productoCreado ->
                         cargarProductos()
+                        onSuccess()
                     }
                     .onFailure { error ->
                         android.util.Log.e("InventarioVM", "Error crear: ${error.message}")
                     }
             } else {
                 inventarioRemoteRepository.actualizarModelo(modeloIdNullable, dto)
-                    .onSuccess {
+                    .onSuccess { productoActualizado ->
                         cargarProductos()
+                        onSuccess()
                     }
                     .onFailure { error ->
                         android.util.Log.e("InventarioVM", "Error actualizar: ${error.message}")
@@ -164,14 +167,22 @@ class InventarioViewModel @Inject constructor(
                 val modelo = _productos.value.find { it.id == idModelo }
                 val nombreModelo = modelo?.nombre ?: "Producto"
 
+                // Recargar cache antes de procesar para tener datos actualizados
+                val resultInventario = inventarioRemoteRepository.getInventarioPorModeloLogged(idModelo)
+                if (resultInventario.isSuccess) {
+                    cacheInventarioRemoto = resultInventario.getOrNull() ?: emptyList()
+                }
+
                 // Recorremos el mapa que viene de la UI
                 inventarioPorTalla.forEach { (idTallaLocal, nuevoStock) ->
                     // Buscamos el string de la talla (ej: "40")
                     val tallaObj = _tallas.value.find { it.id == idTallaLocal } ?: return@forEach
                     val tallaString = tallaObj.valor
 
-                    // Verificamos si ya existe en el backend (por talla)
-                    val remoto = cacheInventarioRemoto.find { it.talla == tallaString }
+                    // Verificamos si ya existe en el backend (por talla string y modeloId)
+                    val remoto = cacheInventarioRemoto.find {
+                        it.talla == tallaString && (it.modeloId == idModelo || it.productoId == idModelo)
+                    }
 
                     if (nuevoStock <= 0) {
                         // Si stock es 0 y existe remoto, ELIMINAR
@@ -191,10 +202,8 @@ class InventarioViewModel @Inject constructor(
                         )
 
                         if (remoto != null && remoto.id != null) {
-                            // Si existe y cambió cantidad, ACTUALIZAR
-                            if (remoto.cantidad != nuevoStock) {
-                                inventarioRemoteRepository.actualizarInventario(remoto.id, dto)
-                            }
+                            // Si existe, siempre ACTUALIZAR (incluso si la cantidad es igual, por si otros campos cambiaron)
+                            inventarioRemoteRepository.actualizarInventario(remoto.id, dto)
                         } else {
                             // Si no existe, CREAR
                             inventarioRemoteRepository.crearInventario(dto)

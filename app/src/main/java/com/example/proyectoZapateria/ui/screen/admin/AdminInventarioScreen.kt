@@ -710,26 +710,50 @@ fun EditarProductoCompletoDialog(
                                     precio.toIntOrNull() != null &&
                                     precio.toInt() > 0) {
 
-                                    // Actualizar información del producto
-                                    viewModel.actualizarProducto(
-                                        producto,
-                                        nombre.trim(),
-                                        precio.toInt(),
-                                        descripcion.trim().ifBlank { null },
-                                        idMarcaSeleccionada
-                                    )
+                                    // Verificar si cambiaron los datos del producto
+                                    val nombreCambio = nombre.trim() != producto.nombre
+                                    val precioCambio = precio.toInt() != producto.precioUnitario
+                                    val descripcionCambio = descripcion.trim().ifBlank { null } != producto.descripcion
+                                    val marcaCambio = idMarcaSeleccionada != producto.marcaId
 
-                                    // Actualizar inventario
-                                    val inventarioMap = stockPorTalla.mapKeys { it.key }
-                                        .mapValues { (_, stock) -> stock.toIntOrNull() ?: 0 }
+                                    val productoCambio = nombreCambio || precioCambio || descripcionCambio || marcaCambio
 
-                                    producto.id?.let { idProd ->
-                                        viewModel.actualizarInventario(
-                                            idProd,
-                                            inventarioMap,
-                                            context,
-                                            onSuccess = { onDismiss() }
+                                    if (productoCambio) {
+                                        // Solo actualizar el producto si cambió
+                                        viewModel.actualizarProducto(
+                                            producto,
+                                            nombre.trim(),
+                                            precio.toInt(),
+                                            descripcion.trim().ifBlank { null },
+                                            idMarcaSeleccionada,
+                                            onSuccess = {
+                                                // Luego actualizar inventario
+                                                val inventarioMap = stockPorTalla.mapKeys { it.key }
+                                                    .mapValues { (_, stock) -> stock.toIntOrNull() ?: 0 }
+
+                                                producto.id?.let { idProd ->
+                                                    viewModel.actualizarInventario(
+                                                        idProd,
+                                                        inventarioMap,
+                                                        context,
+                                                        onSuccess = { onDismiss() }
+                                                    )
+                                                } ?: onDismiss()
+                                            }
                                         )
+                                    } else {
+                                        // Solo actualizar inventario si no cambió el producto
+                                        val inventarioMap = stockPorTalla.mapKeys { it.key }
+                                            .mapValues { (_, stock) -> stock.toIntOrNull() ?: 0 }
+
+                                        producto.id?.let { idProd ->
+                                            viewModel.actualizarInventario(
+                                                idProd,
+                                                inventarioMap,
+                                                context,
+                                                onSuccess = { onDismiss() }
+                                            )
+                                        } ?: onDismiss()
                                     }
                                 }
                             },

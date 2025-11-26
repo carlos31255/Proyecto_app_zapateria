@@ -145,9 +145,36 @@ fun ClientePedidosScreen(
                                                 Text(text = "Boleta: ${boleta.id ?: "#?"}", style = MaterialTheme.typography.titleMedium, color = colorScheme.onSurface)
                                                 Spacer(modifier = Modifier.height(6.dp))
 
-                                                val fechaTexto = runCatching {
-                                                    Instant.parse(boleta.fechaVenta).let { dateFormatter.format(Date.from(it)) }
-                                                }.getOrDefault("-")
+                                                val fechaTexto = remember(boleta.fechaVenta) {
+                                                    try {
+                                                        // Intentar parsear con ISO-8601
+                                                        runCatching {
+                                                            Instant.parse(boleta.fechaVenta).let { dateFormatter.format(Date.from(it)) }
+                                                        }.getOrElse {
+                                                            // Intentar otros formatos comunes
+                                                            val formatos = listOf(
+                                                                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.forLanguageTag("es-CL")),
+                                                                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.forLanguageTag("es-CL")),
+                                                                SimpleDateFormat("yyyy-MM-dd", Locale.forLanguageTag("es-CL")),
+                                                                SimpleDateFormat("dd/MM/yyyy", Locale.forLanguageTag("es-CL"))
+                                                            )
+
+                                                            var fechaParseada: Date? = null
+                                                            for (formato in formatos) {
+                                                                try {
+                                                                    fechaParseada = formato.parse(boleta.fechaVenta)
+                                                                    if (fechaParseada != null) break
+                                                                } catch (e: Exception) {
+                                                                    continue
+                                                                }
+                                                            }
+
+                                                            fechaParseada?.let { dateFormatter.format(it) } ?: boleta.fechaVenta
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        boleta.fechaVenta
+                                                    }
+                                                }
 
                                                 Text(text = "Fecha: $fechaTexto", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
 
