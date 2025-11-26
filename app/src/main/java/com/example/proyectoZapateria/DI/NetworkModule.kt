@@ -8,6 +8,7 @@ import com.example.proyectoZapateria.data.remote.entregas.EntregasApiService
 import com.example.proyectoZapateria.data.remote.inventario.InventarioApiService
 import com.example.proyectoZapateria.data.remote.inventario.ProductoApiService
 import com.example.proyectoZapateria.data.remote.ventas.VentasApiService
+import com.example.proyectoZapateria.data.remote.reportes.ReportesApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -183,5 +184,19 @@ object NetworkModule {
     @Singleton
     fun provideProductoApiService(@InventarioRetrofit retrofit: Retrofit): ProductoApiService {
         return retrofit.create(ProductoApiService::class.java)
+    }
+
+    // REPORTES
+    @Provides
+    @Singleton
+    fun provideReportesApiService(@InventarioRetrofit retrofit: Retrofit): ReportesApiService {
+        return retrofit.create(ReportesApiService::class.java)
+    }
+
+    // GEOGRAFÍA
+    @Provides
+    @Singleton
+    fun provideGeografiaApiService(@GeografiaRetrofit retrofit: Retrofit): com.example.proyectoZapateria.data.remote.geografia.GeografiaApiService {
+        return retrofit.create(com.example.proyectoZapateria.data.remote.geografia.GeografiaApiService::class.java)
     }
 }

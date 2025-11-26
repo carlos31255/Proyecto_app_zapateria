@@ -69,7 +69,10 @@ class CartRemoteRepository @Inject constructor(
                     val localRecent = lastLocal != null && (now - lastLocal) < GRACE_MS
                     val hasPendingLocal = clientsWithLocalChanges.contains(idCliente)
 
-                    if (body.isEmpty() && (localRecent || hasPendingLocal)) {
+                    val currentCache = synchronized(inMemoryCache) { inMemoryCache[idCliente]?.toList() ?: emptyList() }
+                    if (body.isEmpty() && currentCache.isNotEmpty() && !localRecent && !hasPendingLocal) {
+                        Log.d("CartRemoteRepo", "getCartForCliente: skipping remote empty because local cache non-empty for cliente=$idCliente")
+                    } else if (body.isEmpty() && (localRecent || hasPendingLocal)) {
                         Log.d("CartRemoteRepo", "getCartForCliente: remote empty but recent local updates or pending changes exist for cliente=$idCliente -> keeping local cache (hadRecentLocal=$localRecent hasPendingLocal=$hasPendingLocal)")
                     } else {
                         updateCacheForClient(idCliente, body)

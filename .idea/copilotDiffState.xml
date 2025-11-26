@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/app/src/main/java/com/example/proyectoZapateria/data/local/region/RegionEntity.kt">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/src/main/java/com/example/proyectoZapateria/data/local/region/RegionEntity.kt" />
+              <option name="originalContent" value="package com.example.proyectoZapateria.data.local.region&#10;&#10;import androidx.room.ColumnInfo&#10;import androidx.room.Entity&#10;import androidx.room.Index&#10;import androidx.room.PrimaryKey&#10;&#10;/**&#10; * Nota: Esta entidad está marcada como obsoleta.&#10; * La geografía (regiones/ciudades/comunas) ahora se obtiene desde el microservicio remoto&#10; * y las tablas locales se eliminaron del esquema de Room en `AppDatabase`.&#10; * Conservamos la clase por compatibilidad temporal; puede ser eliminada en una limpieza futura.&#10; */&#10;@Deprecated(&quot;Reemplazado por geografía remota - mantener temporalmente para compatibilidad&quot;)&#10;@Suppress(&quot;unused&quot;)&#10;@Entity(&#10;    tableName = &quot;region&quot;,&#10;    indices = [Index(value = [&quot;nombre_region&quot;], unique = true)]&#10;)&#10;data class RegionEntity(&#10;    @PrimaryKey(autoGenerate = true)&#10;    @ColumnInfo(name = &quot;id_region&quot;)&#10;    val idRegion: Int = 0,&#10;&#10;    @ColumnInfo(name = &quot;nombre_region&quot;)&#10;    val nombreRegion: String,&#10;&#10;    val abreviatura: String?&#10;)" />
+              <option name="updatedContent" value="package com.example.proyectoZapateria.data.local.region&#10;&#10;import androidx.room.ColumnInfo&#10;import androidx.room.Entity&#10;import androidx.room.Index&#10;import androidx.room.PrimaryKey&#10;&#10;/**&#10; * Nota: Esta entidad está marcada como obsoleta.&#10; * La geografía (regiones/ciudades/comunas) ahora se obtiene desde el microservicio remoto&#10; * y las tablas locales se eliminaron del esquema de Room en `AppDatabase`.&#10; * Conservamos la clase por compatibilidad temporal; puede ser eliminada en una limpieza futura.&#10; */&#10;@Deprecated(&quot;Reemplazado por geografía remota - mantener temporalmente para compatibilidad&quot;)&#10;@Suppress(&quot;unused&quot;)&#10;@Entity(&#10;    tableName = &quot;region&quot;,&#10;    indices = [Index(value = [&quot;nombre_region&quot;], unique = true)]&#10;)&#10;data class RegionEntity(&#10;    @PrimaryKey(autoGenerate = true)&#10;    @ColumnInfo(name = &quot;id_region&quot;)&#10;    val idRegion: Int = 0,&#10;&#10;    @ColumnInfo(name = &quot;nombre_region&quot;)&#10;    val nombreRegion: String,&#10;&#10;    val abreviatura: String?&#10;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

@@ -65,7 +65,8 @@ class ClienteRemoteRepositoryTest {
             )
         )
 
-        coEvery { clienteApi.obtenerTodosLosClientes() } returns clientes
+        // Se debe devolver Response.success para coincidir con la firma del servicio
+        coEvery { clienteApi.obtenerTodosLosClientes() } returns Response.success(clientes)
 
         // Act
         val result = repository.obtenerTodosLosClientes()
@@ -745,4 +746,3 @@ class ClienteRemoteRepositoryTest {
         assertFalse(result.getOrNull()?.activo!!)
     }
 }
-

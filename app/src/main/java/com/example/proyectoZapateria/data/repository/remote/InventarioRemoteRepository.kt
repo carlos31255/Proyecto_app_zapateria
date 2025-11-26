@@ -49,13 +49,27 @@ class InventarioRemoteRepository @Inject constructor(
     // Lógica de STOCK
     // ==========================================
 
+    // Probar varias rutas sin prefijo /api hasta encontrar una que funcione.
+    suspend fun getInventarioPorProducto(productoId: Long): Result<List<InventarioDTO>> {
+        // Intentar la ruta principal sin prefijo
+        val tryNoApi = safeApiCall { inventarioApi.obtenerInventarioPorModelo(productoId) }
+        if (tryNoApi.isSuccess) return tryNoApi
+        // Intentar la ruta alternativa sin prefijo (/inventario/modelo/{id})
+        val tryAltNoApi = safeApiCall { inventarioApi.obtenerInventarioPorModeloAlt_NoApi(productoId) }
+        if (tryAltNoApi.isSuccess) return tryAltNoApi
+        // Intentar query general sin prefijo
+        return safeApiCall { inventarioApi.obtenerInventarioPorQuery(productoId) }
+    }
+
     suspend fun getInventarioPorModelo(modeloId: Long) = safeApiCall { inventarioApi.obtenerInventarioPorModelo(modeloId) }
-    suspend fun getInventarioPorModeloAlt(modeloId: Long) = safeApiCall { inventarioApi.obtenerInventarioPorModeloAlt(modeloId) }
+    // Usar la variante sin prefijo: /inventario/modelo/{modeloId}
+    suspend fun getInventarioPorModeloAlt(modeloId: Long) = safeApiCall { inventarioApi.obtenerInventarioPorModeloAlt_NoApi(modeloId) }
     suspend fun getInventarioPorQuery(modeloId: Long) = safeApiCall { inventarioApi.obtenerInventarioPorQuery(modeloId) }
 
-    suspend fun getStockBajo() = safeApiCall { inventarioApi.obtenerStockBajo() }
-
-    suspend fun getInventarioById(id: Long) = safeApiCall { inventarioApi.obtenerInventarioPorId(id) }
+    suspend fun getInventarioById(id: Long): Result<InventarioDTO> {
+        // Usar la ruta sin prefijo únicamente
+        return safeApiCall { inventarioApi.obtenerInventarioPorId(id) }
+    }
 
     suspend fun crearInventario(dto: InventarioDTO) = safeApiCall { inventarioApi.crearInventario(dto) }
 
@@ -88,37 +102,39 @@ class InventarioRemoteRepository @Inject constructor(
         private const val TAG = "InventarioRemoteRepo"
     }
 
-    suspend fun getTallasLogged(): Result<List<com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO>> {
+    suspend fun getTallasLogged(): Result<List<TallaDTO>> {
         Log.d(TAG, "Invocando obtenerTodasLasTallas()")
         val res = getTallas()
         Log.d(TAG, "Resultado obtenerTodasLasTallas: success=${res.isSuccess} err=${res.exceptionOrNull()?.message}")
         return res
     }
 
-    suspend fun getInventarioPorModeloLogged(modeloId: Long) = run {
+    //  usar los helpers del propio repo
+    suspend fun getInventarioPorModeloLogged(modeloId: Long): Result<List<InventarioDTO>> = run {
         Log.d(TAG, "Invocando obtenerInventarioPorModelo modeloId=$modeloId")
-        // Intentar varias rutas en orden de preferencia (usar nombres exactos del servicio)
+
         val attempts = listOf<suspend () -> Result<List<InventarioDTO>>>(
-            { getInventarioPorModelo(modeloId) }, // inventario/producto/{id}
-            { safeApiCall { inventarioApi.obtenerInventarioPorModeloAlt_NoApi(modeloId) } }, // inventario/modelo/{id}
-            { safeApiCall { inventarioApi.obtenerInventarioPorModeloAlt(modeloId) } }, // api/inventario/modelo/{id}
-            { safeApiCall { inventarioApi.obtenerInventarioPorModelo_Api(modeloId) } }, // api/inventario/producto/{id}
-            { getInventarioPorQuery(modeloId) }, // inventario?modeloId=...
-            { safeApiCall { inventarioApi.obtenerInventarioPorQuery_Api(modeloId) } } // api/inventario?modeloId=...
+            { getInventarioPorModelo(modeloId) },
+            { getInventarioPorModeloAlt(modeloId) },
+            { getInventarioPorQuery(modeloId) },
+            { getInventarioPorProducto(modeloId) }
         )
 
         var lastFailure: Result<List<InventarioDTO>>? = null
         for (attempt in attempts) {
             try {
                 val res = attempt()
-                Log.d(TAG, "Intento ruta: success=${res.isSuccess} size=${(res.getOrNull() as? Collection<*>)?.size ?: -1} err=${res.exceptionOrNull()?.message}")
+                val size = (res.getOrNull() as? Collection<*>)?.size ?: -1
+                Log.d(TAG, "Intento ruta: success=${res.isSuccess} size=$size err=${res.exceptionOrNull()?.message}")
                 if (res.isSuccess) {
                     val body = res.getOrNull()
-                    if (body is Collection<*> && body.isNotEmpty()) {
-                        Log.d(TAG, "Resultado obtenerInventarioPorModelo (final): success=true size=${body.size}")
-                        return@run res
-                    } else if (body is Collection<*> && body.isEmpty()) {
-                        lastFailure = res
+                    if (body is Collection<*>) {
+                        if (body.isNotEmpty()) {
+                            Log.d(TAG, "Resultado obtenerInventarioPorModelo (final): success=true size=${body.size}")
+                            return@run res
+                        } else {
+                            lastFailure = res
+                        }
                     } else {
                         return@run res
                     }
@@ -185,5 +201,11 @@ class InventarioRemoteRepository @Inject constructor(
         Log.w(TAG, "getTallasPorProducto: fallback también falló: ${global.exceptionOrNull()?.message}")
         // devolver el primer error (specific) si fue failure, sino el global
         return specific.takeIf { it.isFailure } ?: global
+    }
+
+    suspend fun getProductoById(id: Long): Result<ProductoDTO> {
+        return safeApiCall {
+            productoApi.obtenerProductoPorId(id)
+        }
     }
 }

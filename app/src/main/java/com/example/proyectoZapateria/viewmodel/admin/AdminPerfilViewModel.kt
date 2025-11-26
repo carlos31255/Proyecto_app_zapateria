@@ -25,6 +25,7 @@ data class AdminPerfilUiState(
     val numeroPuerta: String = "",
     val username: String = "",
     val rol: String = "",
+    val categoria: String = "",
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -94,6 +95,7 @@ class AdminPerfilViewModel @Inject constructor(
                             numeroPuerta = persona.numeroPuerta ?: "",
                             username = persona.username ?: "",
                             rol = currentUser.nombreRol,
+                            categoria = "",
                             isLoading = false
                         )
 
@@ -123,6 +125,10 @@ class AdminPerfilViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun reload() {
+        cargarPerfil()
     }
 
     fun startEdit() {
@@ -230,4 +236,3 @@ class AdminPerfilViewModel @Inject constructor(
         return "${_uiState.value.nombre} ${_uiState.value.apellido}"
     }
 }
-

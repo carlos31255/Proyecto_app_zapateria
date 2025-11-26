@@ -435,7 +435,7 @@ fun AppNavGraph(
                             ) + fadeOut(animationSpec = tween(300))
                         }
                     ) {
-                        com.example.proyectoZapateria.presentation.admin.reportes.ReportesScreen(
+                        com.example.proyectoZapateria.ui.screen.admin.ReportesScreen(
                             onNavigateBack = { navController.navigateUp() }
                         )
                     }

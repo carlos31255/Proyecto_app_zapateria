@@ -1,5 +1,7 @@
 package com.example.proyectoZapateria.data.remote.entregas
 
+import com.example.proyectoZapateria.data.remote.entregas.dto.ActualizarEstadoRequest
+import com.example.proyectoZapateria.data.remote.entregas.dto.CompletarEntregaRequest
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
 import retrofit2.Response
 import retrofit2.http.*
@@ -27,12 +29,12 @@ interface EntregasApiService {
     @PUT("entregas/{id}/completar")
     suspend fun completarEntrega(
         @Path("id") id: Long,
-        @Body observacion: String?
+        @Body body: CompletarEntregaRequest
     ): Response<EntregaDTO>
 
     @PUT("entregas/{id}/estado")
     suspend fun cambiarEstadoEntrega(
         @Path("id") id: Long,
-        @Query("nuevoEstado") nuevoEstado: String
+        @Body body: ActualizarEstadoRequest
     ): Response<EntregaDTO>
 }

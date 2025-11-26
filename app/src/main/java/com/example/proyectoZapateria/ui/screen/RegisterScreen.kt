@@ -2,12 +2,14 @@ package com.example.proyectoZapateria.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -21,6 +23,9 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.proyectoZapateria.data.remote.geografia.dto.CiudadDTO
+import com.example.proyectoZapateria.data.remote.geografia.dto.ComunaDTO
+import com.example.proyectoZapateria.data.remote.geografia.dto.RegionDTO
 import com.example.proyectoZapateria.viewmodel.AuthViewModel
 
 @Composable
@@ -30,6 +35,9 @@ fun RegisterScreenVm(
     onGoLogin: () -> Unit
 ) {
     val state by authViewModel.register.collectAsStateWithLifecycle()
+    val regiones by authViewModel.regiones.collectAsStateWithLifecycle()
+    val ciudades by authViewModel.ciudades.collectAsStateWithLifecycle()
+    val comunas by authViewModel.comunas.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Limpiar el formulario cuando se vuelve a la pantalla de registro
@@ -63,6 +71,15 @@ fun RegisterScreenVm(
         canSubmit = state.canSubmit,
         isSubmitting = state.isLoading,
         errorMsg = state.errorMsg,
+        regiones = regiones,
+        ciudades = ciudades,
+        comunas = comunas,
+        selectedRegionId = state.idRegion,
+        selectedCiudadId = state.idCiudad,
+        selectedComunaId = state.idComuna,
+        onRegionSelect = authViewModel::onSelectRegion,
+        onCiudadSelect = authViewModel::onSelectCiudad,
+        onComunaSelect = authViewModel::onSelectComuna,
         onNameChange = authViewModel::onRegisterNameChange,
         onEmailChange = authViewModel::onRegisterEmailChange,
         onPhoneChange = authViewModel::onRegisterPhoneChange,
@@ -94,6 +111,15 @@ private fun RegisterScreen(
     canSubmit: Boolean,
     isSubmitting: Boolean,
     errorMsg: String?,
+    regiones: List<RegionDTO>,
+    ciudades: List<CiudadDTO>,
+    comunas: List<ComunaDTO>,
+    selectedRegionId: Long?,
+    selectedCiudadId: Long?,
+    selectedComunaId: Long?,
+    onRegionSelect: (Long?) -> Unit,
+    onCiudadSelect: (Long?) -> Unit,
+    onComunaSelect: (Long?) -> Unit,
     onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
@@ -361,6 +387,107 @@ private fun RegisterScreen(
                 )
                 if (numeroPuertaError != null) {
                     Text(numeroPuertaError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Region / Ciudad / Comuna selectors
+                var expandedRegion by remember { mutableStateOf(false) }
+                var expandedCiudad by remember { mutableStateOf(false) }
+                var expandedComuna by remember { mutableStateOf(false) }
+
+                val selectedRegionName = regiones.firstOrNull { it.id == selectedRegionId }?.nombre ?: "Seleccionar región"
+                val selectedCiudadName = ciudades.firstOrNull { it.id == selectedCiudadId }?.nombre ?: "Seleccionar ciudad"
+                val selectedComunaName = comunas.firstOrNull { it.id == selectedComunaId }?.nombre ?: "Seleccionar comuna"
+
+                // Region
+                OutlinedTextField(
+                    value = selectedRegionName,
+                    onValueChange = { },
+                    label = { Text("Región") },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { expandedRegion = !expandedRegion }) {
+                            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expandedRegion = true },
+                )
+                DropdownMenu(expanded = expandedRegion, onDismissRequest = { expandedRegion = false }) {
+                    DropdownMenuItem(text = { Text("No especificar") }, onClick = {
+                        onRegionSelect(null)
+                        expandedRegion = false
+                    })
+                    regiones.forEach { r ->
+                        DropdownMenuItem(text = { Text(r.nombre) }, onClick = {
+                            onRegionSelect(r.id)
+                            expandedRegion = false
+                        })
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Ciudad
+                OutlinedTextField(
+                    value = selectedCiudadName,
+                    onValueChange = { },
+                    label = { Text("Ciudad") },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { if (ciudades.isNotEmpty()) expandedCiudad = !expandedCiudad }) {
+                            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { if (ciudades.isNotEmpty()) expandedCiudad = true },
+                    enabled = ciudades.isNotEmpty()
+                )
+                DropdownMenu(expanded = expandedCiudad, onDismissRequest = { expandedCiudad = false }) {
+                    DropdownMenuItem(text = { Text("No especificar") }, onClick = {
+                        onCiudadSelect(null)
+                        expandedCiudad = false
+                    })
+                    ciudades.forEach { c ->
+                        DropdownMenuItem(text = { Text(c.nombre) }, onClick = {
+                            onCiudadSelect(c.id)
+                            expandedCiudad = false
+                        })
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Comuna
+                OutlinedTextField(
+                    value = selectedComunaName,
+                    onValueChange = { },
+                    label = { Text("Comuna") },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { if (comunas.isNotEmpty()) expandedComuna = !expandedComuna }) {
+                            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { if (comunas.isNotEmpty()) expandedComuna = true },
+                    enabled = comunas.isNotEmpty()
+                )
+                DropdownMenu(expanded = expandedComuna, onDismissRequest = { expandedComuna = false }) {
+                    DropdownMenuItem(text = { Text("No especificar") }, onClick = {
+                        onComunaSelect(null)
+                        expandedComuna = false
+                    })
+                    comunas.forEach { cm ->
+                        DropdownMenuItem(text = { Text(cm.nombre) }, onClick = {
+                            onComunaSelect(cm.id)
+                            expandedComuna = false
+                        })
+                    }
                 }
 
                 Spacer(Modifier.height(20.dp))

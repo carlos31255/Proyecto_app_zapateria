@@ -1,21 +1,26 @@
 package com.example.proyectoZapateria.viewmodel.transportista
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.proyectoZapateria.data.remote.usuario.dto.TransportistaDTO
+import com.example.proyectoZapateria.data.model.UsuarioCompleto
 import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
-import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.TransportistaRemoteRepository
+import com.example.proyectoZapateria.domain.validation.validateProfileName
+import com.example.proyectoZapateria.domain.validation.validateProfilePhone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class TransportistaPerfilUiState(
     val nombre: String = "",
+    val apellido: String = "",
     val email: String = "",
     val telefono: String = "",
     val licencia: String = "",
@@ -34,125 +39,199 @@ data class TransportistaPerfilUiState(
 class TransportistaPerfilViewModel @Inject constructor(
     private val transportistaRemoteRepository: TransportistaRemoteRepository,
     private val entregasRepository: EntregasRemoteRepository,
-    private val ventasRepository: VentasRemoteRepository,
-    private val authRemoteRepository: AuthRemoteRepository
+    private val authRemoteRepository: AuthRemoteRepository,
+    private val personaRemoteRepository: PersonaRemoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransportistaPerfilUiState())
     val uiState: StateFlow<TransportistaPerfilUiState> = _uiState.asStateFlow()
 
+
+    private val _isEditing = MutableStateFlow(false)
+    val isEditing = _isEditing.asStateFlow()
+
+    private val _editNombre = MutableStateFlow("")
+    private val _editApellido = MutableStateFlow("")
+    private val _editTelefono = MutableStateFlow("")
+    private val _editLicencia = MutableStateFlow("")
+    private val _editVehiculo = MutableStateFlow("")
+
+    val editNombre = _editNombre.asStateFlow()
+    val editApellido = _editApellido.asStateFlow()
+    val editTelefono = _editTelefono.asStateFlow()
+    val editLicencia = _editLicencia.asStateFlow()
+    val editVehiculo = _editVehiculo.asStateFlow()
+
     init {
         cargarPerfil()
     }
 
+
+    private var currentTransportistaDto: TransportistaDTO? = null
+
     fun cargarPerfil() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
                 val currentUser = authRemoteRepository.currentUser.value
                 if (currentUser == null) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = "No hay sesión activa"
-                    )
+                    _uiState.update { it.copy(isLoading = false, error = "No hay sesión activa") }
                     return@launch
                 }
 
                 val personaId = currentUser.idPersona
-                Log.d("PerfilVM", "Cargando perfil para persona ID: $personaId")
 
-                // Intentar obtener transportista desde el microservicio por personaId
-                val remoteDto = try {
-                    val remoteResult = transportistaRemoteRepository.obtenerPorPersona(personaId)
-                    if (remoteResult.isSuccess) remoteResult.getOrNull() else null
-                } catch (ex: Exception) {
-                    Log.w("PerfilVM", "Error al consultar transportista remoto: ${ex.message}")
-                    null
-                }
+                // Obtener Transportista
+                currentTransportistaDto = try {
+                    val res = transportistaRemoteRepository.obtenerPorPersona(personaId)
+                    res.getOrNull()
+                } catch (_: Exception) { null }
 
-                val licenciaFromRemote = remoteDto?.patente
-                val vehiculoFromRemote = remoteDto?.tipoVehiculo
-
-                // Obtener estadísticas de entregas — usar idTransportista remoto si está disponible, si no usar personaId
-                val idParaEntregas: Long = remoteDto?.idTransportista ?: personaId
-
+                // Obtener Estadísticas
+                val idParaEntregas = currentTransportistaDto?.idTransportista ?: personaId
                 val entregasResult = entregasRepository.obtenerEntregasPorTransportista(idParaEntregas)
+                var total = 0
+                var completadas = 0
+                var pendientes = 0
 
                 if (entregasResult.isSuccess) {
-                    val entregas = entregasResult.getOrNull() ?: emptyList()
-                    val completadas = entregas.count { it.estadoEntrega.lowercase() == "completada" }
-                    val entregadas = entregas.count { it.estadoEntrega.lowercase() == "entregada" }
-                    val pendientes = entregas.count { it.estadoEntrega.lowercase() == "pendiente" }
-                    val total = entregas.size
+                    val lista = entregasResult.getOrNull() ?: emptyList()
+                    total = lista.size
+                    completadas = lista.count { it.estadoEntrega.equals("completada", true) || it.estadoEntrega.equals("entregada", true) }
+                    pendientes = lista.count { it.estadoEntrega.equals("pendiente", true) }
+                }
 
-                    Log.d("PerfilVM", "Estadísticas: Total=$total, Completadas=$completadas, Entregadas=$entregadas, Pendientes=$pendientes")
-
-                    // A partir de las entregas, calcular métricas de boletas asociadas (ventas)
-                    val boletaIds = entregas.mapNotNull { it.idBoleta }.distinct()
-                    var totalImporte = 0
-                    var boletasContadas = 0
-
-                    for (idBoleta in boletaIds) {
-                        try {
-                            val boletaResult = ventasRepository.obtenerBoletaPorId(idBoleta)
-                            if (boletaResult.isSuccess) {
-                                val boleta = boletaResult.getOrNull()
-                                if (boleta != null) {
-                                    totalImporte += boleta.total
-                                    boletasContadas += 1
-                                }
-                            } else {
-                                Log.w("PerfilVM", "No se pudo obtener boleta id=$idBoleta: ${boletaResult.exceptionOrNull()?.message}")
-                            }
-                        } catch (ex: Exception) {
-                            Log.w("PerfilVM", "Excepción al obtener boleta id=$idBoleta: ${ex.message}")
-                        }
-                    }
-
-                    // Construir UI state combinando persona (desde auth currentUser) y transportista
-                    val nombreCompleto = listOfNotNull(currentUser.nombre.takeIf { it.isNotBlank() }, currentUser.apellido.takeIf { it.isNotBlank() }).joinToString(" ").ifBlank { currentUser.username }
-
-                    _uiState.value = TransportistaPerfilUiState(
-                        nombre = nombreCompleto,
+                // Actualizar UI
+                _uiState.update {
+                    it.copy(
+                        nombre = currentUser.nombre,
+                        apellido = currentUser.apellido,
                         email = currentUser.email,
                         telefono = currentUser.telefono,
-                        licencia = licenciaFromRemote ?: "No especificada",
-                        vehiculo = vehiculoFromRemote ?: "No especificado",
+                        licencia = currentTransportistaDto?.licencia ?: "",
+                        vehiculo = currentTransportistaDto?.tipoVehiculo ?: "",
                         totalEntregas = total,
-                        entregasCompletadas = completadas + entregadas,
+                        entregasCompletadas = completadas,
                         entregasPendientes = pendientes,
-                        totalBoletas = boletasContadas,
-                        totalVentasImporte = totalImporte,
-                        isLoading = false
-                    )
-                } else {
-                    Log.w("PerfilVM", "Error al obtener entregas para transportista id=$idParaEntregas: ${entregasResult.exceptionOrNull()?.message}")
-
-                    // Mostrar perfil mínimo con datos de persona y transportista si existe
-                    val nombreCompleto = listOfNotNull(currentUser.nombre.takeIf { it.isNotBlank() }, currentUser.apellido.takeIf { it.isNotBlank() }).joinToString(" ").ifBlank { currentUser.username }
-
-                    _uiState.value = TransportistaPerfilUiState(
-                        nombre = nombreCompleto,
-                        email = currentUser.email,
-                        telefono = currentUser.telefono,
-                        licencia = licenciaFromRemote ?: "No especificada",
-                        vehiculo = vehiculoFromRemote ?: "No especificado",
-                        totalEntregas = 0,
-                        entregasCompletadas = 0,
-                        entregasPendientes = 0,
-                        totalBoletas = 0,
-                        totalVentasImporte = 0,
                         isLoading = false
                     )
                 }
 
             } catch (e: Exception) {
-                Log.e("PerfilVM", "Error al cargar perfil: ${e.message}", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Error inesperado: ${e.message}"
-                )
+                _uiState.update { it.copy(isLoading = false, error = "Error: ${e.message}") }
+            }
+        }
+    }
+
+    fun startEdit() {
+        val current = _uiState.value
+        _editNombre.value = current.nombre
+        _editApellido.value = current.apellido
+        _editTelefono.value = current.telefono
+        _editLicencia.value = current.licencia
+        _editVehiculo.value = current.vehiculo
+        _isEditing.value = true
+    }
+
+    fun cancelEdit() {
+        _isEditing.value = false
+    }
+
+    fun updateEditField(
+        nombre: String? = null,
+        apellido: String? = null,
+        telefono: String? = null,
+        licencia: String? = null,
+        vehiculo: String? = null
+    ) {
+        nombre?.let { _editNombre.value = it }
+        apellido?.let { _editApellido.value = it }
+        telefono?.let { _editTelefono.value = it }
+        licencia?.let { _editLicencia.value = it }
+        vehiculo?.let { _editVehiculo.value = it }
+    }
+
+    fun guardarCambios(callback: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // 1. Validaciones
+                validateProfileName(_editNombre.value)?.let { callback(false, it); return@launch }
+                validateProfileName(_editApellido.value)?.let { callback(false, it); return@launch }
+                validateProfilePhone(_editTelefono.value)?.let { callback(false, it); return@launch }
+
+                if (_editVehiculo.value.isBlank()) { callback(false, "El tipo de vehículo es obligatorio"); return@launch }
+                if (_editLicencia.value.isBlank()) { callback(false, "La licencia es obligatoria"); return@launch }
+
+                val currentUser = authRemoteRepository.currentUser.value ?: return@launch
+
+                // 2. Actualizar Persona
+                val personaResult = personaRemoteRepository.obtenerPersonaPorId(currentUser.idPersona)
+                val personaActual = personaResult.getOrNull()
+
+                if (personaActual != null) {
+                    val personaUpdate = personaActual.copy(
+                        nombre = _editNombre.value,
+                        apellido = _editApellido.value,
+                        telefono = _editTelefono.value
+                    )
+                    val updateRes = personaRemoteRepository.actualizarPersona(currentUser.idPersona, personaUpdate)
+                    if (updateRes.isFailure) {
+                        callback(false, "Error al actualizar datos personales")
+                        return@launch
+                    }
+                    // actualizar usuario en memoria
+                    val updatedUsuario = UsuarioCompleto(
+                        idPersona = currentUser.idPersona,
+                        nombre = personaUpdate.nombre ?: "",
+                        apellido = personaUpdate.apellido ?: "",
+                        rut = personaUpdate.rut ?: "",
+                        telefono = personaUpdate.telefono ?: "",
+                        email = personaUpdate.email ?: "",
+                        idComuna = personaUpdate.idComuna,
+                        calle = personaUpdate.calle ?: currentUser.calle,
+                        numeroPuerta = personaUpdate.numeroPuerta ?: currentUser.numeroPuerta,
+                        username = currentUser.username,
+                        fechaRegistro = currentUser.fechaRegistro,
+                        estado = personaUpdate.estado ?: currentUser.estado,
+                        idRol = currentUser.idRol,
+                        nombreRol = currentUser.nombreRol,
+                        activo = currentUser.activo
+                    )
+                    authRemoteRepository.setCurrentUser(updatedUsuario)
+                }
+
+                // 3. Actualizar Transportista (Microservicio Transportista)
+                if (currentTransportistaDto != null) {
+                    // Actualizar existente
+                    val transUpdate = currentTransportistaDto!!.copy(
+                        licencia = _editLicencia.value,
+                        tipoVehiculo = _editVehiculo.value
+                    )
+                    val transRes = transportistaRemoteRepository.actualizar(transUpdate.idTransportista!!, transUpdate)
+                    if (transRes.isFailure) {
+                        callback(false, "Error al actualizar datos del vehículo")
+                        return@launch
+                    }
+                } else {
+                    // Crear nuevo si no existe
+                    val nuevo = TransportistaDTO(
+                        idTransportista = null,
+                        idPersona = currentUser.idPersona,
+                        licencia = _editLicencia.value,
+                        tipoVehiculo = _editVehiculo.value,
+                        activo = true
+                    )
+                    transportistaRemoteRepository.crear(nuevo)
+                }
+
+                // 4. Éxito
+                cargarPerfil()
+                _isEditing.value = false
+                callback(true, null)
+
+            } catch (e: Exception) {
+                callback(false, "Error: ${e.message}")
             }
         }
     }

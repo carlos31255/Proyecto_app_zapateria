@@ -69,10 +69,9 @@ fun ClientePerfilScreen(
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
 
-    // Seguir patrón de ClientePedidos / ClienteCatalogo: header integrado y contenido debajo sin padding extra
     Column(modifier = Modifier.fillMaxSize()) {
 
-        // Header integrado (igual estilo que ClientePedidos)
+        // Header integrado
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,7 +100,7 @@ fun ClientePerfilScreen(
                     Icon(imageVector = Icons.Default.Edit, contentDescription = if (!isEditing) "Editar" else "Cancelar", tint = colorScheme.onPrimaryContainer)
                 }
             }
-            // Avatar grande y nombre (estilo similar al transportista)
+            // Avatar grande y nombre
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

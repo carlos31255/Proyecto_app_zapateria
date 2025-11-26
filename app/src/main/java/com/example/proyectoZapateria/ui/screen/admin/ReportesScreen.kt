@@ -1,12 +1,7 @@
-package com.example.proyectoZapateria.presentation.admin.reportes
+package com.example.proyectoZapateria.ui.screen.admin
 
-import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,11 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.proyectoZapateria.domain.model.DetalleVentaReporte
 import com.example.proyectoZapateria.domain.model.ReporteVentas
-import java.io.File
+import com.example.proyectoZapateria.viewmodel.admin.ReportesViewModel
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 import java.text.NumberFormat
@@ -168,7 +161,7 @@ fun ReportesScreen(
 
             // Contenido del reporte
             when (val state = uiState) {
-                is ReportesUiState.Initial -> {
+                is com.example.proyectoZapateria.viewmodel.admin.ReportesUiState.Initial -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -189,7 +182,7 @@ fun ReportesScreen(
                     }
                 }
 
-                is ReportesUiState.Loading -> {
+                is com.example.proyectoZapateria.viewmodel.admin.ReportesUiState.Loading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -198,23 +191,21 @@ fun ReportesScreen(
                     }
                 }
 
-                is ReportesUiState.Success -> {
+                is com.example.proyectoZapateria.viewmodel.admin.ReportesUiState.Success -> {
                     ReporteContent(
                         reporte = state.reporte,
-                        mesSeleccionado = mesSeleccionado,
                         onDescargar = {
                             descargarReporte(
                                 context = context,
                                 reporte = state.reporte,
                                 anio = anioSeleccionado,
-                                mes = mesSeleccionado,
-                                viewModel = viewModel
+                                mes = mesSeleccionado
                             )
                         }
                     )
                 }
 
-                is ReportesUiState.Error -> {
+                is com.example.proyectoZapateria.viewmodel.admin.ReportesUiState.Error -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -340,10 +331,9 @@ fun ReportesScreen(
 @Composable
 fun ReporteContent(
     reporte: ReporteVentas,
-    mesSeleccionado: Int?,
     onDescargar: () -> Unit
 ) {
-    val locale = java.util.Locale.Builder().setLanguage("es").setRegion("CL").build()
+    val locale = Locale.Builder().setLanguage("es").setRegion("CL").build()
     val numberFormat = NumberFormat.getCurrencyInstance(locale)
 
     LazyColumn(
@@ -399,373 +389,120 @@ fun ReporteContent(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        "Ingresos Totales",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        numberFormat.format(reporte.ingresosTotal),
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                 }
             }
         }
 
-        // Botón de descarga
+        // Detalles
         item {
-            Button(
-                onClick = onDescargar,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Download, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Descargar Reporte")
-            }
-        }
-
-        // Detalles de ventas (solo si es filtro por mes)
-        if (mesSeleccionado != null && reporte.detallesVentas.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Detalle de Ventas",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            items(reporte.detallesVentas) { detalle ->
-                DetalleVentaCard(detalle)
-            }
-        }
-    }
-}
-
-@Composable
-fun DetalleVentaCard(detalle: DetalleVentaReporte) {
-    val locale = java.util.Locale.Builder().setLanguage("es").setRegion("CL").build()
-    val numberFormat = NumberFormat.getCurrencyInstance(locale)
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (detalle.estado == "cancelada") {
-                MaterialTheme.colorScheme.errorContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Text(
-                    text = detalle.numeroBoleta,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Surface(
-                    color = if (detalle.estado == "cancelada") {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        text = detalle.estado.uppercase(),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Detalles de Ventas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Cliente",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = detalle.nombreCliente,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Fecha",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = dateFormat.format(Date(detalle.fecha)),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+        // Lista de detalles
+        items(reporte.detallesVentas) { detalle ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(text = "Boleta: ${detalle.numeroBoleta}")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "Cliente: ${detalle.nombreCliente}")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val fechaFmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                    Text(text = "Fecha: ${fechaFmt.format(Date(detalle.fecha))}")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "Monto: ${numberFormat.format(detalle.montoTotal)}")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "Estado: ${detalle.estado}")
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Monto Total",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = numberFormat.format(detalle.montoTotal),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = if (detalle.estado == "cancelada") {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.primary
+        // Acciones
+        item {
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = onDescargar) {
+                    Icon(Icons.Default.Download, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Descargar CSV")
                 }
-            )
+            }
         }
     }
 }
 
-private fun descargarReporte(
+/**
+ * Guarda un CSV simple en la carpeta Downloads y muestra un Toast con el resultado.
+ * Se maneja Android Q+ mediante MediaStore.
+ */
+fun descargarReporte(
     context: Context,
     reporte: ReporteVentas,
     anio: Int,
-    mes: Int?,
-    viewModel: ReportesViewModel
+    mes: Int?
 ) {
-    try {
-        val fileName = if (mes != null) {
-            "reporte_${viewModel.obtenerNombreMes(mes)}_$anio.txt"
-        } else {
-            "reporte_$anio.txt"
-        }
-
-        // Usar MediaStore API para Android 10+ (API 29+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            descargarConMediaStore(context, reporte, fileName, anio, mes, viewModel)
-        } else {
-            // Fallback para Android 9 y anteriores
-            descargarTradicional(context, reporte, fileName, anio, mes, viewModel)
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(
-            context,
-            "Error al descargar reporte: ${e.message}",
-            Toast.LENGTH_LONG
-        ).show()
+    val filename = "reporte_ventas_${anio}${mes?.let { "_" + it } ?: ""}.csv"
+    val csvHeader = "numeroBoleta,fecha,nombreCliente,monto,estado\n"
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    val sb = StringBuilder()
+    sb.append(csvHeader)
+    for (d in reporte.detallesVentas) {
+        val fecha = sdf.format(Date(d.fecha))
+        val line = "\"${d.numeroBoleta}\",\"$fecha\",\"${d.nombreCliente.replace('"',' ')}\",${d.montoTotal},\"${d.estado}\"\n"
+        sb.append(line)
     }
-}
 
-// MediaStore API - Android 10+ (API 29+)
-@androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
-private fun descargarConMediaStore(
-    context: Context,
-    reporte: ReporteVentas,
-    fileName: String,
-    anio: Int,
-    mes: Int?,
-    viewModel: ReportesViewModel
-) {
     try {
-        // Configurar metadatos del archivo
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-            put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            put(MediaStore.Downloads.IS_PENDING, 1) // Marca como pendiente mientras se escribe
-        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, filename)
+                put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/csv")
+                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+            }
 
-        // Insertar archivo en MediaStore
-        val resolver = context.contentResolver
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            val collection = android.provider.MediaStore.Downloads.getContentUri(android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY)
 
-        uri?.let { fileUri ->
-            // Escribir contenido del reporte con encoding UTF-8
-            resolver.openOutputStream(fileUri)?.use { outputStream ->
-                OutputStreamWriter(outputStream, StandardCharsets.UTF_8).use { writer ->
-                    escribirContenidoReporte(writer, reporte, anio, mes, viewModel)
+            val uri = resolver.insert(collection, values)
+            if (uri == null) {
+                Toast.makeText(context, "No se pudo crear el archivo", Toast.LENGTH_LONG).show()
+                return
+            }
+
+            resolver.openOutputStream(uri)?.use { os ->
+                OutputStreamWriter(os, StandardCharsets.UTF_8).use { writer ->
+                    writer.write(sb.toString())
+                    writer.flush()
                 }
             }
 
-            // Marcar archivo como completado
-            contentValues.clear()
-            contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(fileUri, contentValues, null, null)
+            values.clear()
+            values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
 
-            // Mostrar mensaje de éxito
-            Toast.makeText(
-                context,
-                "Reporte descargado en Downloads: $fileName",
-                Toast.LENGTH_LONG
-            ).show()
-
-            // Abrir el archivo
-            abrirArchivo(context, fileUri)
-        } ?: run {
-            Toast.makeText(
-                context,
-                "Error al crear el archivo de reporte",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(
-            context,
-            "Error al descargar: ${e.message}",
-            Toast.LENGTH_LONG
-        ).show()
-    }
-}
-
-// Método tradicional - Android 9 y anteriores
-private fun descargarTradicional(
-    context: Context,
-    reporte: ReporteVentas,
-    fileName: String,
-    anio: Int,
-    mes: Int?,
-    viewModel: ReportesViewModel
-) {
-    try {
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-
-        // Crear directorio si no existe
-        if (!downloadsDir.exists()) {
-            downloadsDir.mkdirs()
-        }
-
-        val file = File(downloadsDir, fileName)
-
-        // Usar OutputStreamWriter con UTF-8 en lugar de FileWriter
-        file.outputStream().use { outputStream ->
-            OutputStreamWriter(outputStream, StandardCharsets.UTF_8).use { writer ->
-                escribirContenidoReporte(writer, reporte, anio, mes, viewModel)
-            }
-        }
-
-        // Obtener URI con FileProvider
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
-
-        Toast.makeText(
-            context,
-            "Reporte descargado en Downloads: $fileName",
-            Toast.LENGTH_LONG
-        ).show()
-
-        // Abrir el archivo
-        abrirArchivo(context, uri)
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(
-            context,
-            "Error al descargar: ${e.message}",
-            Toast.LENGTH_LONG
-        ).show()
-    }
-}
-
-// Función auxiliar para escribir el contenido del reporte
-private fun escribirContenidoReporte(
-    writer: java.io.Writer,
-    reporte: ReporteVentas,
-    anio: Int,
-    mes: Int?,
-    viewModel: ReportesViewModel
-) {
-    val locale = java.util.Locale.Builder().setLanguage("es").setRegion("CL").build()
-    val numberFormat = NumberFormat.getCurrencyInstance(locale)
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-
-    writer.write("===========================================\n")
-    writer.write("     REPORTE DE VENTAS - ZAPATERIA\n")
-    writer.write("===========================================\n\n")
-
-    if (mes != null) {
-        writer.write("Periodo: ${viewModel.obtenerNombreMes(mes)} $anio\n\n")
-    } else {
-        writer.write("Periodo: Año $anio\n\n")
-    }
-
-    writer.write("-------------------------------------------\n")
-    writer.write("RESUMEN\n")
-    writer.write("-------------------------------------------\n\n")
-    writer.write("Ventas Realizadas:    ${reporte.numeroVentasRealizadas}\n")
-    writer.write("Ventas Canceladas:    ${reporte.numeroVentasCanceladas}\n")
-    writer.write("Ingresos Totales:     ${numberFormat.format(reporte.ingresosTotal)}\n\n")
-
-    if (reporte.detallesVentas.isNotEmpty()) {
-        writer.write("-------------------------------------------\n")
-        writer.write("DETALLE DE VENTAS\n")
-        writer.write("-------------------------------------------\n\n")
-
-        reporte.detallesVentas.forEach { detalle ->
-            writer.write("Boleta: ${detalle.numeroBoleta}\n")
-            writer.write("Estado: ${detalle.estado.uppercase()}\n")
-            writer.write("Cliente: ${detalle.nombreCliente}\n")
-            writer.write("Fecha: ${dateFormat.format(Date(detalle.fecha))}\n")
-            writer.write("Monto: ${numberFormat.format(detalle.montoTotal)}\n\n")
-        }
-    }
-
-    writer.write("===========================================\n")
-    writer.write("Reporte generado el ${dateFormat.format(Date())}\n")
-    writer.write("===========================================\n")
-    writer.flush()
-}
-
-// Función para abrir el archivo descargado
-private fun abrirArchivo(context: Context, uri: Uri) {
-    try {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "text/plain")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        // Verificar si hay una aplicación que pueda abrir el archivo
-        if (intent.resolveActivity(context.packageManager) != null) {
-            context.startActivity(Intent.createChooser(intent, "Abrir reporte"))
+            Toast.makeText(context, "Reporte guardado en Descargas: $filename", Toast.LENGTH_LONG).show()
         } else {
-            Toast.makeText(
-                context,
-                "No hay aplicacion para abrir archivos de texto",
-                Toast.LENGTH_SHORT
-            ).show()
+            // Para API < Q: guardar en el directorio de archivos externos específico de la app (no requiere permisos)
+            val dir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+            if (dir == null) {
+                Toast.makeText(context, "No se pudo acceder a almacenamiento externo", Toast.LENGTH_LONG).show()
+                return
+            }
+            val file = java.io.File(dir, filename)
+            file.outputStream().use { os ->
+                OutputStreamWriter(os, StandardCharsets.UTF_8).use { writer ->
+                    writer.write(sb.toString())
+                    writer.flush()
+                }
+            }
+            Toast.makeText(context, "Reporte guardado en: ${file.absolutePath}", Toast.LENGTH_LONG).show()
         }
     } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(
-            context,
-            "No se pudo abrir el archivo",
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(context, "Error al guardar reporte: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }
-

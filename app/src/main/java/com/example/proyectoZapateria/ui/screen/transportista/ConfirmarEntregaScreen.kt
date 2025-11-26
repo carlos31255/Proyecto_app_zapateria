@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -56,175 +55,172 @@ fun ConfirmarEntregaScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        when {
-            uiState.isLoading -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Surface(
-                        shape = CircleShape,
-                        color = colorScheme.primaryContainer,
-                        tonalElevation = 2.dp,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = colorScheme.onPrimaryContainer
-                            )
-                        }
+    Scaffold(
+        topBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = colorScheme.primaryContainer
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
                     }
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = "Confirmar entrega",
+                        color = colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-            uiState.error != null -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Surface(
-                        shape = CircleShape,
-                        color = colorScheme.primaryContainer,
-                        tonalElevation = 2.dp,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = colorScheme.onPrimaryContainer
+        },
+        content = { innerPadding ->
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)) {
+
+                when {
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    uiState.error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Error: ${uiState.error}",
+                                color = colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
                             )
                         }
                     }
 
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Error: ${uiState.error}",
-                            color = colorScheme.error,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-                }
-            }
-            uiState.entrega != null -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f)
-                            .background(colorScheme.background),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        item {
-                            Surface(
-                                shape = CircleShape,
-                                color = colorScheme.primaryContainer,
-                                tonalElevation = 2.dp,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                    uiState.entrega != null -> {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .weight(1f)
+                                    .background(colorScheme.background),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                             ) {
-                                IconButton(onClick = { navController.popBackStack() }) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Volver",
-                                        tint = colorScheme.onPrimaryContainer
+                                item {
+                                    // Encabezado de sección - ya tenemos topBar, así que no dejamos icono duplicado
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+
+                                item {
+                                    DetalleSection(title = "Cliente y Destino") {
+                                        ClienteInfoCard(entrega = uiState.entrega!!)
+                                    }
+                                }
+
+                                item {
+                                    DetalleSection(title = "Productos a Entregar") {
+                                        ProductosListCard(productos = uiState.productos)
+                                    }
+                                }
+
+                                item {
+                                    OutlinedButton(
+                                        onClick = {
+                                            val direccion = uiState.entrega!!.direccionEntrega ?: "Sin dirección"
+
+                                            val gmmIntentUri = android.net.Uri.parse("geo:0,0?q=${android.net.Uri.encode(direccion)}")
+                                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                            mapIntent.setPackage("com.google.android.apps.maps")
+
+                                            if (mapIntent.resolveActivity(context.packageManager) != null) {
+                                                context.startActivity(mapIntent)
+                                            } else {
+                                                val browserIntent = Intent(
+                                                    Intent.ACTION_VIEW,
+                                                    android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(direccion)}")
+                                                )
+                                                context.startActivity(browserIntent)
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            Icons.Default.FmdGood,
+                                            contentDescription = "Mapa",
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        )
+                                        Text("Ver en Google Maps")
+                                    }
+                                }
+
+                                item {
+                                    OutlinedTextField(
+                                        value = uiState.observacionInput,
+                                        onValueChange = { viewModel.onObservacionChange(it) },
+                                        label = { Text("Observación (opcional)") },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                        singleLine = false,
+                                        maxLines = 3
                                     )
                                 }
                             }
-                        }
 
-                        item {
-                            DetalleSection(title = "Cliente y Destino") {
-                                ClienteInfoCard(entrega = uiState.entrega!!)
-                            }
-                        }
-
-                        item {
-                            DetalleSection(title = "Productos a Entregar") {
-                                ProductosListCard(productos = uiState.productos)
-                            }
-                        }
-
-                        item {
-                            OutlinedButton(
-                                onClick = {
-                                    val direccion = uiState.entrega!!.direccionEntrega ?: "Sin dirección"
-
-                                    val gmmIntentUri = android.net.Uri.parse("geo:0,0?q=${android.net.Uri.encode(direccion)}")
-                                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                                    mapIntent.setPackage("com.google.android.apps.maps")
-
-                                    if (mapIntent.resolveActivity(context.packageManager) != null) {
-                                        context.startActivity(mapIntent)
-                                    } else {
-                                        val browserIntent = Intent(
-                                            Intent.ACTION_VIEW,
-                                            android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(direccion)}")
+                            val entregaParaUi: EntregaDTO? = uiState.entrega ?: lastEntregaState.value
+                            // Mostrar siempre el botón si existe la entrega; deshabilitar si ya está completada o cancelada
+                            if (entregaParaUi != null) {
+                                val estado = entregaParaUi.estadoEntrega?.lowercase()
+                                val entregada = estado == "completada" || estado == "cancelada"
+                                Button(
+                                    onClick = { if (!entregada) viewModel.marcarComoEntregado() },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    enabled = !uiState.isConfirming && !entregada
+                                ) {
+                                    if (uiState.isConfirming) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = colorScheme.onPrimary
                                         )
-                                        context.startActivity(browserIntent)
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.TaskAlt,
+                                            contentDescription = "Completar",
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        )
+                                        Text(if (entregada) "Entrega: ${estado ?: "desconocido"}" else "Marcar como Entregado", fontSize = 16.sp)
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    Icons.Default.FmdGood,
-                                    contentDescription = "Mapa",
-                                    modifier = Modifier.padding(end = 8.dp)
-                                )
-                                Text("Ver en Google Maps")
-                            }
-                        }
-
-                        item {
-                            OutlinedTextField(
-                                value = uiState.observacionInput,
-                                onValueChange = { viewModel.onObservacionChange(it) },
-                                label = { Text("Observación (opcional)") },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                singleLine = false,
-                                maxLines = 3
-                            )
-                        }
-                    }
-
-                    val entregaParaUi: EntregaDTO? = uiState.entrega ?: lastEntregaState.value
-                    if (entregaParaUi?.estadoEntrega?.lowercase() == "pendiente") {
-                        Button(
-                            onClick = { viewModel.marcarComoEntregado() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = !uiState.isConfirming
-                        ) {
-                            if (uiState.isConfirming) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = colorScheme.onPrimary
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.TaskAlt,
-                                    contentDescription = "Completar",
-                                    modifier = Modifier.padding(end = 8.dp)
-                                )
-                                Text("Marcar como Entregado", fontSize = 16.sp)
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
+    )
 }
 
 @Composable

@@ -1,6 +1,7 @@
 package com.example.proyectoZapateria.viewmodel
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,11 +13,9 @@ import com.example.proyectoZapateria.data.remote.inventario.dto.TallaDTO
 import com.example.proyectoZapateria.data.repository.remote.InventarioRemoteRepository
 import com.example.proyectoZapateria.utils.ImageHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.ResponseBody
+import java.lang.Exception
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,6 +38,14 @@ class InventarioViewModel @Inject constructor(
     private val _imagenes = MutableStateFlow<Map<Long, ByteArray?>>(emptyMap())
     val imagenes: StateFlow<Map<Long, ByteArray?>> = _imagenes
 
+    // Indica si la carga inicial de productos está en progreso
+    private val _isLoadingProductos = MutableStateFlow(true)
+    val isLoadingProductos: StateFlow<Boolean> = _isLoadingProductos
+
+    // Indica qué modelo está cargando su inventario (idModelo) o null si no hay carga
+    private val _isLoadingInventario = MutableStateFlow<Long?>(null)
+    val isLoadingInventario: StateFlow<Long?> = _isLoadingInventario
+
     // cache local de productos remotos (InventarioDTO)
     private var cacheInventarioRemoto: List<InventarioDTO> = emptyList()
 
@@ -50,12 +57,12 @@ class InventarioViewModel @Inject constructor(
         viewModelScope.launch {
             // 1. Cargar Marcas desde API
             inventarioRemoteRepository.getMarcas().onSuccess { dtos ->
-                _marcas.value = dtos ?: emptyList()
+                _marcas.value = dtos
             }
 
             // 2. Cargar Tallas desde API
             inventarioRemoteRepository.getTallas().onSuccess { dtos ->
-                _tallas.value = dtos?.sortedBy { it.valor.toDoubleOrNull() ?: 0.0 } ?: emptyList()
+                _tallas.value = dtos.sortedBy { it.valor.toDoubleOrNull() ?: 0.0 }
             }
 
             // 3. Cargar Productos desde API
@@ -65,8 +72,16 @@ class InventarioViewModel @Inject constructor(
 
     private fun cargarProductos() {
         viewModelScope.launch {
+            // marcar inicio de carga
+            _isLoadingProductos.value = true
+
             inventarioRemoteRepository.getModelos().onSuccess { dtos ->
-                _productos.value = dtos?.sortedBy { it.nombre } ?: emptyList()
+                _productos.value = dtos.sortedBy { it.nombre }
+                _isLoadingProductos.value = false
+            }.onFailure {
+                // en fallo, dejar lista vacía y desactivar loader
+                _productos.value = emptyList()
+                _isLoadingProductos.value = false
             }
         }
     }
@@ -74,26 +89,29 @@ class InventarioViewModel @Inject constructor(
     // Carga el stock de un producto específico desde la NUBE
     fun cargarInventarioDeModelo(idModelo: Long) {
         viewModelScope.launch {
-            inventarioRemoteRepository.getInventarioPorModelo(idModelo).onSuccess { dtos ->
-                cacheInventarioRemoto = dtos ?: emptyList()
-
-                // Mapear DTO remoto a modelo UI (InventarioUi)
-                val listaUi = (dtos ?: emptyList()).mapNotNull { dto ->
-                    val tallaLocal = _tallas.value.find { it.valor == dto.talla }
-                    InventarioUi(
-                        idRemote = dto.id ?: 0L,
-                        idModelo = idModelo,
-                        talla = dto.talla,
-                        tallaIdLocal = tallaLocal?.id,
-                        stock = dto.cantidad
-                    )
-                }
-                _inventarioPorModelo.value = listaUi
-            }.onFailure {
-                _inventarioPorModelo.value = emptyList()
-            }
-        }
-    }
+            // marcar que estamos cargando este modelo
+            _isLoadingInventario.value = idModelo
+             inventarioRemoteRepository.getInventarioPorModelo(idModelo).onSuccess { dtos ->
+                 cacheInventarioRemoto = dtos
+                 val listaUi = dtos.map { dto ->
+                     val tallaLocal = _tallas.value.find { it.valor == dto.talla }
+                     InventarioUi(
+                         idRemote = dto.id ?: 0L,
+                         idModelo = idModelo,
+                         talla = dto.talla,
+                         tallaIdLocal = tallaLocal?.id,
+                         stock = dto.cantidad
+                     )
+                 }
+                 _inventarioPorModelo.value = listaUi
+                // desactivar flag de carga
+                _isLoadingInventario.value = null
+             }.onFailure {
+                 _inventarioPorModelo.value = emptyList()
+                _isLoadingInventario.value = null
+             }
+         }
+     }
 
     // Actualizar Producto en la API
     fun actualizarProducto(
@@ -113,8 +131,19 @@ class InventarioViewModel @Inject constructor(
                 imagenUrl = producto.imagenUrl
             )
 
-            inventarioRemoteRepository.actualizarModelo(producto.id, dto)
-                .onSuccess { cargarProductos() }
+            // Manejar caso null-safe: si producto.id es null -> crear, si no -> actualizar
+            val modeloIdNullable = producto.id
+            if (modeloIdNullable == null) {
+                // Crear nuevo modelo en backend
+                inventarioRemoteRepository.crearModelo(dto)
+                    .onSuccess { cargarProductos() }
+                    .onFailure { /* opcional: manejar error */ }
+            } else {
+                // Actualizar modelo existente
+                inventarioRemoteRepository.actualizarModelo(modeloIdNullable, dto)
+                    .onSuccess { cargarProductos() }
+                    .onFailure { /* opcional: manejar error */ }
+            }
         }
     }
 
@@ -173,6 +202,7 @@ class InventarioViewModel @Inject constructor(
                 onSuccess()
 
             } catch (e: Exception) {
+                Log.e("InventarioViewModel", "actualizarInventario error", e)
                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
@@ -185,21 +215,30 @@ class InventarioViewModel @Inject constructor(
                 ImageHelper.deleteImage(context, producto.imagenUrl)
             }
 
-            // Eliminar producto en la API
-            inventarioRemoteRepository.eliminarModelo(producto.id).onSuccess {
-                Toast.makeText(context, "Producto eliminado", Toast.LENGTH_SHORT).show()
+            // Eliminar producto en la API solo si tiene id
+            val idToDelete = producto.id
+            if (idToDelete != null) {
+                inventarioRemoteRepository.eliminarModelo(idToDelete).onSuccess {
+                    Toast.makeText(context, "Producto eliminado", Toast.LENGTH_SHORT).show()
+                    cargarProductos()
+                }
+            } else {
+                // Si no tiene id, solo refrescar UI
+                Toast.makeText(context, "Producto no existe en remoto", Toast.LENGTH_SHORT).show()
                 cargarProductos()
             }
         }
     }
 
+    // Buscar productos
+    @Suppress("unused")
     fun buscarProductos(query: String) {
         if (query.isBlank()) {
             cargarProductos()
         } else {
             viewModelScope.launch {
                 inventarioRemoteRepository.searchModelos(query).onSuccess { dtos ->
-                    _productos.value = dtos?.sortedBy { it.nombre } ?: emptyList()
+                    _productos.value = dtos.sortedBy { it.nombre }
                 }
             }
         }
@@ -220,6 +259,8 @@ class InventarioViewModel @Inject constructor(
                     _imagenes.update { map -> map + (idProducto to null) }
                 }
             } catch (e: Exception) {
+                Log.e("InventarioViewModel", "loadImagenProducto error", e)
+                // Guardar clave con null para evitar reintentos continuos
                 _imagenes.update { map -> map + (idProducto to null) }
             }
         }

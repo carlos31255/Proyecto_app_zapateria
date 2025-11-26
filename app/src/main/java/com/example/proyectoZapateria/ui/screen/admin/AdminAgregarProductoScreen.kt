@@ -106,6 +106,14 @@ fun AdminAgregarProductoScreen(
         }
     }
 
+    // Nuevo: Mostrar toast específico cuando la imagen se subió correctamente
+    LaunchedEffect(formState.imagenUploaded) {
+        if (formState.imagenUploaded) {
+            Toast.makeText(context, "Imagen subida correctamente", Toast.LENGTH_SHORT).show()
+            productoViewModel.clearImagenUploaded()
+        }
+    }
+
     Scaffold(
         topBar = {
             Column(

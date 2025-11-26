@@ -3,6 +3,7 @@ package com.example.proyectoZapateria.data.repository.remote
 import android.util.Log
 import com.example.proyectoZapateria.data.local.detalleboleta.ProductoDetalle
 import com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO
+import com.example.proyectoZapateria.data.remote.inventario.dto.ProductoDTO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -11,24 +12,28 @@ class DetalleBoletaRemoteRepository @Inject constructor(
     private val ventasRemoteRepository: VentasRemoteRepository,
     private val inventarioRemoteRepository: InventarioRemoteRepository
 ) {
-    // Obtener detalles de una boleta desde el servicio remoto y mapear a ProductoDetalle
+    // Cache para marcas y productos
+    private val marcaCache = mutableMapOf<Long, String>()
+    private val productoCache = mutableMapOf<Long, ProductoDTO?>()
+    private val inventarioCache = mutableMapOf<Long, com.example.proyectoZapateria.data.remote.inventario.dto.InventarioDTO?>()
+
     fun getProductos(idBoleta: Long): Flow<List<ProductoDetalle>> = flow {
         val productos = try {
             val res = ventasRemoteRepository.obtenerDetallesDeBoleta(idBoleta)
             if (res.isSuccess) {
                 val detalles: List<DetalleBoletaDTO> = res.getOrNull() ?: emptyList()
                 detalles.map { d ->
-                    // Determinar talla: preferir la que venga en el detalle, si no, intentar obtener desde inventario
+                    // Talla: preferir la del detalle, si no, buscar en inventario
                     var tallaVal = d.talla?.trim()
                     if (tallaVal.isNullOrBlank() || tallaVal.equals("null", ignoreCase = true)) {
                         tallaVal = ""
                         try {
                             if (d.inventarioId > 0L) {
-                                val invRes = inventarioRemoteRepository.getInventarioById(d.inventarioId)
-                                val inv = invRes.getOrNull()
-                                if (inv != null && !inv.talla.isNullOrBlank()) {
+                                val inv = inventarioCache.getOrPut(d.inventarioId) {
+                                    inventarioRemoteRepository.getInventarioById(d.inventarioId).getOrNull()
+                                }
+                                if (inv != null && inv.talla.isNotBlank()) {
                                     tallaVal = inv.talla.trim()
-                                    Log.d("DetalleBoletaRepo", "Resolved talla from inventario ${d.inventarioId} => $tallaVal for boletaId=$idBoleta")
                                 }
                             }
                         } catch (e: Exception) {
@@ -36,23 +41,24 @@ class DetalleBoletaRemoteRepository @Inject constructor(
                         }
                     }
 
-                    // Intentar resolver marca consultando inventario/modelo si no está presente
+                    // Marca: buscar en producto
                     var marcaName = ""
                     try {
-                        // Si tenemos inventarioId, obtener inventario -> productoId -> producto -> marcaId -> marca
                         val invId = d.inventarioId
                         if (invId > 0L) {
-                            val invRes = inventarioRemoteRepository.getInventarioById(invId)
-                            val inv = invRes.getOrNull()
-                            val modeloKey = inv?.modeloId ?: inv?.productoId
-                            if (modeloKey != null) {
-                                val modeloRes = inventarioRemoteRepository.getModeloById(modeloKey)
-                                val modelo = modeloRes.getOrNull()
-                                val marcaId = modelo?.marcaId
+                            val inv = inventarioCache.getOrPut(invId) {
+                                inventarioRemoteRepository.getInventarioById(invId).getOrNull()
+                            }
+                            val productoId = inv?.productoId
+                            if (productoId != null) {
+                                val producto = productoCache.getOrPut(productoId) {
+                                    inventarioRemoteRepository.getProductoById(productoId).getOrNull()
+                                }
+                                val marcaId = producto?.marcaId
                                 if (marcaId != null) {
-                                    val marcaRes = inventarioRemoteRepository.getMarcaById(marcaId)
-                                    val marcaDto = marcaRes.getOrNull()
-                                    marcaName = marcaDto?.nombre ?: ""
+                                    marcaName = marcaCache.getOrPut(marcaId) {
+                                        inventarioRemoteRepository.getMarcaById(marcaId).getOrNull()?.nombre ?: ""
+                                    }
                                 }
                             }
                         }
@@ -61,13 +67,11 @@ class DetalleBoletaRemoteRepository @Inject constructor(
                     }
 
                     if (marcaName.isBlank()) marcaName = "Desconocida"
-                    if (tallaVal.isNullOrBlank()) tallaVal = "-"
-
-                    Log.d("DetalleBoletaRepo", "Mapped detalle: inventarioId=${d.inventarioId} nombre='${d.nombreProducto}' talla='${tallaVal}' marca='${marcaName}' cantidad=${d.cantidad}")
+                    val finalTalla = if (tallaVal.isBlank()) "-" else tallaVal
 
                     ProductoDetalle(
                         nombreZapato = d.nombreProducto ?: "",
-                        talla = tallaVal,
+                        talla = finalTalla,
                         cantidad = d.cantidad,
                         marca = marcaName
                     )
@@ -83,7 +87,6 @@ class DetalleBoletaRemoteRepository @Inject constructor(
         emit(productos)
     }
 
-    // Obtener por número de boleta: no existe endpoint directo, devolver vacío y loguear
     fun getProductosPorNumeroBoleta(numeroBoleta: String): Flow<List<ProductoDetalle>> = flow {
         Log.w("DetalleBoletaRepo", "getProductosPorNumeroBoleta: no implementado en backend (numero=$numeroBoleta)")
         emit(emptyList())

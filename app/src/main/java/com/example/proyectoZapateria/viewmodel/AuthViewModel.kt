@@ -7,6 +7,7 @@ import com.example.proyectoZapateria.data.model.UsuarioCompleto
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
 import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.GeografiaRemoteRepository
 import com.example.proyectoZapateria.domain.validation.validateConfirm
 import com.example.proyectoZapateria.domain.validation.validateEmail
 import com.example.proyectoZapateria.domain.validation.validateNameLettersOnly
@@ -45,6 +46,9 @@ data class RegisterUiState(
     val confirm: String = "",
     val calle: String = "",
     val numeroPuerta: String = "",
+    val idRegion: Long? = null,
+    val idCiudad: Long? = null,
+    val idComuna: Long? = null,
 
     val nameError: String? = null,
     val emailError: String? = null,
@@ -65,7 +69,8 @@ data class RegisterUiState(
 class AuthViewModel @Inject constructor(
     private val authRemoteRepository: AuthRemoteRepository,
     private val sessionPreferences: SessionPreferences,
-    private val clienteRemoteRepository: ClienteRemoteRepository
+    private val clienteRemoteRepository: ClienteRemoteRepository,
+    private val geografiaRemoteRepository: GeografiaRemoteRepository
 ) : ViewModel() {
 
     // Estado de UI para login y registro
@@ -86,9 +91,24 @@ class AuthViewModel @Inject constructor(
     private val _startupError = MutableStateFlow<String?>(null)
     val startupError: StateFlow<String?> = _startupError
 
+    // Geografía: regiones/ciudades/comunas para el formulario de registro
+    private val _regiones = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.RegionDTO>>(emptyList())
+    val regiones: StateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.RegionDTO>> = _regiones
+
+    private val _ciudades = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.CiudadDTO>>(emptyList())
+    val ciudades: StateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.CiudadDTO>> = _ciudades
+
+    private val _comunas = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.ComunaDTO>>(emptyList())
+    val comunas: StateFlow<List<com.example.proyectoZapateria.data.remote.geografia.dto.ComunaDTO>> = _comunas
+
     // Ejecutar la restauración de sesión después de inicializar los StateFlows
     init {
         cargarSesionGuardada()
+
+        // Cargar regiones al inicio (opcional: UI puede llamar explícitamente)
+        viewModelScope.launch {
+            loadRegiones()
+        }
     }
 
     // ========== HANDLERS LOGIN ==========
@@ -233,6 +253,32 @@ class AuthViewModel @Inject constructor(
         recomputeRegisterCanSubmit()
     }
 
+    fun onSelectRegion(regionId: Long?) {
+        // set region and clear ciudades/comunas selection
+        _register.update { it.copy(idRegion = regionId, idCiudad = null, idComuna = null) }
+        if (regionId != null) {
+            loadCiudadesPorRegion(regionId)
+        } else {
+            // limpiar listas si se quita la región
+            clearCiudades()
+            clearComunas()
+        }
+    }
+
+    fun onSelectCiudad(ciudadId: Long?) {
+        _register.update { it.copy(idCiudad = ciudadId, idComuna = null) }
+        if (ciudadId != null) {
+            loadComunasPorCiudad(ciudadId)
+        } else {
+            // limpiar comunas si se quita la ciudad
+            clearComunas()
+        }
+    }
+
+    fun onSelectComuna(comunaId: Long?) {
+        _register.update { it.copy(idComuna = comunaId) }
+    }
+
     fun onRegisterNumeroPuertaChange(value: String) {
         _register.update { it.copy(numeroPuerta = value, numeroPuertaError = validateHouseNumber(value)) }
         recomputeRegisterCanSubmit()
@@ -280,6 +326,7 @@ class AuthViewModel @Inject constructor(
                     email = s.email.trim(),
                     telefono = s.phone.trim(),
                     password = s.pass,
+                    idComuna = s.idComuna,
                     calle = s.calle.trim(),
                     numeroPuerta = s.numeroPuerta.trim()
                 )
@@ -492,5 +539,59 @@ class AuthViewModel @Inject constructor(
     // Limpiar mensaje de error de inicio
     fun clearStartupError() {
         _startupError.value = null
+    }
+
+    // Cargar regiones
+    fun loadRegiones() {
+        viewModelScope.launch {
+            val res = geografiaRemoteRepository.obtenerTodasLasRegiones()
+            res.onSuccess { _regiones.value = it }
+            res.onFailure { Log.w("AuthViewModel", "loadRegiones: ${it.message}") }
+        }
+    }
+
+    // Cargar ciudades por región seleccionada
+    fun loadCiudadesPorRegion(regionId: Long) {
+        viewModelScope.launch {
+            val res = geografiaRemoteRepository.obtenerCiudadesPorRegion(regionId)
+            res.onSuccess { _ciudades.value = it }
+            res.onFailure { Log.w("AuthViewModel", "loadCiudadesPorRegion: ${it.message}") }
+        }
+    }
+
+    // Cargar comunas por ciudad seleccionada
+    fun loadComunasPorCiudad(ciudadId: Long) {
+        viewModelScope.launch {
+            val res = geografiaRemoteRepository.obtenerComunasPorCiudad(ciudadId)
+            res.onSuccess { _comunas.value = it }
+            res.onFailure { Log.w("AuthViewModel", "loadComunasPorCiudad: ${it.message}") }
+        }
+    }
+
+    // Cargar todas las ciudades (opcional)
+    fun loadAllCiudades() {
+        viewModelScope.launch {
+            val res = geografiaRemoteRepository.obtenerTodasLasCiudades()
+            res.onSuccess { _ciudades.value = it }
+            res.onFailure { Log.w("AuthViewModel", "loadAllCiudades: ${it.message}") }
+        }
+    }
+
+    // Cargar todas las comunas (opcional)
+    fun loadAllComunas() {
+        viewModelScope.launch {
+            val res = geografiaRemoteRepository.obtenerTodasLasComunas()
+            res.onSuccess { _comunas.value = it }
+            res.onFailure { Log.w("AuthViewModel", "loadAllComunas: ${it.message}") }
+        }
+    }
+
+    // Limpiar listas auxiliares
+    fun clearCiudades() {
+        _ciudades.value = emptyList()
+    }
+
+    fun clearComunas() {
+        _comunas.value = emptyList()
     }
 }

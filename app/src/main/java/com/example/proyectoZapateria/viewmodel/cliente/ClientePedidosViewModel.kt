@@ -42,6 +42,18 @@ class ClientePedidosViewModel @Inject constructor(
 
     init {
         loadPedidos()
+
+        // Suscribirse a actualizaciones globales de entregas para recargar pedidos cuando cambie algo
+        viewModelScope.launch {
+            entregasRepository.updatesFlow.collect {
+                Log.d(TAG, "Detectada actualización en entregas -> recargando pedidos")
+                try {
+                    loadPedidos()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error recargando pedidos tras update: ${e.message}")
+                }
+            }
+        }
     }
 
     fun loadPedidos() {
@@ -122,10 +134,11 @@ class ClientePedidosViewModel @Inject constructor(
                     return@launch
                 }
 
-                val result = entregasRepository.cambiarEstadoEntrega(idEntrega, "completada")
+                val result = entregasRepository.cambiarEstadoEntrega(idEntrega, "completada", null)
 
                 if (result.isSuccess) {
                     Log.d(TAG, "Entrega $idEntrega actualizada a 'completada'")
+                    // recargar pedidos para reflejar cambios
                     loadPedidos()
                     callback(true, null)
                 } else {

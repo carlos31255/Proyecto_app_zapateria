@@ -1,7 +1,6 @@
 package com.example.proyectoZapateria.di
 
 import android.content.Context
-import com.example.proyectoZapateria.data.local.database.AppDatabase
 import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.ClienteRemoteRepository
 import com.example.proyectoZapateria.data.remote.usuario.ClienteApiService
@@ -13,6 +12,10 @@ import com.example.proyectoZapateria.data.repository.remote.ProductoRemoteReposi
 import com.example.proyectoZapateria.data.repository.remote.VentasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.InventarioRemoteRepository
 import com.example.proyectoZapateria.data.localstorage.SessionPreferences
+import com.example.proyectoZapateria.data.remote.carrito.CarritoApiService
+import com.example.proyectoZapateria.data.remote.geografia.GeografiaApiService
+import com.example.proyectoZapateria.data.repository.remote.CartRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.GeografiaRemoteRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,23 +28,13 @@ import javax.inject.Singleton
 object AppModule {
 
     // =============================================================================================
-    // DATABASE CONFIGURATION
-    // =============================================================================================
-
-    @Provides
-    @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return AppDatabase.getInstance(context)
-    }
-
-    // =============================================================================================
     // REPOSITORIES
     // =============================================================================================
 
     @Provides
     @Singleton
-    fun provideCartRemoteRepository(carritoApiService: com.example.proyectoZapateria.data.remote.carrito.CarritoApiService): com.example.proyectoZapateria.data.repository.remote.CartRemoteRepository {
-        return com.example.proyectoZapateria.data.repository.remote.CartRemoteRepository(carritoApiService)
+    fun provideCartRemoteRepository(carritoApiService: CarritoApiService):CartRemoteRepository {
+        return CartRemoteRepository(carritoApiService)
     }
 
     @Provides
@@ -76,5 +69,13 @@ object AppModule {
         inventarioRemoteRepository: InventarioRemoteRepository
     ): ProductoRemoteRepository {
         return ProductoRemoteRepository(inventarioRemoteRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGeografiaRemoteRepository(
+        geografiaApiService: GeografiaApiService
+    ): GeografiaRemoteRepository {
+        return GeografiaRemoteRepository(geografiaApiService)
     }
 }

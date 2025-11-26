@@ -45,6 +45,18 @@ class TransportistaEntregasViewModel @Inject constructor(
     init {
         Log.d("TransportistaEntregasVM", "ViewModel inicializado")
         cargarEntregas()
+
+        // Suscribirse a actualizaciones globales de entregas para recargar automáticamente
+        viewModelScope.launch {
+            entregasRepository.updatesFlow.collect {
+                Log.d("TransportistaEntregasVM", "Detectada actualización de entregas -> recargando")
+                try {
+                    cargarEntregas()
+                } catch (e: Exception) {
+                    Log.w("TransportistaEntregasVM", "Error recargando entregas tras update: ${e.message}")
+                }
+            }
+        }
     }
 
     private fun cargarEntregas() {

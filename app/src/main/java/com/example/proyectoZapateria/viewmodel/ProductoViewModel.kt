@@ -17,7 +17,6 @@ import java.io.File
 import javax.inject.Inject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
 data class TallaConStock(
@@ -42,7 +41,8 @@ data class ProductoFormState(
     val isLoading: Boolean = false,
     val canSubmit: Boolean = false,
     val success: Boolean = false,
-    val errorMsg: String? = null
+    val errorMsg: String? = null,
+    val imagenUploaded: Boolean = false // indicar que la imagen se subió correctamente
 )
 
 @HiltViewModel
@@ -70,11 +70,11 @@ class ProductoViewModel @Inject constructor(
         viewModelScope.launch {
             // 1. Cargar Marcas
             inventarioRemoteRepository.getMarcas().onSuccess { dtos ->
-                _marcas.value = dtos ?: emptyList()
+                _marcas.value = dtos
             }
             // 2. Cargar Tallas
             inventarioRemoteRepository.getTallas().onSuccess { dtos ->
-                _tallas.value = dtos ?: emptyList()
+                _tallas.value = dtos
             }
             // 3. Cargar Productos
             cargarProductos()
@@ -84,7 +84,7 @@ class ProductoViewModel @Inject constructor(
     private fun cargarProductos() {
         viewModelScope.launch {
             inventarioRemoteRepository.getModelos().onSuccess { dtos ->
-                _productos.value = dtos ?: emptyList()
+                _productos.value = dtos
             }
         }
     }
@@ -143,12 +143,12 @@ class ProductoViewModel @Inject constructor(
         if (!s.canSubmit || s.isLoading) return
 
         viewModelScope.launch {
-            _formState.update { it.copy(isLoading = true, errorMsg = null, success = false) }
+            _formState.update { it.copy(isLoading = true, errorMsg = null, success = false, imagenUploaded = false) }
 
             try {
                 // 1. Crear Modelo en API
                 val nuevoProducto = ProductoDTO(
-                    id = 0,
+                    id = 0L,
                     nombre = s.nombreModelo.trim(),
                     marcaId = s.idMarcaSeleccionada!!,
                     descripcion = s.descripcion.trim().ifBlank { null },
@@ -175,6 +175,18 @@ class ProductoViewModel @Inject constructor(
                 if (resultModelo.isSuccess) {
                     val modeloCreado = resultModelo.getOrNull()!! // Este objeto viene del Backend con el ID generado
 
+                    // Asegurarse de que el backend retornó un id válido
+                    val modeloId = modeloCreado.id ?: run {
+                        _formState.update { it.copy(isLoading = false, errorMsg = "ID del modelo no fue retornado por el servidor") }
+                        limpiarFormulario()
+                        return@launch
+                    }
+
+                    // Si hubo imagen, marcar que la imagen fue subida correctamente (evento)
+                    s.imagenFile?.let { file ->
+                        _formState.update { it.copy(imagenUploaded = true) }
+                    }
+
                     // 2. Crear Inventario (API) para cada talla
                     s.tallasSeleccionadas.forEach { (idTalla, tallaConStock) ->
                         val tallaObj = _tallas.value.find { it.id == idTalla }
@@ -182,12 +194,12 @@ class ProductoViewModel @Inject constructor(
 
                         val inventarioDto = InventarioDTO(
                             id = null,
-                            productoId = modeloCreado.id,
+                            productoId = modeloId,
                             nombre = modeloCreado.nombre,
                             talla = tallaString,
                             cantidad = tallaConStock.stock.toIntOrNull() ?: 0,
                             stockMinimo = 5,
-                            modeloId = modeloCreado.id,
+                            modeloId = modeloId,
                             tallaId = idTalla
                         )
                         inventarioRemoteRepository.crearInventario(inventarioDto)
@@ -207,10 +219,16 @@ class ProductoViewModel @Inject constructor(
 
     fun limpiarFormulario() { _formState.value = ProductoFormState() }
     fun clearSuccess() { _formState.update { it.copy(success = false) } }
+    // Limpiar indicador de imagen subida
+    fun clearImagenUploaded() { _formState.update { it.copy(imagenUploaded = false) } }
 
     fun eliminarProducto(context: Context, producto: ProductoDTO) {
         viewModelScope.launch {
-            inventarioRemoteRepository.eliminarModelo(producto.id).onSuccess { cargarProductos() }
+            producto.id?.let { id ->
+                inventarioRemoteRepository.eliminarModelo(id).onSuccess { cargarProductos() }
+            } ?: run {
+                // id no presente — nada que eliminar en remoto
+            }
         }
     }
 }

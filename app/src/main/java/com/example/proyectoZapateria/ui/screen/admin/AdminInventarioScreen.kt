@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_VARIABLE", "UNUSED_VALUE", "RedundantElvis", "UNUSED_PARAMETER")
+
 package com.example.proyectoZapateria.ui.screen.admin
 
 import androidx.compose.foundation.Image
@@ -49,6 +51,7 @@ fun AdminInventarioScreen(
 
     val productos by inventarioViewModel.productos.collectAsStateWithLifecycle()
     val marcas by inventarioViewModel.marcas.collectAsStateWithLifecycle()
+    val isLoading by inventarioViewModel.isLoadingProductos.collectAsStateWithLifecycle()
 
     var productoSeleccionado by remember { mutableStateOf<ProductoDTO?>(null) }
     var mostrarDialogoEliminar by remember { mutableStateOf(false) }
@@ -115,6 +118,23 @@ fun AdminInventarioScreen(
             }
         }
     ) { padding ->
+        // Mostrar loader mientras se cargan los productos
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = colorScheme.primary)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Cargando inventario...", color = colorScheme.onSurfaceVariant)
+                }
+            }
+            return@Scaffold
+        }
+
         if (productos.isEmpty()) {
             // Estado vacío
             Box(
@@ -160,7 +180,8 @@ fun AdminInventarioScreen(
             ) {
                 item { Spacer(modifier = Modifier.height(4.dp)) }
 
-                items(productos, key = { it.id }) { producto ->
+                // Ensure we pass a non-null key (items() expects a non-null Any key)
+                items(productos, key = { it.id ?: 0L }) { producto ->
                     ProductoCard(
                         producto = producto,
                         nombreMarca = marcas.find { it.id == producto.marcaId }?.nombre ?: "Sin marca",
@@ -275,14 +296,17 @@ fun ProductoCard(
     colorScheme: ColorScheme,
     inventarioViewModel: InventarioViewModel // new param
 ) {
-    // solicitar carga de imagen si no está imagenUrl
+    // solicitar carga de imagen si no está en cache (siempre intentarlo)
+    val imagenes by inventarioViewModel.imagenes.collectAsState()
+
     LaunchedEffect(producto.id) {
-        if (producto.imagenUrl.isNullOrBlank()) {
-            inventarioViewModel.loadImagenProducto(producto.id)
+        producto.id?.let { id ->
+            // sólo pedir si no existe la clave en el mapa de imágenes (evita peticiones repetidas)
+            if (!imagenes.containsKey(id)) {
+                inventarioViewModel.loadImagenProducto(id)
+            }
         }
     }
-
-    val imagenes by inventarioViewModel.imagenes.collectAsState()
 
     Card(
         modifier = Modifier
@@ -305,39 +329,9 @@ fun ProductoCard(
                     .background(colorScheme.surfaceVariant)
             ) {
                 val bytes = imagenes[producto.id]
-                if (!producto.imagenUrl.isNullOrBlank()) {
-                    // Primero intentar cargar desde drawable
-                    val drawableId = ImageHelper.getDrawableResourceId(context, producto.imagenUrl)
-                    if (drawableId != null) {
-                        Image(
-                            painter = androidx.compose.ui.res.painterResource(id = drawableId),
-                            contentDescription = "Imagen de ${producto.nombre}",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        // Si no está en drawable, buscar en archivos
-                        val imageFile = ImageHelper.getFileFromPath(context, producto.imagenUrl)
-                        if (imageFile.exists()) {
-                            Image(
-                                painter = rememberAsyncImagePainter(imageFile),
-                                contentDescription = "Imagen de ${producto.imagenUrl}",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.Image,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .align(Alignment.Center),
-                                tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                            )
-                        }
-                    }
-                } else if (bytes != null) {
-                    // convertir bytes a Bitmap y mostrar
+
+                // 1) Si hay bytes en cache, mostrarlos (prioritario)
+                if (bytes != null) {
                     val bmp = remember(bytes) {
                         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     }
@@ -358,7 +352,51 @@ fun ProductoCard(
                             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                         )
                     }
+                } else if (!producto.imagenUrl.isNullOrBlank()) {
+                    // 2) Si imagenUrl apunta a un recurso local conocido
+                    val drawableId = ImageHelper.getDrawableResourceId(context, producto.imagenUrl)
+                    if (drawableId != null) {
+                        Image(
+                            painter = androidx.compose.ui.res.painterResource(id = drawableId),
+                            contentDescription = "Imagen de ${producto.nombre}",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // 3) Si es un path de archivo local
+                        val imageFile = ImageHelper.getFileFromPath(context, producto.imagenUrl)
+                        if (imageFile.exists()) {
+                            Image(
+                                painter = rememberAsyncImagePainter(imageFile),
+                                contentDescription = "Imagen de ${producto.imagenUrl}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            // 4) Si imagenUrl parece ser una URL absoluta (http/https), intentar cargarla con Coil
+                            val url = producto.imagenUrl
+                            if (url.startsWith("http://") || url.startsWith("https://")) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(url),
+                                    contentDescription = "Imagen remota",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                // 5) fallback: mostrar icono (se intentó cargar bytes en background)
+                                Icon(
+                                    Icons.Default.Image,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .align(Alignment.Center),
+                                    tint = colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                )
+                            }
+                        }
+                    }
                 } else {
+                    // 6) No hay URL ni bytes: mostrar icono
                     Icon(
                         Icons.Default.Image,
                         contentDescription = null,
@@ -461,9 +499,10 @@ fun EditarProductoCompletoDialog(
     // Cargar inventario y tallas
     val tallas by viewModel.tallas.collectAsStateWithLifecycle()
     val inventario by viewModel.inventarioPorModelo.collectAsStateWithLifecycle()
+    val loadingInventario by viewModel.isLoadingInventario.collectAsStateWithLifecycle()
 
     LaunchedEffect(producto.id) {
-        viewModel.cargarInventarioDeModelo(producto.id)
+        producto.id?.let { viewModel.cargarInventarioDeModelo(it) }
     }
 
     // Map de idTalla a stock actual (editable)
@@ -487,6 +526,21 @@ fun EditarProductoCompletoDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
+            // Si el inventario del modelo está cargando, mostrar loader central
+            if (loadingInventario == producto.id) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Cargando inventario...", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                return@Card
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -532,7 +586,7 @@ fun EditarProductoCompletoDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMarcas) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .menuAnchor() // corregido: no pasar MenuAnchorType
                         )
 
                         ExposedDropdownMenu(
@@ -669,12 +723,14 @@ fun EditarProductoCompletoDialog(
                                     val inventarioMap = stockPorTalla.mapKeys { it.key }
                                         .mapValues { (_, stock) -> stock.toIntOrNull() ?: 0 }
 
-                                    viewModel.actualizarInventario(
-                                        producto.id,
-                                        inventarioMap,
-                                        context,
-                                        onSuccess = { onDismiss() }
-                                    )
+                                    producto.id?.let { idProd ->
+                                        viewModel.actualizarInventario(
+                                            idProd,
+                                            inventarioMap,
+                                            context,
+                                            onSuccess = { onDismiss() }
+                                        )
+                                    }
                                 }
                             },
                             modifier = Modifier.weight(1f),

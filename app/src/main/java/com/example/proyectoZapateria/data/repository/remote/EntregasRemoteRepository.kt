@@ -2,9 +2,13 @@ package com.example.proyectoZapateria.data.repository.remote
 
 import android.util.Log
 import com.example.proyectoZapateria.data.remote.entregas.EntregasApiService
+import com.example.proyectoZapateria.data.remote.entregas.dto.ActualizarEstadoRequest
+import com.example.proyectoZapateria.data.remote.entregas.dto.CompletarEntregaRequest
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
 import com.example.proyectoZapateria.utils.NetworkUtils
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,6 +21,10 @@ class EntregasRemoteRepository @Inject constructor(
     companion object {
         private const val TAG = "EntregasRemoteRepository"
     }
+
+    // SharedFlow que emite cuando hay cambios en entregas (para que ViewModels se refresquen)
+    private val _updates = MutableSharedFlow<Unit>(replay = 0)
+    val updatesFlow = _updates.asSharedFlow()
 
     suspend fun obtenerTodasLasEntregas(): Result<List<EntregaDTO>> = try {
         NetworkUtils.safeApiCall { api.obtenerTodasLasEntregas() }
@@ -50,23 +58,38 @@ class EntregasRemoteRepository @Inject constructor(
 
     suspend fun asignarTransportista(entregaId: Long, transportistaId: Long): Result<EntregaDTO> = try {
         Log.d(TAG, "asignarTransportista: entregaId=$entregaId, transportistaId=$transportistaId")
-        NetworkUtils.safeApiCall { api.asignarTransportista(entregaId, transportistaId) }
+        val res = NetworkUtils.safeApiCall { api.asignarTransportista(entregaId, transportistaId) }
+        if (res.isSuccess) {
+            // notificar cambios
+            try { _updates.emit(Unit) } catch (_: Throwable) {}
+        }
+        res
     } catch (e: Exception) {
         Log.e(TAG, "asignarTransportista exception", e)
         Result.failure(e)
     }
 
     suspend fun completarEntrega(entregaId: Long, observacion: String?): Result<EntregaDTO> = try {
-        Log.d(TAG, "completarEntrega: entregaId=$entregaId, observacion=$observacion")
-        NetworkUtils.safeApiCall { api.completarEntrega(entregaId, observacion) }
+        val req = CompletarEntregaRequest(observacion ?: "")
+        Log.d(TAG, "completarEntrega: entregaId=$entregaId, observacion=${req.observacion}")
+        val res = NetworkUtils.safeApiCall { api.completarEntrega(entregaId, req) }
+        if (res.isSuccess) {
+            try { _updates.emit(Unit) } catch (_: Throwable) {}
+        }
+        res
     } catch (e: Exception) {
         Log.e(TAG, "completarEntrega exception", e)
         Result.failure(e)
     }
 
-    suspend fun cambiarEstadoEntrega(entregaId: Long, nuevoEstado: String): Result<EntregaDTO> = try {
-        Log.d(TAG, "cambiarEstadoEntrega: entregaId=$entregaId, nuevoEstado=$nuevoEstado")
-        NetworkUtils.safeApiCall { api.cambiarEstadoEntrega(entregaId, nuevoEstado) }
+    suspend fun cambiarEstadoEntrega(entregaId: Long, nuevoEstado: String, observacion: String? = null): Result<EntregaDTO> = try {
+        val req = ActualizarEstadoRequest(estadoEntrega = nuevoEstado, observacion = observacion)
+        Log.d(TAG, "cambiarEstadoEntrega: entregaId=$entregaId, nuevoEstado=$nuevoEstado, observacion=${observacion}")
+        val res = NetworkUtils.safeApiCall { api.cambiarEstadoEntrega(entregaId, req) }
+        if (res.isSuccess) {
+            try { _updates.emit(Unit) } catch (_: Throwable) {}
+        }
+        res
     } catch (e: Exception) {
         Log.e(TAG, "cambiarEstadoEntrega exception", e)
         Result.failure(e)

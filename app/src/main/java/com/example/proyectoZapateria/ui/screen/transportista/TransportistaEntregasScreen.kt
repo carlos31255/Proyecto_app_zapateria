@@ -1,7 +1,10 @@
-﻿package com.example.proyectoZapateria.ui.screen.transportista
+﻿@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
+package com.example.proyectoZapateria.ui.screen.transportista
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,7 +12,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.LocalShipping
@@ -36,148 +40,193 @@ fun TransportistaEntregasScreen(
     navController: NavHostController
 
 ) {
-    // Inyectamos el ViewModel usando Hilt (ahora tiene acceso al transportistaId)
+    // Inyectamos el ViewModel usando Hilt (viewmodel de entregas)
     val viewModel: TransportistaEntregasViewModel = hiltViewModel()
+    // Inyectamos AuthViewModel para obtener el usuario actual y permitir logout
+    val authViewModel: com.example.proyectoZapateria.viewmodel.AuthViewModel = hiltViewModel()
 
-    // Observamos el UiState del ViewModel
+    // Observamos el UiState del ViewModel de entregas
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Observamos usuario actual
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
 
     // Colores del MaterialTheme
     val colorScheme = MaterialTheme.colorScheme
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp)
-    ) {
-        // BotÃ³n de regreso dentro de un cÃ­rculo (igual que en ConfirmarEntregaScreen)
-        Surface(
-            shape = androidx.compose.foundation.shape.CircleShape,
-            color = colorScheme.primaryContainer,
-            tonalElevation = 2.dp,
-            modifier = Modifier.padding(8.dp)
-        ) {
-            IconButton(
-                onClick = { navController.popBackStack() }
+    Scaffold(
+        topBar = {
+            // Top bar simple con flecha de regreso y título
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = colorScheme.primaryContainer
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = colorScheme.onPrimaryContainer
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = colorScheme.onPrimaryContainer
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = "Mis entregas",
+                        color = colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Opcional: botón de cerrar sesión si se desea mantener
+                    IconButton(onClick = {
+                        authViewModel.logout()
+                        navController.navigate(Route.Login.path) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Cerrar sesión",
+                            tint = colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
             }
-        }
-
-        // TÃ­tulo principal
-        Text(
-            text = "Mis Entregas",
-            style = MaterialTheme.typography.headlineMedium,
-            color = colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-            Text(
-                text = "Gestiona tus entregas pendientes y completadas",
-                style = MaterialTheme.typography.bodyMedium,
-                color = colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-
-            // Tarjetas de resumen
-            Row(
+        },
+        content = { innerPadding ->
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                //  Usamos los datos dinÃ¡micos del uiState
-                ResumenCard(
-                    icon = Icons.Default.Schedule,
-                    titulo = "Pendientes",
-                    conteo = uiState.pendientesCount.toString()
+                Text(
+                    text = "Gestiona tus entregas pendientes y completadas",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                ResumenCard(
-                    icon = Icons.Default.CheckCircle,
-                    titulo = "Completadas",
-                    conteo = uiState.completadasCount.toString()
+                // Tarjetas de resumen
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Usamos los datos dinámicos del uiState
+                    ResumenCard(
+                        icon = Icons.Default.Schedule,
+                        titulo = "Pendientes",
+                        conteo = uiState.pendientesCount.toString()
+                    )
+
+                    ResumenCard(
+                        icon = Icons.Default.CheckCircle,
+                        titulo = "Completadas",
+                        conteo = uiState.completadasCount.toString()
+                    )
+                }
+
+                Text(
+                    text = "Entregas de Hoy",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 12.dp)
                 )
-            }
 
-            // Lista de entregas
-            Text(
-                text = "Entregas de Hoy",
-                style = MaterialTheme.typography.titleMedium,
-                color = colorScheme.onBackground,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 12.dp)
-            )
-
-            // Manejamos los 3 estados: Carga, VacÃ­o y Datos
-            when {
-                // --- ESTADO DE CARGA ---
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentSize(Alignment.Center)
-                            .padding(top = 32.dp),
-                        color = colorScheme.primary
-                    )
-                }
-
-                // --- ESTADO DE ERROR  ---
-                uiState.error != null -> {
-                    Text(
-                        text = "Error al cargar entregas: ${uiState.error}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colorScheme.error,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 32.dp)
-                    )
-                }
-
-                // --- ESTADO VACÃO ---
-                uiState.entregas.isEmpty() -> {
-                    Text(
-                        text = "No tienes entregas asignadas por ahora.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 32.dp)
-                    )
-                }
-
-                // --- ESTADO CON DATOS ---
-                else -> {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Usamos la lista de entregas del uiState
-                        items(uiState.entregas, key = { it.idEntrega ?: 0 }) { entrega ->
-                            EntregaCard(
-                                entrega = entrega,
-                                onClick = {
-                                    //  Navegamos a confirmar/completar entrega al hacer click
-                                    navController.navigate(
-                                        Route.TransportistaConfirmarEntrega.path.replace("{idEntrega}", (entrega.idEntrega ?: 0).toString())
-                                    )
-                                }
+                // Contenedor que muestra el loader y el contenido
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Lista / Empty / Error
+                    when {
+                        // --- ESTADO DE ERROR  ---
+                        uiState.error != null -> {
+                            Text(
+                                text = "Error al cargar entregas: ${uiState.error}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 32.dp)
                             )
+                        }
+
+                        // --- ESTADO VACÍO ---
+                        uiState.entregas.isEmpty() && !uiState.isLoading -> {
+                            Text(
+                                text = "No tienes entregas asignadas por ahora.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 32.dp)
+                            )
+                        }
+
+                        // --- ESTADO CON DATOS ---
+                        else -> {
+                            // Si hay datos, mostrar la lista (si está vacía y loading=true, no entra aquí)
+                            if (uiState.entregas.isNotEmpty()) {
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(uiState.entregas, key = { it.idEntrega ?: 0 }) { entrega ->
+                                        EntregaCard(
+                                            entrega = entrega,
+                                            onClick = {
+                                                //  Navegamos a confirmar/completar entrega al hacer click
+                                                navController.navigate(
+                                                    Route.TransportistaConfirmarEntrega.path.replace("{idEntrega}", (entrega.idEntrega ?: 0).toString())
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // --- INDICADOR DE CARGA (siempre centrado) ---
+                    if (uiState.isLoading) {
+                        Surface(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .align(Alignment.Center),
+                            shape = CircleShape,
+                            color = colorScheme.surface,
+                            tonalElevation = 6.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(40.dp),
+                                    color = colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
             }
         }
-    }
+    )
+}
 
 
-// (Composable auxiliar para no duplicar cÃ³digo en las tarjetas de resumen)
+// (Composable auxiliar para no duplicar código en las tarjetas de resumen)
 @Composable
 fun RowScope.ResumenCard(
     icon: ImageVector,
@@ -337,4 +386,3 @@ fun EntregaCard(
         }
     }
 }
-

@@ -40,6 +40,9 @@ data class PersonaDTO(
     @SerializedName("estado")
     val estado: String?,
 
+    @SerializedName("categoria")
+    val categoria: String? = null,
+
     @SerializedName("password")
     val password: String? = null // Opcional, solo para registro
 )
