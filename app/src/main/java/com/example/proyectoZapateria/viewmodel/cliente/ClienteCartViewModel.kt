@@ -214,15 +214,16 @@ class ClienteCartViewModel @Inject constructor(
                                 }
 
                                 if (inventarioRemoto == null) {
-                                    // No se pudo verificar la talla/stock remoto. No borrar automáticamente.
-                                    val msg = "No se pudo verificar stock para producto ${item.modeloId} (talla ${item.talla}); se mantuvo en el carrito para verificación en checkout"
+                                    val nombreProducto = item.nombreProducto ?: "Producto"
+                                    val msg = "No pudimos verificar la disponibilidad de $nombreProducto (talla $talla). Verifica al finalizar la compra"
                                     Log.w("ClienteCartVM", msg)
                                     ajustes.add(msg)
                                     continue
                                 } else if (inventarioRemoto.cantidad < item.cantidad) {
                                      val nuevaCantidad = inventarioRemoto.cantidad
+                                     val nombreProducto = item.nombreProducto ?: "el producto"
                                      if (nuevaCantidad <= 0) {
-                                         val msg = "Producto ${item.modeloId} (talla $talla) sin stock. Se mantiene en el carrito para revisión en checkout"
+                                         val msg = "Lo sentimos, $nombreProducto (talla $talla) se agotó. Por favor elimínalo de tu carrito"
                                          Log.w("ClienteCartVM", msg)
                                          ajustes.add(msg)
                                          continue
@@ -243,7 +244,7 @@ class ClienteCartViewModel @Inject constructor(
                                             val idCli = currentUser?.idPersona ?: item.clienteId
                                             cartRepository.addAndReturnCart(req, idCli)
                                         }
-                                         ajustes.add("Cantidad de ${item.modeloId} ajustada a $nuevaCantidad por stock")
+                                         ajustes.add("Solo quedan $nuevaCantidad unidad(es) de $nombreProducto. Hemos ajustado tu carrito")
                                      }
                                  }
                             } catch (e: Exception) {
@@ -422,7 +423,7 @@ class ClienteCartViewModel @Inject constructor(
                 val items = uiItems.map { it.cartItem }
 
                 if (items.isEmpty()) {
-                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Carrito vacío")
+                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Tu carrito está vacío. Agrega productos antes de finalizar la compra")
                     return@launch
                 }
 
@@ -434,8 +435,10 @@ class ClienteCartViewModel @Inject constructor(
                 for (item in items) {
                     // Normalizar talla: manejar null o la cadena literal "null"
                     val talla = item.talla.trim()
+                    val nombreProducto = item.nombreProducto ?: "Producto"
+
                     if (talla.isBlank() || talla.equals("null", ignoreCase = true)) {
-                        checkoutErrors.add("Seleccione talla para el producto ${item.modeloId} (${item.nombreProducto ?: ""})")
+                        checkoutErrors.add("Por favor selecciona una talla para $nombreProducto antes de continuar")
                         continue
                     }
                     // Usar versión "logged" (intenta rutas alternativas) y matching robusto
@@ -452,7 +455,7 @@ class ClienteCartViewModel @Inject constructor(
                     } catch (e: Exception) { null }
 
                     if (remoto == null) {
-                        checkoutErrors.add("Producto ${item.modeloId} (talla $talla) no disponible")
+                        checkoutErrors.add("Lo sentimos, $nombreProducto (talla $talla) ya no está disponible")
                         continue
                     }
 
@@ -470,7 +473,12 @@ class ClienteCartViewModel @Inject constructor(
                     } catch (e: Exception) { null }
 
                     if (remotoFinal == null || remotoFinal.cantidad < item.cantidad) {
-                        checkoutErrors.add("Stock insuficiente para producto ${item.modeloId} (talla $talla): disponible=${remotoFinal?.cantidad ?: 0}, requerido=${item.cantidad}")
+                        val disponible = remotoFinal?.cantidad ?: 0
+                        if (disponible == 0) {
+                            checkoutErrors.add("Lo sentimos, $nombreProducto (talla $talla) se agotó. Alguien más completó su compra antes")
+                        } else {
+                            checkoutErrors.add("Solo quedan $disponible unidad(es) de $nombreProducto (talla $talla). Por favor ajusta la cantidad en tu carrito")
+                        }
                         continue
                     }
 
@@ -490,20 +498,25 @@ class ClienteCartViewModel @Inject constructor(
 
                 // Si hubo errores de validación, informar al usuario y cancelar checkout (no se borra el carrito)
                 if (checkoutErrors.isNotEmpty()) {
-                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = checkoutErrors.joinToString("; "))
+                    val errorMsg = if (checkoutErrors.size == 1) {
+                        checkoutErrors.first()
+                    } else {
+                        "Algunos productos no están disponibles:\n\n" + checkoutErrors.joinToString("\n\n")
+                    }
+                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = errorMsg)
                     return@launch
                 }
 
                 // Asegurarse que tenemos detalles válidos
                 if (detallesDTO.isEmpty()) {
-                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "No hay artículos válidos para procesar")
+                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Tu carrito no tiene artículos válidos para procesar. Por favor verifica los productos")
                     return@launch
                 }
 
                 // Validar inventarioId en detalles
                 val invalidDetalle = detallesDTO.firstOrNull { it.inventarioId <= 0L }
                 if (invalidDetalle != null) {
-                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Detalle inválido sin inventarioId para producto: ${invalidDetalle.nombreProducto ?: invalidDetalle.id}")
+                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Hubo un problema al procesar ${invalidDetalle.nombreProducto ?: "un producto"}. Por favor intenta nuevamente")
                     return@launch
                 }
 
@@ -540,12 +553,26 @@ class ClienteCartViewModel @Inject constructor(
                     val bodyIndex = errMsg.indexOf(" - body=")
                     val serverBody = if (bodyIndex >= 0) errMsg.substring(bodyIndex + 8) else null
                     Log.e("ClienteCartVM", "checkout: crearBoleta failed: $errMsg")
-                    if (!serverBody.isNullOrBlank()) {
-                        Log.e("ClienteCartVM", "checkout: server body: $serverBody")
-                        _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Error del servidor: ${serverBody.take(800)}")
-                    } else {
-                        _uiState.value = _uiState.value.copy(isCheckingOut = false, error = "Error: $errMsg")
+
+                    val userFriendlyMsg = when {
+                        serverBody?.contains("stock", ignoreCase = true) == true ||
+                        errMsg.contains("stock", ignoreCase = true) -> {
+                            "Lo sentimos, uno o más productos se agotaron mientras procesábamos tu pedido. Por favor revisa tu carrito e intenta nuevamente"
+                        }
+                        serverBody?.contains("inventory", ignoreCase = true) == true ||
+                        errMsg.contains("inventory", ignoreCase = true) -> {
+                            "Lo sentimos, hubo un problema verificando la disponibilidad de los productos. Por favor intenta nuevamente"
+                        }
+                        errMsg.contains("timeout", ignoreCase = true) ||
+                        errMsg.contains("connection", ignoreCase = true) -> {
+                            "No pudimos conectarnos con el servidor. Por favor verifica tu conexión a internet e intenta nuevamente"
+                        }
+                        else -> {
+                            "Ocurrió un error al procesar tu compra. Por favor intenta nuevamente en unos momentos"
+                        }
                     }
+
+                    _uiState.value = _uiState.value.copy(isCheckingOut = false, error = userFriendlyMsg)
                 }
 
             } catch (e: Exception) {
