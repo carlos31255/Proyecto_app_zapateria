@@ -220,19 +220,39 @@ fun ClientePedidosScreen(
                                             Spacer(modifier = Modifier.height(8.dp))
                                             // Consumir el flow de productos para esta boleta (ProductoDetalleUi)
                                             val productosFlow = viewModel.getProductosForBoleta(boleta.id ?: 0L)
-                                            val productos by productosFlow.collectAsStateWithLifecycle(initialValue = emptyList<ProductoDetalleUi>())
+                                            val productos by productosFlow.collectAsStateWithLifecycle(initialValue = null)
 
-                                            if (productos.isEmpty()) {
-                                                Text(text = "(Sin detalles de productos)", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
-                                            } else {
-                                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    productos.forEach { p ->
-                                                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                                            Column(modifier = Modifier.weight(1f)) {
-                                                                Text(text = p.producto?.nombre ?: "-", style = MaterialTheme.typography.bodyMedium)
-                                                                Text(text = "Talla: ${p.talla} • Marca: ${p.marcaName}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                                            // Usar variable local para permitir smart cast
+                                            val productosList = productos
+
+                                            when {
+                                                productosList == null -> {
+                                                    // Mostrar indicador de carga mientras se cargan los productos
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(16.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(32.dp),
+                                                            color = colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                                productosList.isEmpty() -> {
+                                                    Text(text = "(Sin detalles de productos)", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                                                }
+                                                else -> {
+                                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        productosList.forEach { p ->
+                                                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                                                Column(modifier = Modifier.weight(1f)) {
+                                                                    Text(text = p.producto?.nombre ?: "-", style = MaterialTheme.typography.bodyMedium)
+                                                                    Text(text = "Talla: ${p.talla} • Marca: ${p.marcaName}", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                                                                }
+                                                                Text(text = "x${p.cantidad}", style = MaterialTheme.typography.bodyMedium, color = colorScheme.primary)
                                                             }
-                                                            Text(text = "x${p.cantidad}", style = MaterialTheme.typography.bodyMedium, color = colorScheme.primary)
                                                         }
                                                     }
                                                 }
