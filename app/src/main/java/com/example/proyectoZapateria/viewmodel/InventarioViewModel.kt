@@ -123,6 +123,11 @@ class InventarioViewModel @Inject constructor(
         onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
+            android.util.Log.d("InventarioVM", "=== INICIO actualizarProducto ===")
+            android.util.Log.d("InventarioVM", "Producto ID: ${producto.id}")
+            android.util.Log.d("InventarioVM", "Nombre: ${producto.nombre} → $nuevoNombre")
+            android.util.Log.d("InventarioVM", "Precio: ${producto.precioUnitario} → $nuevoPrecio")
+
             val dto = ProductoDTO(
                 id = producto.id,
                 nombre = nuevoNombre.trim(),
@@ -134,22 +139,27 @@ class InventarioViewModel @Inject constructor(
 
             val modeloIdNullable = producto.id
             if (modeloIdNullable == null) {
+                android.util.Log.d("InventarioVM", "CREANDO nuevo producto...")
                 inventarioRemoteRepository.crearModelo(dto)
                     .onSuccess { productoCreado ->
+                        android.util.Log.d("InventarioVM", "✅ Producto creado correctamente")
                         cargarProductos()
                         onSuccess()
                     }
                     .onFailure { error ->
-                        android.util.Log.e("InventarioVM", "Error crear: ${error.message}")
+                        android.util.Log.e("InventarioVM", "❌ Error crear: ${error.message}")
                     }
             } else {
+                android.util.Log.d("InventarioVM", "ACTUALIZANDO producto existente id=$modeloIdNullable...")
                 inventarioRemoteRepository.actualizarModelo(modeloIdNullable, dto)
                     .onSuccess { productoActualizado ->
+                        android.util.Log.d("InventarioVM", "✅ Producto actualizado correctamente")
+                        android.util.Log.d("InventarioVM", "=== FIN actualizarProducto ===")
                         cargarProductos()
                         onSuccess()
                     }
                     .onFailure { error ->
-                        android.util.Log.e("InventarioVM", "Error actualizar: ${error.message}")
+                        android.util.Log.e("InventarioVM", "❌ Error actualizar: ${error.message}")
                     }
             }
         }
@@ -164,30 +174,58 @@ class InventarioViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
+                android.util.Log.d("InventarioVM", "=== INICIO actualizarInventario para producto $idModelo ===")
+                android.util.Log.d("InventarioVM", "Tallas a procesar: ${inventarioPorTalla.size}")
+
                 val modelo = _productos.value.find { it.id == idModelo }
                 val nombreModelo = modelo?.nombre ?: "Producto"
+                android.util.Log.d("InventarioVM", "Nombre del producto: $nombreModelo")
 
                 // Recargar cache antes de procesar para tener datos actualizados
+                android.util.Log.d("InventarioVM", "Recargando cache de inventario desde servidor...")
                 val resultInventario = inventarioRemoteRepository.getInventarioPorModeloLogged(idModelo)
                 if (resultInventario.isSuccess) {
                     cacheInventarioRemoto = resultInventario.getOrNull() ?: emptyList()
+                    android.util.Log.d("InventarioVM", "Cache cargado: ${cacheInventarioRemoto.size} registros")
+                    cacheInventarioRemoto.forEach { inv ->
+                        android.util.Log.d("InventarioVM", "  - Cache: id=${inv.id}, talla=${inv.talla}, cantidad=${inv.cantidad}, productoId=${inv.productoId}")
+                    }
+                } else {
+                    android.util.Log.e("InventarioVM", "Error al cargar cache: ${resultInventario.exceptionOrNull()?.message}")
                 }
 
                 // Recorremos el mapa que viene de la UI
                 inventarioPorTalla.forEach { (idTallaLocal, nuevoStock) ->
+                    android.util.Log.d("InventarioVM", "--- Procesando talla: idTallaLocal=$idTallaLocal, nuevoStock=$nuevoStock ---")
+
                     // Buscamos el string de la talla (ej: "40")
-                    val tallaObj = _tallas.value.find { it.id == idTallaLocal } ?: return@forEach
+                    val tallaObj = _tallas.value.find { it.id == idTallaLocal }
+                    if (tallaObj == null) {
+                        android.util.Log.e("InventarioVM", "ERROR: No se encontró talla con id=$idTallaLocal")
+                        return@forEach
+                    }
                     val tallaString = tallaObj.valor
+                    android.util.Log.d("InventarioVM", "Talla encontrada: $tallaString (id=$idTallaLocal)")
 
                     // Verificamos si ya existe en el backend (por talla string y productoId)
                     val remoto = cacheInventarioRemoto.find {
                         it.talla == tallaString && it.productoId == idModelo
                     }
+                    android.util.Log.d("InventarioVM", "Inventario remoto encontrado: ${remoto?.let { "id=${it.id}, cantidad=${it.cantidad}" } ?: "NO EXISTE"}")
 
                     if (nuevoStock <= 0) {
+                        android.util.Log.d("InventarioVM", "Stock <= 0, intentando ELIMINAR...")
                         // Si stock es 0 y existe remoto, ELIMINAR
                         if (remoto != null && remoto.id != null) {
-                            inventarioRemoteRepository.eliminarStock(remoto.id)
+                            android.util.Log.d("InventarioVM", "Eliminando inventario id=${remoto.id}")
+                            val deleteResult = inventarioRemoteRepository.eliminarStock(remoto.id)
+                            if (deleteResult.isSuccess) {
+                                android.util.Log.d("InventarioVM", "✅ Inventario eliminado correctamente")
+                            } else {
+                                android.util.Log.e("InventarioVM", "❌ Error al eliminar: ${deleteResult.exceptionOrNull()?.message}")
+                            }
+                        } else {
+                            android.util.Log.d("InventarioVM", "No hay inventario remoto para eliminar")
                         }
                     } else {
                         val dto = InventarioDTO(
@@ -199,22 +237,37 @@ class InventarioViewModel @Inject constructor(
                             cantidad = nuevoStock,
                             stockMinimo = 5
                         )
+                        android.util.Log.d("InventarioVM", "DTO creado: id=${dto.id}, productoId=${dto.productoId}, tallaId=${dto.tallaId}, talla=${dto.talla}, cantidad=${dto.cantidad}")
 
                         if (remoto != null && remoto.id != null) {
                             // Si existe, siempre ACTUALIZAR (incluso si la cantidad es igual, por si otros campos cambiaron)
-                            inventarioRemoteRepository.actualizarInventario(remoto.id, dto)
+                            android.util.Log.d("InventarioVM", "Inventario existe, ACTUALIZANDO id=${remoto.id}...")
+                            val updateResult = inventarioRemoteRepository.actualizarInventario(remoto.id, dto)
+                            if (updateResult.isSuccess) {
+                                android.util.Log.d("InventarioVM", "✅ Inventario actualizado correctamente")
+                            } else {
+                                android.util.Log.e("InventarioVM", "❌ Error al actualizar: ${updateResult.exceptionOrNull()?.message}")
+                            }
                         } else {
                             // Si no existe, CREAR
-                            inventarioRemoteRepository.crearInventario(dto)
+                            android.util.Log.d("InventarioVM", "Inventario NO existe, CREANDO nuevo...")
+                            val createResult = inventarioRemoteRepository.crearInventario(dto)
+                            if (createResult.isSuccess) {
+                                android.util.Log.d("InventarioVM", "✅ Inventario creado correctamente")
+                            } else {
+                                android.util.Log.e("InventarioVM", "❌ Error al crear: ${createResult.exceptionOrNull()?.message}")
+                            }
                         }
                     }
                 }
 
+                android.util.Log.d("InventarioVM", "=== FIN actualizarInventario ===")
                 Toast.makeText(context, "Inventario sincronizado", Toast.LENGTH_SHORT).show()
                 cargarInventarioDeModelo(idModelo) // Recargar para ver cambios
                 onSuccess()
 
             } catch (e: Exception) {
+                android.util.Log.e("InventarioVM", "❌❌❌ EXCEPCIÓN en actualizarInventario: ${e.message}", e)
                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }

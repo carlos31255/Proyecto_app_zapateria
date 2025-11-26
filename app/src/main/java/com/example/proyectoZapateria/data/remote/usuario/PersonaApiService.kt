@@ -32,9 +32,13 @@ interface PersonaApiService {
     @GET("personas/estado/{estado}")
     suspend fun obtenerPersonasPorEstado(@Path("estado") estado: String): Response<List<PersonaDTO>>
 
-    // Crear nueva persona
+    // Crear nueva persona (registro público - sin requerir RUT)
     @POST("personas")
     suspend fun crearPersona(@Body personaDTO: PersonaDTO): Response<PersonaDTO>
+
+    // Crear persona desde admin (requiere RUT - para trabajadores)
+    @POST("personas/admin")
+    suspend fun crearPersonaAdmin(@Body personaDTO: PersonaDTO): Response<PersonaDTO>
 
     // Actualizar persona
     @PUT("personas/{id}")

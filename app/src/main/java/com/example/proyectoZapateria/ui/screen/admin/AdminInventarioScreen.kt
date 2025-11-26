@@ -496,6 +496,9 @@ fun EditarProductoCompletoDialog(
     var nombreError by remember { mutableStateOf<String?>(null) }
     var precioError by remember { mutableStateOf<String?>(null) }
 
+    // Estado de loading mientras se guardan los cambios
+    var isGuardando by remember { mutableStateOf(false) }
+
     // Cargar inventario y tallas
     val tallas by viewModel.tallas.collectAsStateWithLifecycle()
     val inventario by viewModel.inventarioPorModelo.collectAsStateWithLifecycle()
@@ -518,7 +521,7 @@ fun EditarProductoCompletoDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = if (isGuardando) { {} } else onDismiss) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -526,22 +529,23 @@ fun EditarProductoCompletoDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
-            // Si el inventario del modelo está cargando, mostrar loader central
-            if (loadingInventario == producto.id) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Cargando inventario...", style = MaterialTheme.typography.bodyMedium)
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Si el inventario del modelo está cargando, mostrar loader central
+                if (loadingInventario == producto.id) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Cargando inventario...", style = MaterialTheme.typography.bodyMedium)
+                        }
                     }
+                    return@Box
                 }
-                return@Card
-            }
 
-            LazyColumn(
+                LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(24.dp)
@@ -708,7 +712,18 @@ fun EditarProductoCompletoDialog(
                             onClick = {
                                 if (nombre.isNotBlank() &&
                                     precio.toIntOrNull() != null &&
-                                    precio.toInt() > 0) {
+                                    precio.toInt() > 0 &&
+                                    !isGuardando) {
+
+                                    // Activar estado de loading
+                                    isGuardando = true
+
+                                    android.util.Log.d("AdminInventario", "=== GUARDAR CAMBIOS ===")
+                                    android.util.Log.d("AdminInventario", "Producto ID: ${producto.id}")
+                                    android.util.Log.d("AdminInventario", "Tallas a guardar: ${stockPorTalla.size}")
+                                    stockPorTalla.forEach { (tallaId, stock) ->
+                                        android.util.Log.d("AdminInventario", "  - Talla ID=$tallaId, Stock=$stock")
+                                    }
 
                                     // Verificar si cambiaron los datos del producto
                                     val nombreCambio = nombre.trim() != producto.nombre
@@ -716,9 +731,16 @@ fun EditarProductoCompletoDialog(
                                     val descripcionCambio = descripcion.trim().ifBlank { null } != producto.descripcion
                                     val marcaCambio = idMarcaSeleccionada != producto.marcaId
 
+                                    android.util.Log.d("AdminInventario", "Cambios detectados:")
+                                    android.util.Log.d("AdminInventario", "  - Nombre: $nombreCambio (${producto.nombre} → ${nombre.trim()})")
+                                    android.util.Log.d("AdminInventario", "  - Precio: $precioCambio (${producto.precioUnitario} → ${precio.toInt()})")
+                                    android.util.Log.d("AdminInventario", "  - Descripción: $descripcionCambio")
+                                    android.util.Log.d("AdminInventario", "  - Marca: $marcaCambio")
+
                                     val productoCambio = nombreCambio || precioCambio || descripcionCambio || marcaCambio
 
                                     if (productoCambio) {
+                                        android.util.Log.d("AdminInventario", "✅ Producto cambió → Actualizar PRODUCTO + INVENTARIO")
                                         // Solo actualizar el producto si cambió
                                         viewModel.actualizarProducto(
                                             producto,
@@ -727,6 +749,7 @@ fun EditarProductoCompletoDialog(
                                             descripcion.trim().ifBlank { null },
                                             idMarcaSeleccionada,
                                             onSuccess = {
+                                                android.util.Log.d("AdminInventario", "Producto actualizado, ahora actualizando inventario...")
                                                 // Luego actualizar inventario
                                                 val inventarioMap = stockPorTalla.mapKeys { it.key }
                                                     .mapValues { (_, stock) -> stock.toIntOrNull() ?: 0 }
@@ -736,12 +759,19 @@ fun EditarProductoCompletoDialog(
                                                         idProd,
                                                         inventarioMap,
                                                         context,
-                                                        onSuccess = { onDismiss() }
+                                                        onSuccess = {
+                                                            isGuardando = false
+                                                            onDismiss()
+                                                        }
                                                     )
-                                                } ?: onDismiss()
+                                                } ?: run {
+                                                    isGuardando = false
+                                                    onDismiss()
+                                                }
                                             }
                                         )
                                     } else {
+                                        android.util.Log.d("AdminInventario", "✅ Solo tallas cambiaron → Actualizar SOLO INVENTARIO")
                                         // Solo actualizar inventario si no cambió el producto
                                         val inventarioMap = stockPorTalla.mapKeys { it.key }
                                             .mapValues { (_, stock) -> stock.toIntOrNull() ?: 0 }
@@ -751,22 +781,77 @@ fun EditarProductoCompletoDialog(
                                                 idProd,
                                                 inventarioMap,
                                                 context,
-                                                onSuccess = { onDismiss() }
+                                                onSuccess = {
+                                                    isGuardando = false
+                                                    onDismiss()
+                                                }
                                             )
-                                        } ?: onDismiss()
+                                        } ?: run {
+                                            isGuardando = false
+                                            onDismiss()
+                                        }
                                     }
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            enabled = nombre.isNotBlank() &&
+                            enabled = !isGuardando &&
+                                     nombre.isNotBlank() &&
                                      precio.toIntOrNull() != null &&
                                      precio.toInt() > 0
                         ) {
-                            Text("Guardar")
+                            if (isGuardando) {
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Guardando...")
+                                }
+                            } else {
+                                Text("Guardar")
+                            }
                         }
                     }
                 }
             }
+
+            // Overlay de loading cuando se está guardando
+            if (isGuardando) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            strokeWidth = 4.dp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Guardando cambios...",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Por favor espera",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
         }
     }
 }

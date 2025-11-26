@@ -315,7 +315,7 @@ class UsuarioViewModel @Inject constructor(
             _crearUsuarioState.value = _crearUsuarioState.value.copy(isLoading = true, errorMessage = null)
 
             try {
-                // Crear persona en API
+                // Crear persona en API usando endpoint de admin (requiere RUT)
                 val personaDTO = PersonaDTO(
                     idPersona = null,
                     nombre = state.nombre,
@@ -331,7 +331,8 @@ class UsuarioViewModel @Inject constructor(
                     estado = "activo"
                 )
 
-                val personaResult = personaRemoteRepository.crearPersona(personaDTO)
+                // Usar endpoint de admin que requiere RUT (para trabajadores)
+                val personaResult = personaRemoteRepository.crearPersonaAdmin(personaDTO)
                 if (personaResult.isFailure) {
                     throw Exception(personaResult.exceptionOrNull()?.message ?: "Error al crear persona")
                 }

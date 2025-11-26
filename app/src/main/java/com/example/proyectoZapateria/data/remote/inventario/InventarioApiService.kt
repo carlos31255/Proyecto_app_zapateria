@@ -1,5 +1,6 @@
 package com.example.proyectoZapateria.data.remote.inventario
 
+import android.util.Log
 import com.example.proyectoZapateria.data.remote.inventario.dto.InventarioDTO
 import retrofit2.Response
 import retrofit2.http.Body

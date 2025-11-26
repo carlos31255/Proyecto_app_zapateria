@@ -87,13 +87,24 @@ class PersonaRemoteRepository @Inject constructor(
         }
     }
 
-    // Crear nueva persona
+    // Crear nueva persona (registro público - RUT opcional)
     suspend fun crearPersona(personaDTO: PersonaDTO): Result<PersonaDTO?> {
         return try {
             val response = personaApi.crearPersona(personaDTO)
             if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al crear persona: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    // Crear persona desde admin (requiere RUT - para trabajadores)
+    suspend fun crearPersonaAdmin(personaDTO: PersonaDTO): Result<PersonaDTO?> {
+        return try {
+            val response = personaApi.crearPersonaAdmin(personaDTO)
+            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+        } catch (e: Exception) {
+            Log.e("PersonaRemoteRepo", "Error al crear persona (admin): ${e.message}", e)
             Result.failure(e)
         }
     }
