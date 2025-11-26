@@ -25,7 +25,6 @@ import com.example.proyectoZapateria.navigation.Route
 import com.example.proyectoZapateria.viewmodel.admin.VentasViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.util.*
 import java.util.Calendar
 import java.util.TimeZone
@@ -490,25 +489,37 @@ private fun formatearFecha(fechaStr: String, formatter: SimpleDateFormat): Strin
     return try {
         if (fechaStr.isBlank()) return "Fecha no disponible"
 
-        // Intentar parsear como ISO-8601
-        try {
-            val instant = Instant.parse(fechaStr)
-            formatter.format(Date.from(instant))
-        } catch (e: Exception) {
-            // Intentar parsear como LocalDateTime
+        // Lista de formatos de entrada posibles
+        val inputFormats = listOf(
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            },
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        )
+
+        // Intentar parsear con cada formato
+        for (inputFormat in inputFormats) {
             try {
-                val localDateTime = java.time.LocalDateTime.parse(fechaStr)
-                val instant = localDateTime.atZone(java.time.ZoneId.systemDefault()).toInstant()
-                formatter.format(Date.from(instant))
-            } catch (e2: Exception) {
-                // Si ya está en formato legible, devolverlo tal cual
-                if (fechaStr.contains("/") || fechaStr.contains("-")) {
-                    fechaStr
-                } else {
-                    "Fecha no disponible"
+                val date = inputFormat.parse(fechaStr)
+                if (date != null) {
+                    return formatter.format(date)
                 }
+            } catch (e: Exception) {
+                continue
             }
         }
+
+        // Si ya está en formato legible (dd/MM/yyyy), devolverlo tal cual
+        if (fechaStr.matches(Regex("\\d{2}/\\d{2}/\\d{4}.*"))) {
+            return fechaStr
+        }
+
+        // Si no se pudo parsear con ningún formato, mostrar mensaje
+        "Fecha no disponible"
     } catch (e: Exception) {
         "Fecha no disponible"
     }
