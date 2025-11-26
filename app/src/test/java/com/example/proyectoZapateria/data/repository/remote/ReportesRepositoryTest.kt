@@ -2,6 +2,7 @@ package com.example.proyectoZapateria.data.repository.remote
 
 import com.example.proyectoZapateria.data.remote.reportes.ReportesApiService
 import com.example.proyectoZapateria.data.remote.reportes.dto.*
+import com.example.proyectoZapateria.data.remote.ventas.ReportesVentasApiService
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -12,17 +13,18 @@ import retrofit2.Response
 class ReportesRepositoryTest {
 
     private val api = mockk<ReportesApiService>()
-    private val repository = ReportesRemoteRepository(api)
+    private val ventasApi = mockk<ReportesVentasApiService>()
+    private val repository = ReportesRemoteRepository(api, ventasApi)
 
     @Test
     fun fetchEstadisticasGenerales_retorna_estadisticas_validas() = runBlocking {
         val estadisticas = EstadisticasGeneralesDTO(
-            totalProductos = 100,
-            totalMovimientos = 500,
+            totalProductos = 100L,
+            totalMovimientos = 500L,
             stockTotal = 1000,
-            productosConStockBajo = 5,
-            productosSinStock = 2,
-            promedioStockPorProducto = 10.0
+            productosStockBajo = 5L,
+            productosSinStock = 2L,
+            promedioStock = 10.0
         )
 
         coEvery { api.obtenerEstadisticasGenerales(null, null) } returns Response.success(estadisticas)
@@ -30,7 +32,7 @@ class ReportesRepositoryTest {
         val result = repository.fetchEstadisticasGenerales()
 
         assertTrue(result.isSuccess)
-        assertEquals(100, result.getOrNull()!!.totalProductos)
+        assertEquals(100L, result.getOrNull()!!.totalProductos)
     }
 
     @Test
@@ -41,9 +43,9 @@ class ReportesRepositoryTest {
                 productoId = 10L,
                 nombre = "Nike Air",
                 talla = "42",
-                cantidadActual = 2,
+                cantidad = 2,
                 stockMinimo = 5,
-                diferencia = -3
+                faltante = -3
             )
         )
 
@@ -61,9 +63,9 @@ class ReportesRepositoryTest {
             totalMovimientos = 100L,
             movimientosEntrada = 60L,
             movimientosSalida = 40L,
-            cantidadTotalEntradas = 200,
-            cantidadTotalSalidas = 150,
-            saldoMovimientos = 50
+            totalEntradas = 200,
+            totalSalidas = 150,
+            saldoNeto = 50
         )
 
         coEvery { api.obtenerMovimientosEstadisticas() } returns Response.success(movimientos)
@@ -81,7 +83,7 @@ class ReportesRepositoryTest {
             nombreProducto = "Nike Air Max",
             totalTallas = 5,
             stockTotal = 50,
-            detallePorTalla = emptyList(),
+            detalleTallas = emptyList(),
             totalMovimientos = 20L
         )
 
