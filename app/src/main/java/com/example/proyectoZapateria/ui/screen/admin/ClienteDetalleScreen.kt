@@ -540,16 +540,34 @@ private fun formatDate(fechaStr: String): String {
         // Primero intentar como timestamp en milisegundos
         val timestamp = fechaStr.toLongOrNull()
         if (timestamp != null) {
-            val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             return sdf.format(Date(timestamp))
         }
 
         // Si no es timestamp, intentar parsear como ISO
         val instant = Instant.parse(fechaStr)
-        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         sdf.format(Date.from(instant))
     } catch (e: Exception) {
-        fechaStr
+        // Intentar otros formatos comunes
+        val formatos = listOf(
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        )
+
+        var fechaParseada: Date? = null
+        for (formato in formatos) {
+            try {
+                fechaParseada = formato.parse(fechaStr)
+                if (fechaParseada != null) break
+            } catch (e: Exception) {
+                continue
+            }
+        }
+
+        fechaParseada?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) } ?: fechaStr
     }
 }
 

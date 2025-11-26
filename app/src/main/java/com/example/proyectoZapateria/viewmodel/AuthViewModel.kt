@@ -255,9 +255,13 @@ class AuthViewModel @Inject constructor(
     fun onRegisterRutChange(value: String) {
         // Formato RUT: 12345678-9 (permitir solo dígitos y guión)
         val filtered = value.filter { it.isDigit() || it == '-' }
+
+        // Validar formato, pero solo si el valor no está vacío
         val rutError = if (filtered.isNotBlank() && !filtered.matches(Regex("^\\d{7,8}-[\\dkK]$"))) {
             "RUT inválido (Ej: 12345678-9)"
         } else null
+
+        // Siempre limpiar el error al cambiar el valor (incluyendo errores del servidor)
         _register.update { it.copy(rut = filtered, rutError = rutError) }
         recomputeRegisterCanSubmit()
     }

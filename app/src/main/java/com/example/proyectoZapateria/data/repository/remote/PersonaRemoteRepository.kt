@@ -3,6 +3,8 @@ package com.example.proyectoZapateria.data.repository.remote
 import android.util.Log
 import com.example.proyectoZapateria.data.remote.usuario.PersonaApiService
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
+import org.json.JSONObject
+import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,6 +12,23 @@ import javax.inject.Singleton
 class PersonaRemoteRepository @Inject constructor(
     private val personaApi: PersonaApiService
 ) {
+    /**
+     * Función auxiliar para extraer el mensaje de error del errorBody JSON
+     * El backend devuelve errores en formato: {"error": "mensaje descriptivo"}
+     */
+    private fun parseErrorMessage(response: Response<*>): String {
+        return try {
+            val errorBody = response.errorBody()?.string()
+            if (errorBody != null) {
+                val jsonError = JSONObject(errorBody)
+                jsonError.optString("error", response.message())
+            } else {
+                response.message()
+            }
+        } catch (e: Exception) {
+            response.message()
+        }
+    }
     // Obtener todas las personas
     suspend fun obtenerTodasLasPersonas(): Result<List<PersonaDTO>> {
         return try {
@@ -35,7 +54,9 @@ class PersonaRemoteRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body())
             } else {
-                Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+                val errorMessage = parseErrorMessage(response)
+                Log.e("PersonaRemoteRepo", "Error al obtener persona por ID: ${response.code()} - $errorMessage")
+                Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al obtener persona por ID: ${e.message}", e)
@@ -47,7 +68,13 @@ class PersonaRemoteRepository @Inject constructor(
     suspend fun obtenerPersonaPorRut(rut: String): Result<PersonaDTO?> {
         return try {
             val response = personaApi.obtenerPersonaPorRut(rut)
-            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            if (response.isSuccessful) {
+                Result.success(response.body())
+            } else {
+                val errorMessage = parseErrorMessage(response)
+                Log.e("PersonaRemoteRepo", "Error al obtener persona por RUT: ${response.code()} - $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al obtener persona por RUT: ${e.message}", e)
             Result.failure(e)
@@ -58,7 +85,13 @@ class PersonaRemoteRepository @Inject constructor(
     suspend fun obtenerPersonaPorUsername(username: String): Result<PersonaDTO?> {
         return try {
             val response = personaApi.obtenerPersonaPorUsername(username)
-            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            if (response.isSuccessful) {
+                Result.success(response.body())
+            } else {
+                val errorMessage = parseErrorMessage(response)
+                Log.e("PersonaRemoteRepo", "Error al obtener persona por username: ${response.code()} - $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al obtener persona por username: ${e.message}", e)
             Result.failure(e)
@@ -91,7 +124,13 @@ class PersonaRemoteRepository @Inject constructor(
     suspend fun crearPersona(personaDTO: PersonaDTO): Result<PersonaDTO?> {
         return try {
             val response = personaApi.crearPersona(personaDTO)
-            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            if (response.isSuccessful) {
+                Result.success(response.body())
+            } else {
+                val errorMessage = parseErrorMessage(response)
+                Log.e("PersonaRemoteRepo", "Error al crear persona: ${response.code()} - $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al crear persona: ${e.message}", e)
             Result.failure(e)
@@ -102,7 +141,13 @@ class PersonaRemoteRepository @Inject constructor(
     suspend fun crearPersonaAdmin(personaDTO: PersonaDTO): Result<PersonaDTO?> {
         return try {
             val response = personaApi.crearPersonaAdmin(personaDTO)
-            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            if (response.isSuccessful) {
+                Result.success(response.body())
+            } else {
+                val errorMessage = parseErrorMessage(response)
+                Log.e("PersonaRemoteRepo", "Error al crear persona (admin): ${response.code()} - $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al crear persona (admin): ${e.message}", e)
             Result.failure(e)
@@ -113,7 +158,13 @@ class PersonaRemoteRepository @Inject constructor(
     suspend fun actualizarPersona(id: Long, personaDTO: PersonaDTO): Result<PersonaDTO?> {
         return try {
             val response = personaApi.actualizarPersona(id, personaDTO)
-            if (response.isSuccessful) Result.success(response.body()) else Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            if (response.isSuccessful) {
+                Result.success(response.body())
+            } else {
+                val errorMessage = parseErrorMessage(response)
+                Log.e("PersonaRemoteRepo", "Error al actualizar persona: ${response.code()} - $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
         } catch (e: Exception) {
             Log.e("PersonaRemoteRepo", "Error al actualizar persona: ${e.message}", e)
             Result.failure(e)
