@@ -127,4 +127,12 @@ class ClienteViewModel @Inject constructor(
     fun limpiarError() {
         _errorMessage.value = null
     }
+
+    suspend fun cargarDetallesBoleta(boletaId: Long): Result<List<com.example.proyectoZapateria.data.remote.ventas.dto.DetalleBoletaDTO>> {
+        return try {
+            ventasRepository.obtenerDetallesDeBoleta(boletaId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -176,7 +176,10 @@ fun ClienteDetalleScreen(
                         }
                     } else {
                         items(clienteSeleccionado!!.pedidos.size) { index ->
-                            PedidoCard(pedido = clienteSeleccionado!!.pedidos[index])
+                            PedidoCard(
+                                pedido = clienteSeleccionado!!.pedidos[index],
+                                viewModel = viewModel
+                            )
                         }
                     }
                 }
@@ -306,9 +309,29 @@ fun InfoRow(
 }
 
 @Composable
-fun PedidoCard(pedido: BoletaDTO) {
+fun PedidoCard(
+    pedido: BoletaDTO,
+    viewModel: ClienteViewModel = hiltViewModel()
+) {
     val colorScheme = MaterialTheme.colorScheme
     var expanded by remember { mutableStateOf(false) }
+    var detalles by remember { mutableStateOf<List<DetalleBoletaDTO>?>(pedido.detalles) }
+    var isLoadingDetalles by remember { mutableStateOf(false) }
+    var errorDetalles by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(expanded) {
+        if (expanded && detalles == null && pedido.id != null) {
+            isLoadingDetalles = true
+            errorDetalles = null
+            val result = viewModel.cargarDetallesBoleta(pedido.id)
+            isLoadingDetalles = false
+            if (result.isSuccess) {
+                detalles = result.getOrNull()
+            } else {
+                errorDetalles = "Error al cargar detalles: ${result.exceptionOrNull()?.message}"
+            }
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -374,7 +397,7 @@ fun PedidoCard(pedido: BoletaDTO) {
                 onClick = { expanded = !expanded },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (expanded) "Ocultar detalles" else "Ver detalles")
+                Text(if (expanded) "Ocultar detalles" else "Mostrar detalles")
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
@@ -385,32 +408,57 @@ fun PedidoCard(pedido: BoletaDTO) {
             if (expanded) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                val detalles = pedido.detalles ?: emptyList()
-
-                if (detalles.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No hay detalles disponibles",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colorScheme.onSurfaceVariant
-                        )
+                when {
+                    isLoadingDetalles -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                        }
                     }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Productos:",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
+                    errorDetalles != null -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = errorDetalles!!,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.error
+                            )
+                        }
+                    }
+                    detalles.isNullOrEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No hay detalles disponibles",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    else -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "Productos:",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
 
-                        detalles.forEach { producto ->
-                            ProductoItemRow(producto)
+                            detalles!!.forEach { producto ->
+                                ProductoItemRow(producto)
+                            }
                         }
                     }
                 }
