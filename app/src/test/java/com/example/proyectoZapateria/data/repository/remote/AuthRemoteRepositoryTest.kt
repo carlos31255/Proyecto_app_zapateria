@@ -100,6 +100,7 @@ class AuthRemoteRepositoryTest {
         val apellido = "González"
         val email = "maria@test.com"
         val telefono = "912345678"
+        val rut = "22222222-2"
         val password = "password123"
         val calle = "Av. Principal"
         val numeroPuerta = "456"
@@ -108,7 +109,7 @@ class AuthRemoteRepositoryTest {
             idPersona = 5L,
             nombre = nombre,
             apellido = apellido,
-            rut = "00000000-0",
+            rut = rut,
             telefono = telefono,
             email = email,
             idComuna = null,
@@ -133,7 +134,7 @@ class AuthRemoteRepositoryTest {
         coEvery { usuarioRemoteRepository.crearUsuario(any()) } returns Result.success(usuarioCreado)
 
         // Act
-        val result = repository.register(nombre, apellido, email, telefono, password, idComuna = null, calle = calle, numeroPuerta = numeroPuerta)
+        val result = repository.register(nombre, apellido, email, telefono, rut, password, idComuna = null, calle = calle, numeroPuerta = numeroPuerta)
 
         // Assert
         assertTrue(result.isSuccess)
