@@ -210,19 +210,53 @@ fun ReportesScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
                             Icon(
-                                Icons.Default.Error,
+                                if (state.message.contains("404") || state.message.contains("no disponible"))
+                                    Icons.Default.Construction
+                                else
+                                    Icons.Default.Error,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.error
+                                tint = if (state.message.contains("404") || state.message.contains("no disponible"))
+                                    colorScheme.primary
+                                else
+                                    colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                state.message,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error
+                                text = if (state.message.contains("404") || state.message.contains("no disponible"))
+                                    "Funcionalidad en Desarrollo"
+                                else
+                                    "Error al Cargar Reportes",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = colorScheme.onSurface
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = state.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            if (state.message.contains("404") || state.message.contains("no disponible")) {
+                                Text(
+                                    text = "Los reportes de ventas estarán disponibles próximamente.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Button(onClick = { viewModel.generarReporte() }) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Reintentar")
+                                }
+                            }
                         }
                     }
                 }

@@ -22,55 +22,62 @@ class ReportesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<ReportesUiState>(ReportesUiState.Initial)
     val uiState: StateFlow<ReportesUiState> = _uiState.asStateFlow()
 
-    private val _anioSeleccionado = MutableStateFlow(Calendar.getInstance().get(Calendar.YEAR))
-    val anioSeleccionado: StateFlow<Int> = _anioSeleccionado.asStateFlow()
+    private val _estadisticasGenerales = MutableStateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.EstadisticasGeneralesDTO?>(null)
+    val estadisticasGenerales: StateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.EstadisticasGeneralesDTO?> = _estadisticasGenerales.asStateFlow()
 
-    private val _mesSeleccionado = MutableStateFlow<Int?>(null)
-    val mesSeleccionado: StateFlow<Int?> = _mesSeleccionado.asStateFlow()
+    private val _stockBajo = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.StockBajoItemDTO>>(emptyList())
+    val stockBajo: StateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.StockBajoItemDTO>> = _stockBajo.asStateFlow()
 
-    private val _reporteActual = MutableStateFlow<ReporteVentasDTO?>(null)
-    val reporteActual: StateFlow<ReporteVentasDTO?> = _reporteActual.asStateFlow()
+    private val _topStock = MutableStateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.TopProductoDTO>>(emptyList())
+    val topStock: StateFlow<List<com.example.proyectoZapateria.data.remote.reportes.dto.TopProductoDTO>> = _topStock.asStateFlow()
 
-    fun seleccionarAnio(anio: Int) {
-        _anioSeleccionado.value = anio
-        // Al cambiar el año, resetear el mes si estaba seleccionado
-        if (_mesSeleccionado.value != null) {
-            generarReporte()
-        }
+    private val _movimientosEstadisticas = MutableStateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.MovimientosEstadisticasDTO?>(null)
+    val movimientosEstadisticas: StateFlow<com.example.proyectoZapateria.data.remote.reportes.dto.MovimientosEstadisticasDTO?> = _movimientosEstadisticas.asStateFlow()
+
+    init {
+        cargarReportes()
     }
 
-    fun seleccionarMes(mes: Int?) {
-        _mesSeleccionado.value = mes
-        generarReporte()
-    }
-
-    fun generarReporte() {
+    fun cargarReportes() {
         viewModelScope.launch {
             _uiState.value = ReportesUiState.Loading
 
             try {
-                val result = reportesRemoteRepository.fetchReporteVentas(
-                    mes = _mesSeleccionado.value,
-                    anio = _anioSeleccionado.value
-                )
-
-                if (result.isFailure) {
-                    _uiState.value = ReportesUiState.Error(
-                        result.exceptionOrNull()?.message ?: "Error al obtener reporte"
-                    )
-                    return@launch
+                // Cargar estadísticas generales
+                val estadisticasResult = reportesRemoteRepository.fetchEstadisticasGenerales()
+                if (estadisticasResult.isSuccess) {
+                    _estadisticasGenerales.value = estadisticasResult.getOrNull()
                 }
 
-                val reporte = result.getOrNull()
-                if (reporte != null) {
-                    _reporteActual.value = reporte
-                    _uiState.value = ReportesUiState.Success(reporte)
+                // Cargar stock bajo
+                val stockBajoResult = reportesRemoteRepository.fetchStockBajo()
+                if (stockBajoResult.isSuccess) {
+                    _stockBajo.value = stockBajoResult.getOrNull() ?: emptyList()
+                }
+
+                // Cargar top stock
+                val topStockResult = reportesRemoteRepository.fetchTopStock(10)
+                if (topStockResult.isSuccess) {
+                    _topStock.value = topStockResult.getOrNull() ?: emptyList()
+                }
+
+                // Cargar estadísticas de movimientos
+                val movimientosResult = reportesRemoteRepository.fetchMovimientosEstadisticas()
+                if (movimientosResult.isSuccess) {
+                    _movimientosEstadisticas.value = movimientosResult.getOrNull()
+                }
+
+                // Si todo fue exitoso
+                if (estadisticasResult.isSuccess) {
+                    _uiState.value = ReportesUiState.Success
                 } else {
-                    _uiState.value = ReportesUiState.Error("No se pudo obtener el reporte")
+                    _uiState.value = ReportesUiState.Error(
+                        estadisticasResult.exceptionOrNull()?.message ?: "Error al cargar reportes"
+                    )
                 }
 
             } catch (e: Exception) {
-                _uiState.value = ReportesUiState.Error(e.message ?: "Error al generar reporte")
+                _uiState.value = ReportesUiState.Error(e.message ?: "Error al cargar reportes")
             }
         }
     }
@@ -104,6 +111,6 @@ class ReportesViewModel @Inject constructor(
 sealed class ReportesUiState {
     object Initial : ReportesUiState()
     object Loading : ReportesUiState()
-    data class Success(val reporte: ReporteVentasDTO) : ReportesUiState()
+    object Success : ReportesUiState()
     data class Error(val message: String) : ReportesUiState()
 }

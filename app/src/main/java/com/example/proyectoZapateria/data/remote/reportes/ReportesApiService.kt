@@ -7,11 +7,10 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ReportesApiService {
-
     @GET("reportes/estadisticas-generales")
     suspend fun obtenerEstadisticasGenerales(
-        @Query("desde") desde: String?,
-        @Query("hasta") hasta: String?
+        @Query("desde") desde: String? = null,
+        @Query("hasta") hasta: String? = null
     ): Response<EstadisticasGeneralesDTO>
 
     @GET("reportes/stock-bajo")
@@ -21,14 +20,13 @@ interface ReportesApiService {
     suspend fun obtenerMovimientosEstadisticas(): Response<MovimientosEstadisticasDTO>
 
     @GET("reportes/productos/{productoId}/estadisticas")
-    suspend fun obtenerEstadisticasProducto(@Path("productoId") productoId: Long): Response<ProductoEstadisticasDTO>
+    suspend fun obtenerEstadisticasProducto(
+        @Path("productoId") productoId: Long
+    ): Response<ProductoEstadisticasDTO>
 
     @GET("reportes/productos/top-stock")
-    suspend fun obtenerTopStock(@Query("limit") limit: Int = 10): Response<List<TopProductoDTO>>
-
-    @GET("reportes/ventas")
-    suspend fun obtenerReporteVentas(
-        @Query("mes") mes: Int?,
-        @Query("anio") anio: Int
-    ): Response<ReporteVentasDTO>
+    suspend fun obtenerTopStock(
+        @Query("limit") limit: Int = 10
+    ): Response<List<TopProductoDTO>>
 }
+

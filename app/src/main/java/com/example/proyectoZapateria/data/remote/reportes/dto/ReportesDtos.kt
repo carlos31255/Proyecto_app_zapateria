@@ -10,7 +10,7 @@ data class EstadisticasGeneralesDTO(
     val promedioStockPorProducto: Double
 )
 
-// Item para lista de stock bajo
+// Item para lista de stock bajo (debe coincidir con ProductoResumenDTO del backend)
 data class StockBajoItemDTO(
     val id: Long,
     val productoId: Long,
@@ -20,6 +20,9 @@ data class StockBajoItemDTO(
     val stockMinimo: Int,
     val diferencia: Int
 )
+
+// Alias para compatibilidad con el backend
+typealias ProductoResumenDTO = StockBajoItemDTO
 
 // Estadísticas de movimientos
 data class MovimientosEstadisticasDTO(
@@ -48,6 +51,9 @@ data class DetalleTallaDTO(
     val alertaStockBajo: Boolean
 )
 
+// Alias para compatibilidad con el backend
+typealias TallaDetalleDTO = DetalleTallaDTO
+
 // DTO para top productos por stock
 data class TopProductoDTO(
     val productoId: Long,
@@ -55,6 +61,9 @@ data class TopProductoDTO(
     val talla: String,
     val cantidad: Int
 )
+
+// Alias para compatibilidad con el backend
+typealias TopStockDTO = TopProductoDTO
 
 // ==========================================
 // DTOs para Reportes de Ventas
