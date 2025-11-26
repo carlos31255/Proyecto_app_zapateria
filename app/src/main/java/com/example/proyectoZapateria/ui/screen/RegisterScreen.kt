@@ -256,6 +256,7 @@ internal fun RegisterScreen( // internal por que la funcion es privada
                     value = phone,
                     onValueChange = onPhoneChange,
                     label = { Text("Teléfono") },
+                    placeholder = { Text("Ej: +56912345678") },
                     singleLine = true,
                     isError = phoneError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
