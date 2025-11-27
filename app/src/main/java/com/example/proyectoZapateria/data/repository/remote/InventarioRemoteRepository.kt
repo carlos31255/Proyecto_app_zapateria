@@ -41,13 +41,7 @@ class InventarioRemoteRepository @Inject constructor(
     suspend fun crearModeloConImagen(productoJson: RequestBody, imagen: MultipartBody.Part?) = safeApiCall { productoApi.crearProductoMultipart(productoJson, imagen) }
 
     suspend fun actualizarModelo(id: Long, producto: ProductoDTO): Result<ProductoDTO> {
-        android.util.Log.d("InventarioRepo", ">>> ACTUALIZAR producto id=$id: nombre=${producto.nombre}, precio=${producto.precioUnitario}")
         val result = safeApiCall { productoApi.actualizarProducto(id, producto) }
-        if (result.isSuccess) {
-            android.util.Log.d("InventarioRepo", "<<< ACTUALIZAR producto exitoso")
-        } else {
-            android.util.Log.e("InventarioRepo", "<<< ACTUALIZAR producto falló: ${result.exceptionOrNull()?.message}")
-        }
         return result
     }
 
@@ -82,35 +76,17 @@ class InventarioRemoteRepository @Inject constructor(
     }
 
     suspend fun crearInventario(dto: InventarioDTO): Result<InventarioDTO> {
-        android.util.Log.d("InventarioRepo", ">>> CREAR inventario: productoId=${dto.productoId}, tallaId=${dto.tallaId}, talla=${dto.talla}, cantidad=${dto.cantidad}")
         val result = safeApiCall { inventarioApi.crearInventario(dto) }
-        if (result.isSuccess) {
-            android.util.Log.d("InventarioRepo", "<<< CREAR exitoso: id=${result.getOrNull()?.id}")
-        } else {
-            android.util.Log.e("InventarioRepo", "<<< CREAR falló: ${result.exceptionOrNull()?.message}")
-        }
         return result
     }
 
     suspend fun actualizarInventario(id: Long, dto: InventarioDTO): Result<InventarioDTO> {
-        android.util.Log.d("InventarioRepo", ">>> ACTUALIZAR inventario id=$id: productoId=${dto.productoId}, tallaId=${dto.tallaId}, talla=${dto.talla}, cantidad=${dto.cantidad}")
         val result = safeApiCall { inventarioApi.actualizarInventario(id, dto) }
-        if (result.isSuccess) {
-            android.util.Log.d("InventarioRepo", "<<< ACTUALIZAR exitoso")
-        } else {
-            android.util.Log.e("InventarioRepo", "<<< ACTUALIZAR falló: ${result.exceptionOrNull()?.message}")
-        }
         return result
     }
 
     suspend fun eliminarStock(id: Long): Result<Void> {
-        android.util.Log.d("InventarioRepo", ">>> ELIMINAR inventario id=$id")
         val result = safeApiCall { inventarioApi.eliminarInventario(id) }
-        if (result.isSuccess) {
-            android.util.Log.d("InventarioRepo", "<<< ELIMINAR exitoso")
-        } else {
-            android.util.Log.e("InventarioRepo", "<<< ELIMINAR falló: ${result.exceptionOrNull()?.message}")
-        }
         return result
     }
 

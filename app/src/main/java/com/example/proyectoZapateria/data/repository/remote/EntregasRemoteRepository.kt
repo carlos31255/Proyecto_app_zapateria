@@ -22,6 +22,16 @@ class EntregasRemoteRepository @Inject constructor(
     private val _updates = MutableSharedFlow<Unit>(replay = 0)
     val updatesFlow = _updates.asSharedFlow()
 
+    suspend fun crearEntrega(request: com.example.proyectoZapateria.data.remote.entregas.dto.CrearEntregaRequest): Result<EntregaDTO> = try {
+        val result = NetworkUtils.safeApiCall { api.crearEntrega(request) }
+        if (result.isSuccess) {
+            try { _updates.emit(Unit) } catch (_: Throwable) {}
+        }
+        result
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     suspend fun obtenerTodasLasEntregas(): Result<List<EntregaDTO>> = try {
         NetworkUtils.safeApiCall { api.obtenerTodasLasEntregas() }
     } catch (e: Exception) {
@@ -35,7 +45,8 @@ class EntregasRemoteRepository @Inject constructor(
     }
 
     suspend fun obtenerEntregasPorTransportista(transportistaId: Long): Result<List<EntregaDTO>> = try {
-        NetworkUtils.safeApiCall { api.obtenerEntregasPorTransportista(transportistaId) }
+        val result = NetworkUtils.safeApiCall { api.obtenerEntregasPorTransportista(transportistaId) }
+        result
     } catch (e: Exception) {
         Result.failure(e)
     }
@@ -68,8 +79,7 @@ class EntregasRemoteRepository @Inject constructor(
     }
 
     suspend fun cambiarEstadoEntrega(entregaId: Long, nuevoEstado: String, observacion: String? = null): Result<EntregaDTO> = try {
-        val req = ActualizarEstadoRequest(estadoEntrega = nuevoEstado, observacion = observacion)
-        val res = NetworkUtils.safeApiCall { api.cambiarEstadoEntrega(entregaId, req) }
+        val res = NetworkUtils.safeApiCall { api.cambiarEstadoEntrega(entregaId, nuevoEstado) }
         if (res.isSuccess) {
             try { _updates.emit(Unit) } catch (_: Throwable) {}
         }

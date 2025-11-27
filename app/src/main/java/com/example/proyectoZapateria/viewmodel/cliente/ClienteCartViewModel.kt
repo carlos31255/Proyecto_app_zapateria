@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.viewmodel.cliente
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.carrito.dto.CartItemRequest
@@ -21,7 +20,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.google.gson.Gson
 
 @HiltViewModel
 class ClienteCartViewModel @Inject constructor(
@@ -29,7 +27,8 @@ class ClienteCartViewModel @Inject constructor(
     private val ventasRepository: VentasRemoteRepository,       // Remoto: Para crear la venta
     private val inventarioRepository: InventarioRemoteRepository, // Remoto: Para consultar stock y productos
     private val personaRemoteRepository: PersonaRemoteRepository, // Remoto: Dirección
-    private val authRemoteRepository: AuthRemoteRepository
+    private val authRemoteRepository: AuthRemoteRepository,
+    private val entregasRepository: com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository // Remoto: Para crear entregas
 ) : ViewModel() {
 
     data class CartItemUi(
@@ -62,7 +61,6 @@ class ClienteCartViewModel @Inject constructor(
         cargarDatosUsuario()
     }
 
-    // obtener los datos del usuario (direccion)
     private fun cargarDatosUsuario() {
         viewModelScope.launch {
             val current = authRemoteRepository.currentUser.value ?: return@launch
@@ -77,8 +75,7 @@ class ClienteCartViewModel @Inject constructor(
                     }
                     _uiState.value = _uiState.value.copy(address = direccion)
                 }
-            } catch (e: Exception) {
-                Log.e("ClienteCartVM", "Error cargando persona: ${e.message}")
+            } catch (_: Exception) {
             }
         }
     }
@@ -95,11 +92,9 @@ class ClienteCartViewModel @Inject constructor(
                     return@launch
                 }
 
-                // --- Empezar con snapshot del cache en memoria para una respuesta instantánea ---
                 try {
                     val snapshot = cartRepository.getCacheSnapshot(current.idPersona)
                     if (snapshot.isNotEmpty()) {
-                        Log.d("ClienteCartVM", "loadCart: using cache snapshot size=${snapshot.size} for cliente=${current.idPersona}")
                         val itemsUi = mutableListOf<CartItemUi>()
                         for (it in snapshot) {
                             itemsUi.add(mapToCartItemUi(it))
@@ -107,18 +102,15 @@ class ClienteCartViewModel @Inject constructor(
                         val total = snapshot.sumOf { it.cantidad.toLong() * it.precioUnitario }
                         _uiState.value = _uiState.value.copy(isLoading = false, items = itemsUi, total = total)
                     }
-                } catch (e: Exception) {
-                    Log.w("ClienteCartVM", "Failed to read cache snapshot: ${e.message}")
+                } catch (_: Exception) {
                 }
 
-                // small retry: si UI sigue vacía, intentar leer snapshot después de 200ms para cubrir condiciones de carrera
                 val initialSnapshotRetryJob = launch {
                     delay(200)
                     if (_uiState.value.items.isEmpty()) {
                         try {
                             val snap2 = cartRepository.getCacheSnapshot(current.idPersona)
                             if (snap2.isNotEmpty()) {
-                                Log.d("ClienteCartVM", "loadCart: retry snapshot found size=${snap2.size} for cliente=${current.idPersona}")
                                 val itemsUi2 = mutableListOf<CartItemUi>()
                                 for (it in snap2) {
                                     itemsUi2.add(mapToCartItemUi(it))
@@ -126,70 +118,43 @@ class ClienteCartViewModel @Inject constructor(
                                 val total2 = snap2.sumOf { it.cantidad.toLong() * it.precioUnitario }
                                 _uiState.value = _uiState.value.copy(isLoading = false, items = itemsUi2, total = total2)
                             }
-                        } catch (e: Exception) {
-                            Log.w("ClienteCartVM", "retry snapshot failed: ${e.message}")
+                        } catch (_: Exception) {
                         }
                     }
                 }
 
-                // Suscribirse al flow del repositorio para recibir emisiones futuras
                 cartRepository.getCartForCliente(current.idPersona).collect { lista ->
                     try {
-                        Log.d("ClienteCartVM", "loadCart: received lista.size=${lista.size} for cliente=${current.idPersona}")
-
-                        // Cancelar el job de retry si la emisión llegó
                         if (initialSnapshotRetryJob.isActive) initialSnapshotRetryJob.cancel()
 
-                        // Si la emisión es vacía pero la UI ya muestra items, confirmar antes de limpiar (evita parpadeos)
                         if (lista.isEmpty() && _uiState.value.items.isNotEmpty()) {
-                            // cancelar cualquier chequeo previo y programar uno nuevo
                             pendingEmptyJob?.cancel()
                             pendingEmptyJob = launch {
-                                // esperar un poco más para confirmar que no es una emisión transitoria
                                 delay(1500)
-                                 // si después del delay el snapshot remoto/local sigue vacío, entonces limpiar UI
                                  val snap = cartRepository.getCacheSnapshot(current.idPersona)
-                                 // Si hubo una actualización local reciente, no confirmar vacío (evitar race with local writes)
                                  val hadRecentLocal = cartRepository.hasRecentLocalUpdate(current.idPersona, 8000)
                                  val hasPending = cartRepository.hasPendingLocalChanges(current.idPersona)
                                  if (hadRecentLocal || hasPending) {
-                                     Log.d("ClienteCartVM", "loadCart: recent local update or pending local changes detected; ignoring transient empty emission for cliente=${current.idPersona} hadRecentLocal=$hadRecentLocal hasPending=$hasPending")
                                      return@launch
                                 }
                                  if (snap.isEmpty()) {
-                                     Log.d("ClienteCartVM", "loadCart: confirmed empty snapshot after delay for cliente=${current.idPersona}, updating UI to empty")
                                      _uiState.value = _uiState.value.copy(isLoading = false, items = emptyList(), total = 0L)
-                                 } else {
-                                     Log.d("ClienteCartVM", "loadCart: snapshot not empty after delay (size=${snap.size}), ignoring transient empty emission")
                                  }
                              }
                              return@collect
                          }
 
-                        // Verificar stock remoto y ajustar/eliminar items si es necesario
                         val ajustes = mutableListOf<String>()
                         for (item in lista) {
                             try {
-                                // Normalizar talla para usar en comparaciones y mensajes
                                 val talla = item.talla.trim()
 
-                                // Si el backend aún no proporcionó la talla para este item, no intentar verificar.
                                 if (talla.isBlank() || talla.equals("null", ignoreCase = true)) {
-                                    Log.d("ClienteCartVM", "Item modelo=${item.modeloId} sin talla aún; esperando actualización del servidor")
                                     continue
                                 }
 
-                                // Usar la versión "logged" que intenta rutas alternativas (alt/query)
                                 val invResult = inventarioRepository.getInventarioPorModeloLogged(item.modeloId)
 
-                                // Debug: loguear resultado remoto para depuración
-                                try {
-                                    val listaRemota = invResult.getOrNull()
-                                    Log.d("ClienteCartVM", "invResult success=${invResult.isSuccess} size=${listaRemota?.size ?: 0} for modelo=${item.modeloId}")
-                                    listaRemota?.take(5)?.forEach { inv ->
-                                        Log.d("ClienteCartVM", "  inv[id=${inv.id} productoId=${inv.productoId} talla='${inv.talla}' cantidad=${inv.cantidad} nombre='${inv.nombre}']")
-                                    }
-                                } catch (_: Exception) {}
 
                                 val inventarioRemoto = try {
                                     val list = invResult.getOrNull() ?: emptyList()
@@ -201,22 +166,18 @@ class ClienteCartViewModel @Inject constructor(
                                         } else false
                                         (invModeloKey == item.modeloId || nameMatch) && invTalla.trim().equals(talla, ignoreCase = true)
                                     }
-                                    if (primary != null) primary else {
-                                        // fallback: match only by talla
-                                        val byTalla = list.firstOrNull { it.talla.trim().equals(talla, ignoreCase = true) }
-                                        if (byTalla != null) {
-                                            Log.w("ClienteCartVM", "Fallback match by talla para modelo=${item.modeloId}: encontrada entrada invId=${byTalla.id} productoId=${byTalla.productoId}")
-                                        }
-                                        byTalla
+                                    if (primary != null) {
+                                        primary
+                                    } else {
+                                        list.firstOrNull { it.talla.trim().equals(talla, ignoreCase = true) }
                                     }
-                                } catch (e: Exception) {
+                                } catch (_: Exception) {
                                     null
                                 }
 
                                 if (inventarioRemoto == null) {
                                     val nombreProducto = item.nombreProducto ?: "Producto"
                                     val msg = "No pudimos verificar la disponibilidad de $nombreProducto (talla $talla). Verifica al finalizar la compra"
-                                    Log.w("ClienteCartVM", msg)
                                     ajustes.add(msg)
                                     continue
                                 } else if (inventarioRemoto.cantidad < item.cantidad) {
@@ -224,7 +185,6 @@ class ClienteCartViewModel @Inject constructor(
                                      val nombreProducto = item.nombreProducto ?: "el producto"
                                      if (nuevaCantidad <= 0) {
                                          val msg = "Lo sentimos, $nombreProducto (talla $talla) se agotó. Por favor elimínalo de tu carrito"
-                                         Log.w("ClienteCartVM", msg)
                                          ajustes.add(msg)
                                          continue
                                      } else {
@@ -247,8 +207,7 @@ class ClienteCartViewModel @Inject constructor(
                                          ajustes.add("Solo quedan $nuevaCantidad unidad(es) de $nombreProducto. Hemos ajustado tu carrito")
                                      }
                                  }
-                            } catch (e: Exception) {
-                                 Log.w("ClienteCartVM", "No se pudo verificar stock remoto para modelo ${item.modeloId}")
+                            } catch (_: Exception) {
                              }
                          }
 
@@ -267,8 +226,7 @@ class ClienteCartViewModel @Inject constructor(
                             _uiState.value = _uiState.value.copy(error = ajustes.joinToString("; "))
                         }
 
-                    } catch (e: Exception) {
-                        Log.e("ClienteCartVM", "Error processing cart emission: ${e.message}")
+                    } catch (_: Exception) {
                     }
                 }
 
@@ -527,32 +485,38 @@ class ClienteCartViewModel @Inject constructor(
                     detalles = detallesDTO.map { d -> d.copy(subtotal = (d.precioUnitario * d.cantidad)) }
                 )
 
-                Log.d("ClienteCartVM", "checkout: enviando crearBoleta request clienteId=$idCliente detalles=${request.detalles.size}")
-
-                // Log request body JSON para depuración de error 500 en backend
-                try {
-                    val gson = Gson()
-                    val jsonReq = gson.toJson(request)
-                    Log.d("ClienteCartVM", "checkout: requestJson=${jsonReq}")
-                } catch (_: Exception) {}
 
                 val response = ventasRepository.crearBoleta(request)
 
                 if (response.isSuccess) {
+                    val boletaCreada = response.getOrNull()
+                    val boletaId = boletaCreada?.id
+
+                    if (boletaId != null) {
+                        try {
+                            val entregaRequest = com.example.proyectoZapateria.data.remote.entregas.dto.CrearEntregaRequest(
+                                idBoleta = boletaId,
+                                idTransportista = null,
+                                estadoEntrega = "pendiente",
+                                observacion = "Dirección: ${_uiState.value.address}"
+                            )
+                            entregasRepository.crearEntrega(entregaRequest)
+                        } catch (_: Exception) {
+                        }
+                    }
+
                     cartRepository.clear(idCliente)
                     _uiState.value = _uiState.value.copy(
                         isCheckingOut = false,
                         checkoutSuccess = true,
-                        checkoutMessage = "¡Compra exitosa! Boleta #${response.getOrNull()?.id}",
+                        checkoutMessage = "¡Compra exitosa! Boleta #$boletaId",
                         shouldNavigateToHome = true
                     )
                 } else {
                     val err = response.exceptionOrNull()
                     val errMsg = err?.message ?: "Error desconocido"
-                    // Extraer el body si NetworkUtils lo agregó como ' - body=...'
                     val bodyIndex = errMsg.indexOf(" - body=")
                     val serverBody = if (bodyIndex >= 0) errMsg.substring(bodyIndex + 8) else null
-                    Log.e("ClienteCartVM", "checkout: crearBoleta failed: $errMsg")
 
                     val userFriendlyMsg = when {
                         serverBody?.contains("stock", ignoreCase = true) == true ||

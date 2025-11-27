@@ -43,7 +43,9 @@ class ReportesViewModel @Inject constructor(
                     anio = _anioSeleccionado.value,
                     mes = _mesSeleccionado.value
                 )
+
                 val resultado = reportesRepository.generarReporte(filtro)
+
                 resultado.onSuccess { reporte ->
                     _uiState.value = ReportesUiState.Success(reporte)
                 }.onFailure { error ->

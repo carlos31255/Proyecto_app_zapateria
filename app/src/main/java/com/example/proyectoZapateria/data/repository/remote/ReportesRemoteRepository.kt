@@ -19,17 +19,14 @@ class ReportesRemoteRepository @Inject constructor(
             if (res.isSuccessful && res.body() != null) {
                 Result.success(res.body()!!)
             } else {
-                val err = try { res.errorBody()?.string() } catch (_: Exception) { null }
                 val errorMsg = when (res.code()) {
                     404 -> "Endpoint no disponible (404). Los reportes aún no están implementados en el backend."
                     500 -> "Error interno del servidor (500)"
                     else -> "Error ${res.code()}: ${res.message()}"
                 }
-                android.util.Log.e("ReportesRepo", "Error en API: ${res.code()} - ${res.raw().request.url} - Body: ${err ?: "<empty>"}")
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            android.util.Log.e("ReportesRepo", "Excepción en API de reportes", e)
             Result.failure(e)
         }
     }

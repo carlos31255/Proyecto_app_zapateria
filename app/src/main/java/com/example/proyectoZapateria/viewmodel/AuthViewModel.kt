@@ -1,6 +1,5 @@
 package com.example.proyectoZapateria.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.model.UsuarioCompleto
@@ -152,14 +151,10 @@ class AuthViewModel @Inject constructor(
 
             try {
                 val usernameInput = s.email.trim()
-                Log.d("AuthViewModel", "submitLogin: intentando login con username='$usernameInput'")
 
-                // Llamar al método login del AuthRepository que usa el microservicio
                 val result = authRemoteRepository.login(usernameInput, s.pass)
 
                 result.onSuccess { usuarioCompleto ->
-                    // Guardar la sesión en DataStore para persistencia (no bloquear login)
-                    // Lanzar un guardado en background para no bloquear el login (reintentos cortos)
                     viewModelScope.launch(Dispatchers.IO) {
                         try {
                             val maxAttempts = 3
@@ -181,17 +176,12 @@ class AuthViewModel @Inject constructor(
                                     null
                                 }
                                 if (saved == true) ok = true else {
-                                    Log.w("AuthViewModel", "saveSession intento $attempt falló o timeout")
                                     delay(300L * attempt)
                                 }
                             }
-                            if (!ok) Log.w("AuthViewModel", "No se pudo guardar la sesión en preferences tras $maxAttempts intentos")
-                        } catch (e: Exception) {
-                            Log.w("AuthViewModel", "Error asíncrono guardando sessionPreferences: ${e.message}", e)
+                        } catch (_: Exception) {
                         }
                     }
-
-                    Log.d("AuthViewModel", "submitLogin: login exitoso para id=${usuarioCompleto.idPersona}")
 
                     _login.update {
                         it.copy(
@@ -201,7 +191,6 @@ class AuthViewModel @Inject constructor(
                         )
                     }
                 }.onFailure { error ->
-                    Log.e("AuthViewModel", "submitLogin: error en login: ${error.message}", error)
                     val msg = mapErrorToUserMessage(error)
                     _login.update {
                         it.copy(
@@ -212,7 +201,6 @@ class AuthViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                Log.e("AuthViewModel", "submitLogin: excepción en proceso de login: ${e.message}", e)
                 _login.update {
                     it.copy(
                         isLoading = false,
@@ -354,7 +342,6 @@ class AuthViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Llamar al método register del AuthRepository que usa el microservicio
                 val result = authRemoteRepository.register(
                     nombre = nombre,
                     apellido = apellido,
@@ -368,9 +355,6 @@ class AuthViewModel @Inject constructor(
                 )
 
                 result.onSuccess { usuarioCompleto ->
-                    Log.d("AuthViewModel", "submitRegister: Registro exitoso para: ${usuarioCompleto.username}")
-
-                    // Crear el cliente con categoría "Regular"
                     try {
                         val clienteDTO = com.example.proyectoZapateria.data.remote.usuario.dto.ClienteDTO(
                             idPersona = usuarioCompleto.idPersona,
@@ -380,22 +364,14 @@ class AuthViewModel @Inject constructor(
                             telefono = usuarioCompleto.telefono,
                             activo = true
                         )
-                        val clienteResult = clienteRemoteRepository.crearCliente(clienteDTO)
-                        if (clienteResult.isSuccess) {
-                            Log.d("AuthViewModel", "submitRegister: Cliente creado con categoría Regular")
-                        } else {
-                            Log.w("AuthViewModel", "submitRegister: No se pudo crear el cliente: ${clienteResult.exceptionOrNull()?.message}")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("AuthViewModel", "submitRegister: Error al crear cliente: ${e.message}", e)
-                        // No bloqueamos el registro por este error
+                        clienteRemoteRepository.crearCliente(clienteDTO)
+                    } catch (_: Exception) {
                     }
 
                     _register.update {
                         it.copy(isLoading = false, success = true, errorMsg = null)
                     }
                 }.onFailure { error ->
-                    Log.e("AuthViewModel", "submitRegister: error en registro: ${error.message}", error)
                     _register.update {
                         it.copy(
                             isLoading = false,
@@ -405,7 +381,6 @@ class AuthViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                Log.e("AuthViewModel", "submitRegister: excepción en proceso de registro: ${e.message}", e)
                 _register.update {
                     it.copy(
                         isLoading = false,
@@ -430,14 +405,19 @@ class AuthViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            // Limpiar sesión del repositorio
             authRemoteRepository.logout()
-
-            // Limpiar sesión guardada en DataStore
             sessionPreferences.clearSession()
-
-            // Resetear estado del login
-            _login.value = LoginUiState()
+            _login.value = LoginUiState(
+                email = "",
+                pass = "",
+                emailError = null,
+                passError = null,
+                isLoading = false,
+                canSubmit = false,
+                success = false,
+                errorMsg = null
+            )
+            _register.value = RegisterUiState()
         }
     }
 
@@ -449,25 +429,14 @@ class AuthViewModel @Inject constructor(
                 errorMsg = null
             )
 
-            Log.d("API_TEST", "🔵 Iniciando prueba de conexión con microservicio...")
-
             val result = clienteRemoteRepository.obtenerTodosLosClientes()
 
             result.onSuccess { clientes ->
-                Log.d("API_TEST", "✅ CONEXIÓN EXITOSA!")
-                Log.d("API_TEST", "📊 Clientes encontrados: ${clientes.size}")
-                clientes.forEach { cliente ->
-                    Log.d("API_TEST", "  - ${cliente.nombreCompleto} (${cliente.email})")
-                }
-
                 _login.value = _login.value.copy(
                     isLoading = false,
                     errorMsg = "✅ Conexión exitosa: ${clientes.size} clientes encontrados"
                 )
             }.onFailure { error ->
-                Log.e("API_TEST", "❌ ERROR DE CONEXIÓN: ${error.message}")
-                Log.e("API_TEST", "Stack trace:", error)
-
                 _login.value = _login.value.copy(
                     isLoading = false,
                     errorMsg = "❌ Error: ${error.message}"
@@ -481,18 +450,14 @@ class AuthViewModel @Inject constructor(
      */
     private fun cargarSesionGuardada() {
         viewModelScope.launch {
-            // Asegurar que la marca de restauración no vaya a lanzar NPE
             try {
                 _isRestoringSession.value = true
-            } catch (e: Exception) {
-                Log.w("AuthViewModel", "cargarSesionGuardada: _isRestoringSession no inicializado: ${e.message}")
+            } catch (_: Exception) {
             }
             try {
-                // Leer sessionData (no bloquear demasiado). Si no existe, sessionData será null y no intentamos nada.
                 val sessionData = withContext(Dispatchers.IO) { sessionPreferences.sessionData.first() }
 
                 if (sessionData != null) {
-                    // Intentar obtener el usuario remoto con reintentos cortos en vez de un timeout rígido
                     try {
                         val maxAttempts = 5
                         var attempt = 0
@@ -501,56 +466,36 @@ class AuthViewModel @Inject constructor(
                         while (attempt < maxAttempts) {
                             attempt++
                             try {
-                                // Llamada en IO con timeout por intento
                                 result = withContext(Dispatchers.IO) {
                                     try {
                                         withTimeoutOrNull(3000L) { authRemoteRepository.obtenerUsuarioPorId(sessionData.userId) }
                                     } catch (_: Exception) { null }
                                 }
                                 if (result != null) break
-                            } catch (e: Exception) {
-                                Log.w("AuthViewModel", "cargarSesionGuardada: intento $attempt falló: ${e.message}")
+                            } catch (_: Exception) {
                             }
-                            // esperar antes de reintentar (exponencial corto)
                             kotlinx.coroutines.delay(300L * attempt)
                         }
 
-                        if (result == null) {
-                            // No pudimos obtener el usuario remoto: asumimos problema de red temporal.
-                            Log.w("AuthViewModel", "cargarSesionGuardada: no se pudo obtener usuario remoto después de $maxAttempts intentos - manteniendo sesión local")
-                            // No borramos sessionPreferences para evitar perder la sesión por una falla temporal.
-                        } else {
+                        if (result != null) {
                             result.onSuccess { usuarioCompleto ->
                                 if (usuarioCompleto.estado == "activo" && usuarioCompleto.activo) {
-                                    // Restaurar el usuario en el repositorio sin bloquear la UI
                                     authRemoteRepository.setCurrentUser(usuarioCompleto)
-                                    Log.d("AuthViewModel", "cargarSesionGuardada: Sesión restaurada para: ${usuarioCompleto.username}")
                                 } else {
-                                    // Si el usuario está inactivo o backend indica invalidez, limpiar la sesión
                                     withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
-                                    Log.w("AuthViewModel", "cargarSesionGuardada: Usuario inactivo o inválido, sesión limpiada")
                                 }
                             }.onFailure { error ->
-                                // No borrar session en errores de red o parseo; mostrar/loggear un mensaje amigable
                                 val userMsg = mapErrorToUserMessage(error)
-                                Log.e("AuthViewModel", "cargarSesionGuardada: Error al cargar usuario: ${error.message} -> $userMsg")
-                                // Exponer el error para que la UI pueda mostrarlo
                                 _startupError.value = userMsg
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("AuthViewModel", "cargarSesionGuardada: Excepción: ${e.message}", e)
                         _startupError.value = mapErrorToUserMessage(e)
-                        // No borrar session aquí; podríamos notificar al usuario si es necesario
                     }
-                } else {
-                    Log.d("AuthViewModel", "cargarSesionGuardada: no hay sessionData")
                 }
             } catch (e: Exception) {
-                Log.e("AuthViewModel", "cargarSesionGuardada: excepción inesperada: ${e.message}", e)
                 _startupError.value = mapErrorToUserMessage(e)
             } finally {
-                // Asegurar que la marca de restauración se apague al final
                 _isRestoringSession.value = false
             }
         }
@@ -588,7 +533,6 @@ class AuthViewModel @Inject constructor(
             _loadingRegiones.value = true
             val res = geografiaRemoteRepository.obtenerTodasLasRegiones()
             res.onSuccess { _regiones.value = it }
-            res.onFailure { Log.w("AuthViewModel", "loadRegiones: ${it.message}") }
             _loadingRegiones.value = false
         }
     }
@@ -599,7 +543,6 @@ class AuthViewModel @Inject constructor(
             _loadingCiudades.value = true
             val res = geografiaRemoteRepository.obtenerCiudadesPorRegion(regionId)
             res.onSuccess { _ciudades.value = it }
-            res.onFailure { Log.w("AuthViewModel", "loadCiudadesPorRegion: ${it.message}") }
             _loadingCiudades.value = false
         }
     }
@@ -610,7 +553,6 @@ class AuthViewModel @Inject constructor(
             _loadingComunas.value = true
             val res = geografiaRemoteRepository.obtenerComunasPorCiudad(ciudadId)
             res.onSuccess { _comunas.value = it }
-            res.onFailure { Log.w("AuthViewModel", "loadComunasPorCiudad: ${it.message}") }
             _loadingComunas.value = false
         }
     }
@@ -620,7 +562,6 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             val res = geografiaRemoteRepository.obtenerTodasLasCiudades()
             res.onSuccess { _ciudades.value = it }
-            res.onFailure { Log.w("AuthViewModel", "loadAllCiudades: ${it.message}") }
         }
     }
 
@@ -629,7 +570,6 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             val res = geografiaRemoteRepository.obtenerTodasLasComunas()
             res.onSuccess { _comunas.value = it }
-            res.onFailure { Log.w("AuthViewModel", "loadAllComunas: ${it.message}") }
         }
     }
 

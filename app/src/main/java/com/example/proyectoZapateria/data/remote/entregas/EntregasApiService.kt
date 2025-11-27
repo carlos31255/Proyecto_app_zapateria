@@ -2,6 +2,7 @@ package com.example.proyectoZapateria.data.remote.entregas
 
 import com.example.proyectoZapateria.data.remote.entregas.dto.ActualizarEstadoRequest
 import com.example.proyectoZapateria.data.remote.entregas.dto.CompletarEntregaRequest
+import com.example.proyectoZapateria.data.remote.entregas.dto.CrearEntregaRequest
 import com.example.proyectoZapateria.data.remote.entregas.dto.EntregaDTO
 import retrofit2.Response
 import retrofit2.http.*
@@ -10,6 +11,9 @@ interface EntregasApiService {
 
     @GET("entregas")
     suspend fun obtenerTodasLasEntregas(): Response<List<EntregaDTO>>
+
+    @POST("entregas/crear")
+    suspend fun crearEntrega(@Body request: CrearEntregaRequest): Response<EntregaDTO>
 
     @GET("entregas/{id}")
     suspend fun obtenerEntregaPorId(@Path("id") id: Long): Response<EntregaDTO>
@@ -35,6 +39,6 @@ interface EntregasApiService {
     @PUT("entregas/{id}/estado")
     suspend fun cambiarEstadoEntrega(
         @Path("id") id: Long,
-        @Body body: ActualizarEstadoRequest
+        @Query("nuevoEstado") nuevoEstado: String
     ): Response<EntregaDTO>
 }

@@ -123,11 +123,6 @@ class InventarioViewModel @Inject constructor(
         onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
-            android.util.Log.d("InventarioVM", "=== INICIO actualizarProducto ===")
-            android.util.Log.d("InventarioVM", "Producto ID: ${producto.id}")
-            android.util.Log.d("InventarioVM", "Nombre: ${producto.nombre} → $nuevoNombre")
-            android.util.Log.d("InventarioVM", "Precio: ${producto.precioUnitario} → $nuevoPrecio")
-
             val dto = ProductoDTO(
                 id = producto.id,
                 nombre = nuevoNombre.trim(),
@@ -139,27 +134,20 @@ class InventarioViewModel @Inject constructor(
 
             val modeloIdNullable = producto.id
             if (modeloIdNullable == null) {
-                android.util.Log.d("InventarioVM", "CREANDO nuevo producto...")
                 inventarioRemoteRepository.crearModelo(dto)
-                    .onSuccess { productoCreado ->
-                        android.util.Log.d("InventarioVM", "✅ Producto creado correctamente")
+                    .onSuccess { _ ->
                         cargarProductos()
                         onSuccess()
                     }
-                    .onFailure { error ->
-                        android.util.Log.e("InventarioVM", "❌ Error crear: ${error.message}")
+                    .onFailure { _ ->
                     }
             } else {
-                android.util.Log.d("InventarioVM", "ACTUALIZANDO producto existente id=$modeloIdNullable...")
                 inventarioRemoteRepository.actualizarModelo(modeloIdNullable, dto)
-                    .onSuccess { productoActualizado ->
-                        android.util.Log.d("InventarioVM", "✅ Producto actualizado correctamente")
-                        android.util.Log.d("InventarioVM", "=== FIN actualizarProducto ===")
+                    .onSuccess { _ ->
                         cargarProductos()
                         onSuccess()
                     }
-                    .onFailure { error ->
-                        android.util.Log.e("InventarioVM", "❌ Error actualizar: ${error.message}")
+                    .onFailure { _ ->
                     }
             }
         }
