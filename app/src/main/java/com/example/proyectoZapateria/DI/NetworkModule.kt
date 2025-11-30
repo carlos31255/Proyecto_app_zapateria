@@ -66,6 +66,9 @@ object NetworkModule {
     fun provideOkHttpClient(loggingInterceptor: HttpLoggingInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }
 
@@ -81,7 +84,7 @@ object NetworkModule {
     // ======================================================
     //  RETROFIT CONSTRUCTOR
     // ======================================================
-
+    // En esta seccion se eligen los links de los microservicios a usar.
     @Provides
     @Singleton
     @GeografiaRetrofit

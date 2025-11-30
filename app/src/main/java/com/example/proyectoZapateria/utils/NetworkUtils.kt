@@ -8,6 +8,7 @@ import retrofit2.Response
 
 
 object NetworkUtils {
+    // metodo para realizar llamadas a API con manejo de excepciones
     suspend fun <T> safeApiCall(apiCall: suspend () -> Response<T>): Result<T> {
         return try {
             val response = withContext(Dispatchers.IO) { apiCall() }

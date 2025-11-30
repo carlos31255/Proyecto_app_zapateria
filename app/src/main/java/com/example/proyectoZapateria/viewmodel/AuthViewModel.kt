@@ -40,6 +40,7 @@ data class LoginUiState(
 data class RegisterUiState(
     val name: String = "",
     val email: String = "",
+    val phonePrefix: String = "+56",
     val phone: String = "",
     val rut: String = "",
     val pass: String = "",
@@ -225,31 +226,28 @@ class AuthViewModel @Inject constructor(
         recomputeRegisterCanSubmit()
     }
 
+    fun onSelectPhonePrefix(prefix: String) {
+        _register.update { it.copy(phonePrefix = prefix) }
+    }
+
     fun onRegisterPhoneChange(value: String) {
-        // Permitir + solo al inicio, seguido de dígitos, con límite de 15 caracteres
         val filtered = if (value.startsWith("+")) {
-            "+" + value.substring(1).filter { it.isDigit() }
+            "+" + value.substring(1).filter { it.isDigit() || it == ' ' || it == '-' }
         } else {
-            value.filter { it.isDigit() }
+            value.filter { it.isDigit() || it == ' ' || it == '-' }
         }
 
-        // Aplicar límite de 15 caracteres
-        val limited = if (filtered.length > 15) filtered.take(15) else filtered
+        val limited = if (filtered.length > 20) filtered.take(20) else filtered
 
         _register.update { it.copy(phone = limited, phoneError = validatePhoneDigitsOnly(limited)) }
         recomputeRegisterCanSubmit()
     }
 
     fun onRegisterRutChange(value: String) {
-        // Formato RUT: 12345678-9 (permitir solo dígitos y guión)
         val filtered = value.filter { it.isDigit() || it == '-' }
-
-        // Validar formato, pero solo si el valor no está vacío
         val rutError = if (filtered.isNotBlank() && !filtered.matches(Regex("^\\d{7,8}-[\\dkK]$"))) {
             "RUT inválido (Ej: 12345678-9)"
         } else null
-
-        // Siempre limpiar el error al cambiar el valor (incluyendo errores del servidor)
         _register.update { it.copy(rut = filtered, rutError = rutError) }
         recomputeRegisterCanSubmit()
     }
@@ -322,6 +320,13 @@ class AuthViewModel @Inject constructor(
         _register.update { it.copy(canSubmit = noErrors && filled) }
     }
 
+    private fun buildFullPhone(prefix: String, phone: String): String? {
+        val digits = phone.filter { it.isDigit() }
+        if (digits.isBlank()) return null
+        val trimmedPrefix = if (prefix.startsWith("+")) prefix else "+${prefix}"
+        return if (phone.trim().startsWith("+")) "+$digits" else "$trimmedPrefix$digits"
+    }
+
     fun submitRegister() {
         val s = _register.value
         if (!s.canSubmit || s.isLoading) return
@@ -342,11 +347,13 @@ class AuthViewModel @Inject constructor(
                     return@launch
                 }
 
+                val telefonoFinal = buildFullPhone(s.phonePrefix, s.phone.trim())
+
                 val result = authRemoteRepository.register(
                     nombre = nombre,
                     apellido = apellido,
                     email = s.email.trim(),
-                    telefono = s.phone.trim(),
+                    telefono = telefonoFinal ?: s.phone.trim(),
                     rut = s.rut.trim().ifBlank { null },
                     password = s.pass,
                     idComuna = s.idComuna,
@@ -482,15 +489,48 @@ class AuthViewModel @Inject constructor(
                                 if (usuarioCompleto.estado == "activo" && usuarioCompleto.activo) {
                                     authRemoteRepository.setCurrentUser(usuarioCompleto)
                                 } else {
+                                    // Usuario inactivo o con estado incorrecto - limpiar sesión
                                     withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                                    _startupError.value = "Tu cuenta ha sido desactivada. Por favor, contacta al administrador."
                                 }
                             }.onFailure { error ->
-                                val userMsg = mapErrorToUserMessage(error)
-                                _startupError.value = userMsg
+                                // Detectar si el usuario no existe en la BD
+                                val errorMessage = error.message ?: ""
+                                val isUserNotFound = errorMessage.contains("no encontrada", ignoreCase = true) ||
+                                                    errorMessage.contains("404", ignoreCase = true) ||
+                                                    errorMessage.contains("not found", ignoreCase = true) ||
+                                                    errorMessage.contains("Persona no encontrada", ignoreCase = true)
+
+                                if (isUserNotFound) {
+                                    // Usuario eliminado de la BD - limpiar sesión local corrupta
+                                    withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                                    authRemoteRepository.setCurrentUser(null)
+                                    _startupError.value = "Tu cuenta ya no existe en el sistema. Por favor, inicia sesión nuevamente."
+                                } else {
+                                    // Otro tipo de error (red, servidor, etc.)
+                                    val userMsg = mapErrorToUserMessage(error)
+                                    _startupError.value = userMsg
+                                }
                             }
+                        } else {
+                            // No se pudo obtener respuesta después de múltiples intentos
+                            _startupError.value = "No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet."
                         }
                     } catch (e: Exception) {
-                        _startupError.value = mapErrorToUserMessage(e)
+                        val errorMessage = e.message ?: ""
+                        val isUserNotFound = errorMessage.contains("no encontrada", ignoreCase = true) ||
+                                            errorMessage.contains("404", ignoreCase = true) ||
+                                            errorMessage.contains("not found", ignoreCase = true) ||
+                                            errorMessage.contains("Persona no encontrada", ignoreCase = true)
+
+                        if (isUserNotFound) {
+                            // Usuario eliminado de la BD - limpiar sesión
+                            withContext(Dispatchers.IO) { sessionPreferences.clearSession() }
+                            authRemoteRepository.setCurrentUser(null)
+                            _startupError.value = "Tu cuenta ya no existe en el sistema. Por favor, inicia sesión nuevamente."
+                        } else {
+                            _startupError.value = mapErrorToUserMessage(e)
+                        }
                     }
                 }
             } catch (e: Exception) {

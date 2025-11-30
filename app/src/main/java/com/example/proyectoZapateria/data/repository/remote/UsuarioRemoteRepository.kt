@@ -91,4 +91,35 @@ class UsuarioRemoteRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // Subir foto de perfil
+    suspend fun subirFotoPerfil(idPersona: Long, foto: okhttp3.MultipartBody.Part): Result<UsuarioDTO?> {
+        return try {
+            NetworkUtils.safeApiCall { usuarioApi.actualizarFotoUsuario(idPersona, foto) }
+        } catch (e: Exception) {
+            Log.e("UsuarioRemoteRepo", "Error al subir foto de perfil: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    // Obtener foto de perfil
+    suspend fun obtenerFotoPerfil(idPersona: Long): Result<ByteArray?> {
+        return try {
+            val response = usuarioApi.obtenerFotoUsuario(idPersona)
+            if (response.isSuccessful) {
+                val responseBody = response.body()
+                if (responseBody != null) {
+                    val bytes = responseBody.bytes()
+                    Result.success(bytes)
+                } else {
+                    Result.success(null)
+                }
+            } else {
+                Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.e("UsuarioRemoteRepo", "Error al obtener foto de perfil: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
 }

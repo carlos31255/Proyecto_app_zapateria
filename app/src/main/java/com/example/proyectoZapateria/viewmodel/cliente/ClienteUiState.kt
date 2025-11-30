@@ -1,11 +1,6 @@
 package com.example.proyectoZapateria.viewmodel.cliente
 
-/**
- * UI state para las pantallas/feature del cliente.
- * Aquí centralizamos las data classes relacionadas con estados de UI
- * (igual que el archivo TransportistaUiState.kt)
- */
-
+// ui state para cli
 data class ClientePerfilUiState(
     val nombre: String = "",
     val email: String = "",
@@ -14,6 +9,7 @@ data class ClientePerfilUiState(
     val calle: String = "",
     val numeroPuerta: String = "",
     val totalPedidos: Int = 0,
+    val profileImageUri: String? = null,
     val isLoading: Boolean = true,
     val error: String? = null
 )

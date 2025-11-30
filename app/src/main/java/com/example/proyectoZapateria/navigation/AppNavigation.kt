@@ -70,10 +70,28 @@ fun AppNavGraph(
     val startupError by authViewModel.startupError.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Mostrar error global de inicio (por ejemplo: microservicio inaccesible)
+    // Mostrar error global de inicio y manejar casos especiales
     LaunchedEffect(startupError) {
-        if (!startupError.isNullOrBlank()) {
-            Toast.makeText(context, startupError, Toast.LENGTH_LONG).show()
+        val errorMsg = startupError
+        if (!errorMsg.isNullOrBlank()) {
+            // Mostrar el mensaje de error al usuario
+            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+
+            // Si el usuario no existe, redirigir al login automáticamente
+            val isUserNotFound = errorMsg.contains("ya no existe", ignoreCase = true) ||
+                                errorMsg.contains("no encontrada", ignoreCase = true) ||
+                                errorMsg.contains("ha sido desactivada", ignoreCase = true)
+
+            if (isUserNotFound && !isRestoring) {
+                // Esperar un momento para que el usuario vea el mensaje
+                kotlinx.coroutines.delay(2000)
+
+                // Navegar al login
+                navController.navigate(Route.Login.path) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+
             authViewModel.clearStartupError()
         }
     }

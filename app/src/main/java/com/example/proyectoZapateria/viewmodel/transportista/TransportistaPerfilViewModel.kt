@@ -1,5 +1,7 @@
 package com.example.proyectoZapateria.viewmodel.transportista
-
+import android.content.Context
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.usuario.dto.TransportistaDTO
@@ -8,14 +10,20 @@ import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.EntregasRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.TransportistaRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.UsuarioRemoteRepository
 import com.example.proyectoZapateria.domain.validation.validateProfileName
 import com.example.proyectoZapateria.domain.validation.validateProfilePhone
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 import javax.inject.Inject
 
 data class TransportistaPerfilUiState(
@@ -31,6 +39,7 @@ data class TransportistaPerfilUiState(
     // Métricas relacionadas a boletas (ventas) asociadas a las entregas
     val totalBoletas: Int = 0,
     val totalVentasImporte: Int = 0,
+    val profileImageUri: String? = null,
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -40,7 +49,8 @@ class TransportistaPerfilViewModel @Inject constructor(
     private val transportistaRemoteRepository: TransportistaRemoteRepository,
     private val entregasRepository: EntregasRemoteRepository,
     private val authRemoteRepository: AuthRemoteRepository,
-    private val personaRemoteRepository: PersonaRemoteRepository
+    private val personaRemoteRepository: PersonaRemoteRepository,
+    private val usuarioRemoteRepository: UsuarioRemoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransportistaPerfilUiState())
@@ -61,6 +71,15 @@ class TransportistaPerfilViewModel @Inject constructor(
     val editTelefono = _editTelefono.asStateFlow()
     val editLicencia = _editLicencia.asStateFlow()
     val editVehiculo = _editVehiculo.asStateFlow()
+
+    private val _profileImageUri = MutableStateFlow<Uri?>(null)
+    val profileImageUri: StateFlow<Uri?> = _profileImageUri.asStateFlow()
+
+    // Usar un contador para forzar la recarga cada vez
+    data class PhotoLoadTrigger(val idPersona: Long, val timestamp: Long = System.currentTimeMillis())
+
+    private val _needsPhotoLoad = MutableStateFlow<PhotoLoadTrigger?>(null)
+    val needsPhotoLoad: StateFlow<PhotoLoadTrigger?> = _needsPhotoLoad.asStateFlow()
 
     init {
         cargarPerfil()
@@ -118,6 +137,9 @@ class TransportistaPerfilViewModel @Inject constructor(
                     )
                 }
 
+                // Marcar que necesita cargar la foto (con timestamp para forzar recarga)
+                _needsPhotoLoad.value = PhotoLoadTrigger(personaId)
+
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Error: ${e.message}") }
             }
@@ -150,6 +172,81 @@ class TransportistaPerfilViewModel @Inject constructor(
         telefono?.let { _editTelefono.value = it }
         licencia?.let { _editLicencia.value = it }
         vehiculo?.let { _editVehiculo.value = it }
+    }
+
+    fun onProfileImageSelected(context: Context, file: File) {
+        viewModelScope.launch {
+            try {
+                val currentUser = authRemoteRepository.currentUser.value
+                if (currentUser == null) {
+                    Log.e("TransportistaPerfilVM", "No hay usuario autenticado")
+                    return@launch
+                }
+
+                _profileImageUri.value = Uri.fromFile(file)
+
+                // Comprimir la imagen antes de subir (máximo 1024x1024, calidad 80%)
+                val compressedFile = withContext(Dispatchers.IO) {
+                    com.example.proyectoZapateria.util.ImageCompressor.compressImageFromFile(
+                        context, file, maxWidth = 1024, maxHeight = 1024, quality = 80
+                    )
+                }
+
+                if (compressedFile == null) {
+                    Log.e("TransportistaPerfilVM", "Error al comprimir imagen")
+                    return@launch
+                }
+
+                val requestFile = compressedFile.asRequestBody("image/*".toMediaTypeOrNull())
+                val fotoPart = okhttp3.MultipartBody.Part.createFormData(
+                    "foto",
+                    compressedFile.name,
+                    requestFile
+                )
+
+                val result = usuarioRemoteRepository.subirFotoPerfil(currentUser.idPersona, fotoPart)
+
+                result.onSuccess {
+                    // Eliminar archivo comprimido temporal
+                    compressedFile.delete()
+                    kotlinx.coroutines.delay(500)
+                    cargarFotoPerfil(context, currentUser.idPersona)
+                }.onFailure { error ->
+                    compressedFile.delete()
+                    Log.e("TransportistaPerfilVM", "Error al subir foto: ${error.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("TransportistaPerfilVM", "Error al procesar imagen: ${e.message}")
+            }
+        }
+    }
+
+    fun cargarFotoPerfil(context: Context, idPersona: Long) {
+        viewModelScope.launch {
+            try {
+                val result = usuarioRemoteRepository.obtenerFotoPerfil(idPersona)
+                result.onSuccess { fotoBytes ->
+                    if (fotoBytes != null && fotoBytes.isNotEmpty()) {
+                        _profileImageUri.value?.let { oldUri ->
+                            try {
+                                val oldFile = File(oldUri.path ?: "")
+                                if (oldFile.exists()) oldFile.delete()
+                            } catch (e: Exception) {
+                                // Silenciar error al eliminar archivo anterior
+                            }
+                        }
+
+                        val timestamp = System.currentTimeMillis()
+                        val tempFile = File(context.cacheDir, "profile_${idPersona}_${timestamp}.jpg")
+                        tempFile.writeBytes(fotoBytes)
+                        _profileImageUri.value = Uri.fromFile(tempFile)
+                        _uiState.update { it.copy(profileImageUri = tempFile.absolutePath) }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TransportistaPerfilVM", "❌ Excepción al cargar foto: ${e.message}", e)
+            }
+        }
     }
 
     fun guardarCambios(callback: (Boolean, String?) -> Unit) {

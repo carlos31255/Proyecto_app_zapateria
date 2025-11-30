@@ -18,15 +18,23 @@ fun validateProfileName(name: String): String? {
     return if (!lettersOnly.matches(trimmed)) "El nombre sólo debe contener letras y espacios" else null
 }
 
-// Validación de teléfono (solo dígitos, longitud razonable 7-15)
+// Validación de teléfono (permite '+' al inicio, espacios y guiones para legibilidad). Teléfono opcional.
 fun validateProfilePhone(phone: String): String? {
     val trimmed = phone.trim()
     if (trimmed.isEmpty()) return null // teléfono opcional
-    // Permitir un '+' inicial (para el código de país) seguido sólo de dígitos
-    val normalized = if (trimmed.startsWith('+')) trimmed.substring(1) else trimmed
-    if (!normalized.all { it.isDigit() }) return "El teléfono sólo debe contener dígitos o empezar con '+'"
-    if (normalized.length < 7) return "Número de teléfono demasiado corto"
-    if (normalized.length > 15) return "Número de teléfono demasiado largo"
+
+    val startsWithPlus = trimmed.startsWith('+')
+    val digitsOnly = trimmed.filter { it.isDigit() }
+
+    val allowedExtra = trimmed.filter { !it.isDigit() }
+    val invalidChars = allowedExtra.filter { it != '+' && it != ' ' && it != '-' }
+    if (invalidChars.isNotEmpty()) return "El teléfono sólo debe contener dígitos, espacios, guiones o un '+' al inicio"
+
+    if (trimmed.contains('+') && !startsWithPlus) return "El '+' sólo puede estar al inicio"
+
+    if (digitsOnly.length < 7) return "Número de teléfono demasiado corto"
+    if (digitsOnly.length > 15) return "Número de teléfono demasiado largo"
+
     return null
 }
 
@@ -48,4 +56,3 @@ fun validateProfileHouseNumber(numero: String): String? {
     if (!trimmed.any { it.isLetterOrDigit() }) return "Formato inválido"
     return null
 }
-

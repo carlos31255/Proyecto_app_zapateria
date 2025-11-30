@@ -1,18 +1,27 @@
 package com.example.proyectoZapateria.viewmodel.admin
 
+import android.content.Context
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoZapateria.data.remote.usuario.dto.PersonaDTO
 import com.example.proyectoZapateria.data.repository.remote.PersonaRemoteRepository
 import com.example.proyectoZapateria.data.repository.remote.AuthRemoteRepository
+import com.example.proyectoZapateria.data.repository.remote.UsuarioRemoteRepository
 import com.example.proyectoZapateria.domain.validation.validateProfileEmail
 import com.example.proyectoZapateria.domain.validation.validateProfileName
 import com.example.proyectoZapateria.domain.validation.validateProfilePhone
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 import javax.inject.Inject
 
 data class AdminPerfilUiState(
@@ -26,6 +35,7 @@ data class AdminPerfilUiState(
     val username: String = "",
     val rol: String = "",
     val categoria: String = "",
+    val profileImageUri: String? = null,
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -33,7 +43,8 @@ data class AdminPerfilUiState(
 @HiltViewModel
 class AdminPerfilViewModel @Inject constructor(
     private val personaRemoteRepository: PersonaRemoteRepository,
-    private val authRemoteRepository: AuthRemoteRepository
+    private val authRemoteRepository: AuthRemoteRepository,
+    private val usuarioRemoteRepository: UsuarioRemoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AdminPerfilUiState())
@@ -60,9 +71,18 @@ class AdminPerfilViewModel @Inject constructor(
 
     private var personaActual: PersonaDTO? = null
 
+    private val _profileImageUri = MutableStateFlow<Uri?>(null)
+    val profileImageUri: StateFlow<Uri?> = _profileImageUri.asStateFlow()
+
+    data class PhotoLoadTrigger(val idPersona: Long, val timestamp: Long = System.currentTimeMillis())
+
+    private val _needsPhotoLoad = MutableStateFlow<PhotoLoadTrigger?>(null)
+    val needsPhotoLoad: StateFlow<PhotoLoadTrigger?> = _needsPhotoLoad.asStateFlow()
+
     init {
         cargarPerfil()
     }
+
 
     private fun cargarPerfil() {
         viewModelScope.launch {
@@ -106,6 +126,9 @@ class AdminPerfilViewModel @Inject constructor(
                         _editTelefono.value = persona.telefono ?: ""
                         _editCalle.value = persona.calle ?: ""
                         _editNumeroPuerta.value = persona.numeroPuerta ?: ""
+
+                        // Marcar que necesita cargar la foto (con timestamp para forzar recarga)
+                        _needsPhotoLoad.value = PhotoLoadTrigger(currentUser.idPersona)
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
@@ -218,6 +241,20 @@ class AdminPerfilViewModel @Inject constructor(
                             numeroPuerta = persona.numeroPuerta ?: ""
                         )
 
+                        // Actualizar usuario en memoria (AuthRemoteRepository)
+                        val currentUser = authRemoteRepository.currentUser.value
+                        if (currentUser != null) {
+                            val updatedUsuario = currentUser.copy(
+                                nombre = persona.nombre ?: "",
+                                apellido = persona.apellido ?: "",
+                                email = persona.email ?: "",
+                                telefono = persona.telefono ?: "",
+                                calle = persona.calle ?: "",
+                                numeroPuerta = persona.numeroPuerta ?: ""
+                            )
+                            authRemoteRepository.setCurrentUser(updatedUsuario)
+                        }
+
                         _isEditing.value = false
                         callback(true, null)
                     } else {
@@ -234,5 +271,80 @@ class AdminPerfilViewModel @Inject constructor(
 
     fun getNombreCompleto(): String {
         return "${_uiState.value.nombre} ${_uiState.value.apellido}"
+    }
+
+    fun onProfileImageSelected(context: Context, file: File) {
+        viewModelScope.launch {
+            try {
+                val currentUser = authRemoteRepository.currentUser.value
+                if (currentUser == null) {
+                    Log.e("AdminPerfilVM", "No hay usuario autenticado")
+                    return@launch
+                }
+
+                _profileImageUri.value = Uri.fromFile(file)
+
+                // Comprimir la imagen antes de subir (máximo 1024x1024, calidad 80%)
+                val compressedFile = withContext(Dispatchers.IO) {
+                    com.example.proyectoZapateria.util.ImageCompressor.compressImageFromFile(
+                        context, file, maxWidth = 1024, maxHeight = 1024, quality = 80
+                    )
+                }
+
+                if (compressedFile == null) {
+                    Log.e("AdminPerfilVM", "Error al comprimir imagen")
+                    return@launch
+                }
+
+                val requestFile = compressedFile.asRequestBody("image/*".toMediaTypeOrNull())
+                val fotoPart = okhttp3.MultipartBody.Part.createFormData(
+                    "foto",
+                    compressedFile.name,
+                    requestFile
+                )
+
+                val result = usuarioRemoteRepository.subirFotoPerfil(currentUser.idPersona, fotoPart)
+
+                result.onSuccess {
+                    // Eliminar archivo comprimido temporal
+                    compressedFile.delete()
+                    kotlinx.coroutines.delay(500)
+                    cargarFotoPerfil(context, currentUser.idPersona)
+                }.onFailure { error ->
+                    compressedFile.delete()
+                    Log.e("AdminPerfilVM", "Error al subir foto: ${error.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("AdminPerfilVM", "Error al procesar imagen: ${e.message}")
+            }
+        }
+    }
+
+    fun cargarFotoPerfil(context: Context, idPersona: Long) {
+        viewModelScope.launch {
+            try {
+                val result = usuarioRemoteRepository.obtenerFotoPerfil(idPersona)
+                result.onSuccess { fotoBytes ->
+                    if (fotoBytes != null && fotoBytes.isNotEmpty()) {
+                        _profileImageUri.value?.let { oldUri ->
+                            try {
+                                val oldFile = File(oldUri.path ?: "")
+                                if (oldFile.exists()) oldFile.delete()
+                            } catch (e: Exception) {
+                                // Silenciar error al eliminar archivo anterior
+                            }
+                        }
+
+                        val timestamp = System.currentTimeMillis()
+                        val tempFile = File(context.cacheDir, "profile_${idPersona}_${timestamp}.jpg")
+                        tempFile.writeBytes(fotoBytes)
+                        _profileImageUri.value = Uri.fromFile(tempFile)
+                        _uiState.value = _uiState.value.copy(profileImageUri = tempFile.absolutePath)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AdminPerfilVM", "Error al cargar foto: ${e.message}")
+            }
+        }
     }
 }

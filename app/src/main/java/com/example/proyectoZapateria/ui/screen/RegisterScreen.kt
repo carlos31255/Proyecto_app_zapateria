@@ -59,6 +59,7 @@ fun RegisterScreenVm(
     RegisterScreen(
         name = state.name,
         email = state.email,
+        phonePrefix = state.phonePrefix,
         phone = state.phone,
         rut = state.rut,
         pass = state.pass,
@@ -90,6 +91,7 @@ fun RegisterScreenVm(
         onComunaSelect = authViewModel::onSelectComuna,
         onNameChange = authViewModel::onRegisterNameChange,
         onEmailChange = authViewModel::onRegisterEmailChange,
+        onPhonePrefixChange = authViewModel::onSelectPhonePrefix,
         onPhoneChange = authViewModel::onRegisterPhoneChange,
         onRutChange = authViewModel::onRegisterRutChange,
         onPassChange = authViewModel::onRegisterPassChange,
@@ -105,6 +107,7 @@ fun RegisterScreenVm(
 internal fun RegisterScreen( // internal por que la funcion es privada
     name: String,
     email: String,
+    phonePrefix: String,
     phone: String,
     rut: String,
     pass: String,
@@ -136,6 +139,7 @@ internal fun RegisterScreen( // internal por que la funcion es privada
     onComunaSelect: (Long?) -> Unit,
     onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
+    onPhonePrefixChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onRutChange: (String) -> Unit,
     onPassChange: (String) -> Unit,
@@ -251,24 +255,67 @@ internal fun RegisterScreen( // internal por que la funcion es privada
 
                 Spacer(Modifier.height(12.dp))
 
-                // Campo TELÉFONO
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = onPhoneChange,
-                    label = { Text("Teléfono") },
-                    placeholder = { Text("Ej: +56912345678") },
-                    singleLine = true,
-                    isError = phoneError != null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = colorScheme.onSurface,
-                        unfocusedTextColor = colorScheme.onSurface,
-                        focusedBorderColor = colorScheme.primary,
-                        unfocusedBorderColor = colorScheme.outline,
-                        cursorColor = colorScheme.primary,
-                        focusedLabelColor = colorScheme.primary,
-                        unfocusedLabelColor = colorScheme.onSurfaceVariant),
-                    modifier = Modifier.fillMaxWidth())
+                // Campo TELÉFONO con dropdown de prefijo
+                var expandedPrefix by remember { mutableStateOf(false) }
+                val prefixes = listOf("+56", "+1", "+44", "+34", "+57")
+
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    // Dropdown de prefijo
+                    Box(modifier = Modifier.width(100.dp)) {
+                        OutlinedTextField(
+                            value = phonePrefix,
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = { expandedPrefix = !expandedPrefix }) {
+                                    Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "Prefijo")
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = colorScheme.onSurface,
+                                unfocusedTextColor = colorScheme.onSurface,
+                                focusedBorderColor = colorScheme.primary,
+                                unfocusedBorderColor = colorScheme.outline,
+                                cursorColor = colorScheme.primary
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        DropdownMenu(expanded = expandedPrefix, onDismissRequest = { expandedPrefix = false }) {
+                            prefixes.forEach { p ->
+                                DropdownMenuItem(
+                                    text = { Text(p) },
+                                    onClick = {
+                                        onPhonePrefixChange(p)
+                                        expandedPrefix = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.width(8.dp))
+
+                    // Campo de teléfono (solo dígitos, sin prefijo)
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = onPhoneChange,
+                        label = { Text("Teléfono") },
+                        placeholder = { Text("Ej: 912345678") },
+                        singleLine = true,
+                        isError = phoneError != null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = colorScheme.onSurface,
+                            unfocusedTextColor = colorScheme.onSurface,
+                            focusedBorderColor = colorScheme.primary,
+                            unfocusedBorderColor = colorScheme.outline,
+                            cursorColor = colorScheme.primary,
+                            focusedLabelColor = colorScheme.primary,
+                            unfocusedLabelColor = colorScheme.onSurfaceVariant),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 if (phoneError != null) {
                     Text(phoneError, color = colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }

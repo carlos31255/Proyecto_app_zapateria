@@ -17,19 +17,30 @@ fun validateNameLettersOnly(name: String): String? {
     return if (!regex.matches(name)) "Solo letras y espacios" else null //mensaje si
 }
 
-// validar que el teléfono tenga solo dígitos (y opcionalmente + al inicio) y una longitud razonable
+// validar que el teléfono tenga sólo dígitos (y opcionalmente + al inicio), aceptar espacios y guiones para legibilidad
 fun validatePhoneDigitsOnly(phone: String): String? {
     if (phone.isBlank()) return "El teléfono es obligatorio"
 
-    // Validar formato: puede empezar con + seguido de dígitos, o solo dígitos
-    val hasPlus = phone.startsWith("+")
-    val digitsOnly = if (hasPlus) phone.substring(1) else phone
+    // Permitimos caracteres de separación comunes (espacios y guiones) para la entrada, pero contamos sólo dígitos
+    val trimmed = phone.trim()
 
-    if (!digitsOnly.all { it.isDigit() }) return "Solo números (opcionalmente + al inicio)"
+    // Si empieza con + lo aceptamos como prefijo internacional
+    val startsWithPlus = trimmed.startsWith('+')
 
-    // Validar longitud total (incluye el + si existe)
-    if (phone.length > 15) return "Máximo 15 caracteres"
-    if (digitsOnly.length < 8) return "Mínimo 8 dígitos"
+    // Extraer sólo los dígitos
+    val digitsOnly = trimmed.filter { it.isDigit() }
+
+    // Validar que el resto (excluyendo dígitos y posible '+') no contenga caracteres invalidos
+    val allowedExtra = trimmed.filter { !it.isDigit() }
+    val invalidChars = allowedExtra.filter { it != '+' && it != ' ' && it != '-' }
+    if (invalidChars.isNotEmpty()) return "Sólo dígitos, espacios, guiones y un '+' al inicio"
+
+    // Si tiene + pero no está al inicio -> inválido
+    if (trimmed.contains('+') && !startsWithPlus) return "El '+' sólo puede estar al inicio"
+
+    // Validar longitud en número de dígitos (código país + número). Recomendado entre 7 y 15 dígitos
+    if (digitsOnly.length < 7) return "Mínimo 7 dígitos"
+    if (digitsOnly.length > 15) return "Máximo 15 dígitos"
 
     return null
 }

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,14 @@ fun AdminPerfilScreen(
 
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
+    val needsPhotoLoad by viewModel.needsPhotoLoad.collectAsStateWithLifecycle()
+
+    // Cargar foto de perfil cuando el ViewModel lo solicita (usa timestamp para detectar cambios)
+    androidx.compose.runtime.LaunchedEffect(needsPhotoLoad) {
+        needsPhotoLoad?.let { trigger ->
+            viewModel.cargarFotoPerfil(context, trigger.idPersona)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -78,7 +87,7 @@ fun AdminPerfilScreen(
                         }
                     }
 
-                    IconButton(onClick = { /* placeholder para acción */ }) {
+                    IconButton(onClick = { viewModel.startEdit() }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar", tint = colorScheme.onPrimaryContainer)
                     }
                 }
@@ -90,21 +99,14 @@ fun AdminPerfilScreen(
                         .padding(top = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        modifier = Modifier.size(100.dp),
-                        shape = CircleShape,
-                        color = colorScheme.primary,
-                        tonalElevation = 2.dp
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(
-                                imageVector = Icons.Default.AdminPanelSettings,
-                                contentDescription = "Avatar Admin",
-                                tint = colorScheme.onPrimary,
-                                modifier = Modifier.size(60.dp)
-                            )
-                        }
-                    }
+                    // Usar el componente ProfileImagePicker
+                    val profileImageUri by viewModel.profileImageUri.collectAsStateWithLifecycle()
+                    com.example.proyectoZapateria.ui.components.ProfileImagePicker(
+                        imageUri = profileImageUri,
+                        onImageSelected = { ctx, file -> viewModel.onProfileImageSelected(ctx, file) },
+                        size = 100,
+                        isEditing = isEditing
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 

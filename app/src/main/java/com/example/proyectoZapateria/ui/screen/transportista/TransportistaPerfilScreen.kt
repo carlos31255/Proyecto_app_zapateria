@@ -26,6 +26,7 @@ import com.example.proyectoZapateria.viewmodel.transportista.TransportistaPerfil
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun TransportistaPerfilScreen(
@@ -58,6 +59,15 @@ fun TransportistaPerfilScreen(
 
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
+    val needsPhotoLoadState = viewModel.needsPhotoLoad.collectAsStateWithLifecycle()
+    val needsPhotoLoad = needsPhotoLoadState.value
+
+    // Cargar foto de perfil cuando el ViewModel lo solicita (usa timestamp para detectar cambios)
+    LaunchedEffect(needsPhotoLoad) {
+        needsPhotoLoad?.let { trigger ->
+            viewModel.cargarFotoPerfil(context, trigger.idPersona)
+        }
+    }
 
     // Altura aproximada del header para posicionar el loader
     val headerTopOffset: Dp = 120.dp
@@ -102,21 +112,14 @@ fun TransportistaPerfilScreen(
                             .padding(top = 12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Surface(
-                            modifier = Modifier.size(100.dp),
-                            shape = CircleShape,
-                            color = colorScheme.primary,
-                            tonalElevation = 2.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Avatar",
-                                    tint = colorScheme.onPrimary,
-                                    modifier = Modifier.size(60.dp)
-                                )
-                            }
-                        }
+                        // Usar el componente ProfileImagePicker
+                        val profileImageUri = viewModel.profileImageUri.collectAsStateWithLifecycle()
+                        com.example.proyectoZapateria.ui.components.ProfileImagePicker(
+                            imageUri = profileImageUri.value,
+                            onImageSelected = { ctx, file -> viewModel.onProfileImageSelected(ctx, file) },
+                            size = 100,
+                            isEditing = isEditing
+                        )
 
                         Spacer(modifier = Modifier.height(12.dp))
 

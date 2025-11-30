@@ -35,5 +35,16 @@ interface UsuarioApiService {
     @DELETE("usuarios/{idPersona}")
     suspend fun eliminarUsuario(@Path("idPersona") idPersona: Long): Response<Void>
 
+    // Subir foto de perfil
+    @Multipart
+    @PUT("usuarios/{idPersona}/foto")
+    suspend fun actualizarFotoUsuario(
+        @Path("idPersona") idPersona: Long,
+        @Part foto: okhttp3.MultipartBody.Part
+    ): Response<UsuarioDTO>
 
+    // Obtener foto de perfil (usar ResponseBody para datos binarios)
+    @GET("usuarios/{idPersona}/foto-blob")
+    @Streaming
+    suspend fun obtenerFotoUsuario(@Path("idPersona") idPersona: Long): Response<okhttp3.ResponseBody>
 }
