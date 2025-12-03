@@ -21,6 +21,7 @@ class RegisterScreenTest {
             RegisterScreen(
                 name = "Juan Pérez González",
                 email = "juan.perez@example.com",
+                phonePrefix = "+56",
                 phone = "912345678",
                 rut = "12345678-9",
                 pass = "Password123!",
@@ -52,6 +53,7 @@ class RegisterScreenTest {
                 onComunaSelect = {},
                 onNameChange = {},
                 onEmailChange = {},
+                onPhonePrefixChange = {},
                 onPhoneChange = {},
                 onRutChange = {},
                 onPassChange = {},
